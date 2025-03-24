@@ -94,13 +94,17 @@ jest.mock('../../app/components/LocationPermissionPopup', () => ({
     onAllow: () => void; 
     onDeny: () => void 
   }) {
-    return open ? (
+    const renderPopup = () => (
       <div data-testid="permission-popup">
         <button data-testid="allow-button" onClick={onAllow}>Allow</button>
         <button data-testid="deny-button" onClick={onDeny}>Deny</button>
         <button data-testid="close-button" onClick={onClose}>Close</button>
       </div>
-    ) : null;
+    );
+    
+    const renderEmpty = () => null;
+    
+    return open ? renderPopup() : renderEmpty();
   }
 }));
 
@@ -115,12 +119,15 @@ jest.mock('../../app/components/LocationErrorPopup', () => ({
     errorType: string; 
     onOpenChange: () => void 
   }) {
-    // Make sure the component only renders when open is true
-    return open ? (
+    const renderErrorPopup = () => (
       <div data-testid="error-popup" data-error-type={errorType}>
         <button data-testid="close-error-button" onClick={onOpenChange}>Close</button>
       </div>
-    ) : null;
+    );
+    
+    const renderEmpty = () => null;
+    
+    return open ? renderErrorPopup() : renderEmpty();
   }
 }));
 
@@ -293,9 +300,7 @@ describe("IndonesiaMap Component", () => {
     );
   });
   
-  test('sets mapInitialized to true after mapService is available', () => {
-    let mapInitializedRef = { current: false };
-    
+  test('sets mapInitialized to true after mapService is available', () => {    
     // First render with null mapService
     (useIndonesiaMap as jest.Mock).mockReturnValueOnce({
       mapService: null

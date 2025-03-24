@@ -76,7 +76,7 @@ describe("useIndonesiaMap", () => {
 
   test("should initialize map service on mount", async () => {
     // Render the hook
-    const { result } = renderHook(() =>
+    renderHook(() =>
       useIndonesiaMap(containerId, mockLocations, mockConfig, mockOnError)
     );
 

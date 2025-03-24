@@ -22,27 +22,27 @@ describe("About Page", () => {
     ).toBeInTheDocument();
   });
 
-  it("tidak menampilkan paragraf dengan teks yang salah (negative test)", () => {
+  it("tidak  menampilkan paragraf dengan teks yang salah (negative test)", () => {
     render(<About />);
     expect(screen.queryByText("Bekerja sama dengan NASA")).not.toBeInTheDocument();
   });
 
-  it("menampilkan gambar 'PantauTular_tentang_kami'", () => {
+  it("menampilkan  gambar 'PantauTular_tentang_kami'", () => {
     render(<About />);
     expect(screen.getByAltText("PantauTular_tentang_kami")).toBeInTheDocument();
   });
 
-  it("tidak menampilkan gambar dengan alt text yang salah (negative test)", () => {
+  it("tidak  menampilkan gambar dengan alt text yang salah (negative test)", () => {
     render(<About />);
     expect(screen.queryByAltText("Tentang Kami PantauTular")).not.toBeInTheDocument();
   });
 
-  it("menampilkan bagian 'Kami memahami pentingnya'", () => {
+  it("menampilkan  bagian 'Kami memahami pentingnya'", () => {
     render(<About />);
     expect(screen.getByText("Kami memahami pentingnya")).toBeInTheDocument();
   });
 
-  it("tidak menampilkan teks lain yang tidak ada dalam halaman (negative test)", () => {
+  it("tidak  menampilkan teks lain yang tidak ada dalam halaman (negative test)", () => {
     render(<About />);
     expect(screen.queryByText("Kami tidak peduli dengan ini")).not.toBeInTheDocument();
   });

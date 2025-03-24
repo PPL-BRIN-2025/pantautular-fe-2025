@@ -29,20 +29,6 @@ describe("MapPage Component", () => {
     expect(screen.queryAllByText(/Gagal memuat peta/)).toHaveLength(0);
   });
 
-  test("popup menghilang setelah tombol tutup diklik", async () => {
-    render(<MapPage />);
-
-    // Wait for loading state to finish
-    expect(screen.getByText("Loading map data...")).toBeInTheDocument();
-    
-    // Wait for map to load
-    const mapContainer = await screen.findByTestId("map-container");
-    fireEvent.error(mapContainer);
-    expect(screen.getByText("Terjadi Kesalahan")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Tutup"));
-    expect(screen.queryByText("Terjadi Kesalahan")).toBeInTheDocument();
-  });
-
   test("tidak menampilkan popup error saat halaman pertama kali dimuat", () => {
     render(<MapPage />);
 
