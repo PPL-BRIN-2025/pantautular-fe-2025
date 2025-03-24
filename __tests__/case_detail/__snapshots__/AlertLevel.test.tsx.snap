@@ -1,0 +1,154 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AlertLevel Component matches snapshot for different levels 1`] = `
+<DocumentFragment>
+  <div
+    class="px-2"
+  >
+    <div
+      class="grid grid-cols-2 items-center"
+    >
+      <div
+        class="text-base font-bold"
+      >
+        <div>
+          Tingkat
+        </div>
+        <div>
+          Kewaspadaan
+        </div>
+      </div>
+      <div
+        class="flex flex-col items-end"
+      >
+        <div
+          class="flex justify-end"
+        >
+          <span>
+            FILLED_STAR
+          </span>
+          <span>
+            FILLED_STAR
+          </span>
+          <span>
+            FILLED_STAR
+          </span>
+          <span>
+            EMPTY_STAR
+          </span>
+          <span>
+            EMPTY_STAR
+          </span>
+        </div>
+        <div
+          class="text-[10px] text-gray-600 self-end"
+        >
+          Waspada
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`AlertLevel Component matches snapshot for different levels 2`] = `
+<DocumentFragment>
+  <div
+    class="px-2"
+  >
+    <div
+      class="grid grid-cols-2 items-center"
+    >
+      <div
+        class="text-base font-bold"
+      >
+        <div>
+          Tingkat
+        </div>
+        <div>
+          Kewaspadaan
+        </div>
+      </div>
+      <div
+        class="flex flex-col items-end"
+      >
+        <div
+          class="flex justify-end"
+        >
+          <span>
+            EMPTY_STAR
+          </span>
+          <span>
+            EMPTY_STAR
+          </span>
+          <span>
+            EMPTY_STAR
+          </span>
+          <span>
+            EMPTY_STAR
+          </span>
+          <span>
+            EMPTY_STAR
+          </span>
+        </div>
+        <div
+          class="text-[10px] text-gray-600 self-end"
+        >
+          Waspada
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`AlertLevel Component matches snapshot for different levels 3`] = `
+<DocumentFragment>
+  <div
+    class="px-2"
+  >
+    <div
+      class="grid grid-cols-2 items-center"
+    >
+      <div
+        class="text-base font-bold"
+      >
+        <div>
+          Tingkat
+        </div>
+        <div>
+          Kewaspadaan
+        </div>
+      </div>
+      <div
+        class="flex flex-col items-end"
+      >
+        <div
+          class="flex justify-end"
+        >
+          <span>
+            FILLED_STAR
+          </span>
+          <span>
+            FILLED_STAR
+          </span>
+          <span>
+            FILLED_STAR
+          </span>
+          <span>
+            FILLED_STAR
+          </span>
+          <span>
+            FILLED_STAR
+          </span>
+        </div>
+        <div
+          class="text-[10px] text-gray-600 self-end"
+        >
+          Waspada
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
