@@ -15,21 +15,16 @@ describe('CaseNumberCard', () => {
 
     render(<CaseNumberCard {...props} />);
 
-    // Check header: title and total cases
     expect(screen.getByText('Jumlah Kasus')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
-
-    // Check StatsItem for kasus_kematian
     const kematian = screen.getByTestId('stats-item-kasus_kematian');
     expect(kematian).toHaveTextContent('Kasus Kematian');
     expect(kematian).toHaveTextContent('10 (10%)');
 
-    // Check StatsItem for kasus_terjangkit
     const terjangkit = screen.getByTestId('stats-item-kasus_terjangkit');
     expect(terjangkit).toHaveTextContent('Kasus Terjangkit');
     expect(terjangkit).toHaveTextContent('80 (80%)');
 
-    // Check StatsItem for kasus_sembuh
     const sembuh = screen.getByTestId('stats-item-kasus_sembuh');
     expect(sembuh).toHaveTextContent('Kasus Sembuh');
     expect(sembuh).toHaveTextContent('10 (10%)');
