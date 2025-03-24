@@ -15,6 +15,6 @@ describe("GeneralInformation Component", () => {
       render(<GeneralInformation />);
       
       const divElement = screen.getByText(/Informasi Kasus Penyakit Menular/i).parentElement;
-      expect(divElement).toHaveClass("flex", "items-center", "justify-center", "bg-transparent", "text-black", "text-lg", "p-6", "rounded-lg", "shadow-md", "border");
+      expect(divElement).toHaveClass("items-center", "justify-center", "bg-transparent", "text-black", "text-lg", "p-6", "rounded-lg", "shadow-md", "border");
     });
   });

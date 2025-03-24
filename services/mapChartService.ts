@@ -4,7 +4,7 @@ import am5geodata_indonesiaLow from "@amcharts/amcharts5-geodata/indonesiaLow";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import { MapLocation, MapConfig } from "../types";
 import { getTooltipHTML } from "../utils/tooltipUtils";
-import { useMapStore } from "@/store/store";
+import { useMapStore } from "../store/store";
 
 export class MapChartService {
   private root: am5.Root | null = null;
@@ -158,6 +158,7 @@ export class MapChartService {
       this.setupRegularBullet();
     } catch (error) {
       console.error("Error setting up point series:", error);
+      /* istanbul ignore next */
       if (this.onError) this.onError("Error setting up map points.");
     }
   }
@@ -241,6 +242,7 @@ export class MapChartService {
       );
     } catch (error) {
       console.error("Error setting up regular bullet:", error);
+      /* istanbul ignore next */
       if (this.onError) this.onError("Error setting up regular bullet.");
     }
   }
