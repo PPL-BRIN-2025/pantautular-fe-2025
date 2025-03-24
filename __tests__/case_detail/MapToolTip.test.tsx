@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CaseDetailTooltip from "../../app/components/case_detail/MapTooltip";
-import { CaseDetailData, CaseDetailProps, HealthProtocol } from "../../app/components/case_detail/types";
+import { CaseDetailData, CaseDetailProps, HealthProtocol, News } from "../../app/components/case_detail/types";
 
 // Mock child components to simplify testing
 jest.mock("../../app/components/case_detail/CaseDetailHeader", () => ({ onClose }: { onClose?: () => void }) => (
