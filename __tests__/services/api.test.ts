@@ -130,4 +130,66 @@ describe('mapApi', () => {
             expect(result).toEqual([]);
         });
     });
+    
+    describe('getCaseDetail', () => {
+        const mockCaseId = '123';
+        const mockCaseDetail = {
+            id: '123',
+            title: 'Test Case',
+            description: 'Test Description',
+            status: 'Active',
+            location: { lat: -6.2, lng: 106.8 }
+        };
+
+        it('should fetch case detail successfully', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockCaseDetail)
+            });
+
+            const result = await mapApi.getCaseDetail(mockCaseId);
+            
+            expect(result).toEqual(mockCaseDetail);
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${process.env.NEXT_PUBLIC_API_URL}/cases/${mockCaseId}/`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    },
+                    credentials: 'include',
+                }
+            );
+        });
+
+        it('should handle HTTP error responses for case detail', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 404
+            });
+
+            await expect(mapApi.getCaseDetail(mockCaseId)).rejects.toThrow('HTTP error! status: 404');
+            expect(console.error).toHaveBeenCalled();
+        });
+
+        it('should handle network errors for case detail', async () => {
+            const networkError = new Error('Network error');
+            (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+
+            await expect(mapApi.getCaseDetail(mockCaseId)).rejects.toThrow('Network error');
+            expect(console.error).toHaveBeenCalledWith('Error fetching case detail:', networkError);
+        });
+
+        it('should handle empty response for case detail', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve({})
+            });
+
+            const result = await mapApi.getCaseDetail(mockCaseId);
+            expect(result).toEqual({});
+        });
+    });
 });
