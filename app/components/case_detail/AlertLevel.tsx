@@ -16,9 +16,15 @@ const AlertLevel: React.FC<AlertLevelProps> = ({ level }) => (
         <div className="flex justify-end">
           {[...Array(5)].map((_, index) =>
             index < level ? (
-              <FaStar key={index} className="text-yellow-400 mr-1 text-lg" />
+              <FaStar 
+                key={`filled-star-${index + 1}`} 
+                className="text-yellow-400 mr-1 text-lg" 
+              />
             ) : (
-              <FaRegStar key={index} className="text-red-400 mr-1 text-lg" />
+              <FaRegStar 
+                key={`empty-star-${index + 1}`} 
+                className="text-red-400 mr-1 text-lg" 
+              />
             )
           )}
         </div>
