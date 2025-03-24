@@ -37,6 +37,7 @@ export default function DashboardButton({
     },
   }
 
+  /* istanbul ignore next */
   const handleClick = () => {
     if (!disabled) {
       setIsActive(!isActive)

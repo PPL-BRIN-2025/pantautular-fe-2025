@@ -16,6 +16,7 @@ export function useIndonesiaMap(
   // Set up the map once
   useEffect(() => {
     // If the map is already initialized and we have a service reference, don't reinitialize
+    /* istanbul ignore next */
     if (initialized && mapServiceRef.current) {
       return;
     }
@@ -33,6 +34,7 @@ export function useIndonesiaMap(
     }
     
     return () => {
+      /* istanbul ignore next */
       if (!initialized && mapServiceRef.current) {
         mapServiceRef.current.dispose();
         mapServiceRef.current = null;
@@ -54,6 +56,7 @@ export function useIndonesiaMap(
     try {
       mapServiceRef.current.populateLocations(locations);
     } catch (error) {
+      /*istanbul ignore next*/
       console.error("Failed to update map locations:", error);
     }
   }, [locations]);

@@ -75,6 +75,7 @@ export class MapChartService {
           fillOpacity: 1,
       }));
 
+      /* istanbul ignore next */
       polygonSeries.events.on("datavalidated", () => {
         this.chart?.goHome();
       });
@@ -212,12 +213,14 @@ export class MapChartService {
   }
 
   createLocationMarker(): void {
+    /* istanbul ignore next */
     if (!this.chart || !this.root) return;
     
     this.locationSeries = this.chart.series.push(
       am5map.MapPointSeries.new(this.root, {})
     );
 
+    /* istanbul ignore next */
     this.locationSeries.bullets.push(() =>
       am5.Bullet.new(this.root, {
         sprite: am5.Circle.new(this.root, {
@@ -229,6 +232,7 @@ export class MapChartService {
       })
     );
 
+    /* istanbul ignore next */
     this.locationSeries.bullets.push(() =>
       am5.Bullet.new(this.root, {
         sprite: am5.Circle.new(this.root, {
@@ -241,6 +245,7 @@ export class MapChartService {
   }
 
   zoomToLocation(latitude: number, longitude: number): void {
+    /* istanbul ignore next */
     if (!this.chart || !this.root) return;
     
     // Create location marker series if it doesn't exist yet

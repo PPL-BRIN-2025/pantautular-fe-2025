@@ -67,4 +67,67 @@ describe('mapApi', () => {
             expect(result).toEqual([]);
         });
     });
+
+    describe('getFilteredLocations', () => {
+        const mockFilters = {
+            diseases: ['Dengue'],
+            locations: ['Jakarta'],
+            level_of_alertness: 2,
+            portals: ['news-portal-1'],
+            start_date: new Date('2023-01-01'),
+            end_date: new Date('2023-12-31')
+        };
+
+        it('should fetch filtered locations successfully', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockResponse)
+            });
+
+            const result = await mapApi.getFilteredLocations(mockFilters);
+            
+            expect(result).toEqual(mockResponse);
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${process.env.NEXT_PUBLIC_API_URL}/cases/locations/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(mockFilters),
+                }
+            );
+        });
+
+        it('should handle HTTP error responses for filtered locations', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 400
+            });
+
+            await expect(mapApi.getFilteredLocations(mockFilters)).rejects.toThrow('HTTP error! status: 400');
+            expect(console.error).toHaveBeenCalled();
+        });
+
+        it('should handle network errors for filtered locations', async () => {
+            const networkError = new Error('Network error');
+            (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+
+            await expect(mapApi.getFilteredLocations(mockFilters)).rejects.toThrow('Network error');
+            expect(console.error).toHaveBeenCalledWith('Error fetching filtered locations:', networkError);
+        });
+
+        it('should handle empty response for filtered locations', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve([])
+            });
+
+            const result = await mapApi.getFilteredLocations(mockFilters);
+            expect(result).toEqual([]);
+        });
+    });
 });

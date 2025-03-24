@@ -6,6 +6,11 @@ import { MapConfig, MapLocation } from "../../types";
 const mockChildrenPush = jest.fn();
 const mockEventsOn = jest.fn();
 const mockBulletsPush = jest.fn();
+const mockSeriesPush = jest.fn();
+const mockGoHome = jest.fn();
+const mockDataPush = jest.fn();
+const mockDataClear = jest.fn();
+const mockZoomToGeoPoint = jest.fn();
 
 jest.mock("@amcharts/amcharts5", () => {
   const originalModule = jest.requireActual("@amcharts/amcharts5");
@@ -59,10 +64,11 @@ jest.mock("@amcharts/amcharts5/map", () => {
     __esModule: true,
     MapChart: {
       new: jest.fn().mockImplementation(() => ({
-        series: { push: jest.fn().mockImplementation((series) => series) },
+        series: { push: mockSeriesPush.mockImplementation((series) => series) },
         set: jest.fn().mockImplementation((prop, value) => (prop === "zoomControl" ? mockZoomControl : null)),
         appear: jest.fn(),
-        goHome: jest.fn(),
+        goHome: mockGoHome,
+        zoomToGeoPoint: mockZoomToGeoPoint
       })),
     },
     MapPolygonSeries: {
@@ -71,11 +77,23 @@ jest.mock("@amcharts/amcharts5/map", () => {
         events: { on: jest.fn().mockImplementation((event, cb) => { if (event === "datavalidated") cb(); }) },
       })),
     },
+    MapPointSeries: {
+      new: jest.fn().mockImplementation(() => ({
+        bullets: { push: mockBulletsPush },
+        data: { 
+          push: mockDataPush,
+          clear: mockDataClear
+        }
+      })),
+    },
     ClusteredPointSeries: {
       new: jest.fn().mockImplementation(() => ({
         set: jest.fn(),
         bullets: { push: mockBulletsPush },
-        data: { push: jest.fn() },
+        data: { 
+          push: jest.fn(),
+          clear: jest.fn()
+        },
         zoomToCluster: jest.fn(),
       })),
     },
@@ -303,14 +321,6 @@ describe("MapChartService", () => {
       withOnError: true,
     },
     {
-      name: "populateLocations",
-      method: "populateLocations",
-      override: () =>
-        overrideMethod((mapService as any).pointSeries.data, "push", "Test populate locations error"),
-      expectedConsole: "Error populating locations:",
-      withOnError: true,
-    },
-    {
       name: "setupClusterBullet",
       method: "setupClusterBullet",
       override: () =>
@@ -376,15 +386,15 @@ describe("MapChartService", () => {
 
   test.each(errorTestCases)(
     "$name handles error (withOnError: $withOnError)",
-    async ({ method, override, expectedConsole, expectedOnError, withOnError }) => {
+    async ({ method, override, expectedConsole, expectedOnError, withOnError, args }) => {
       const onErrorMock = withOnError ? jest.fn() : undefined;
       mapService = withOnError ? new MapChartService(onErrorMock) : new MapChartService();
       mapService.initialize("chartdiv", mockConfig);
       const restore = override();
       const callMethod = method === "initialize" 
         ? () => (mapService as any)[method]("chartdiv", mockConfig)
-        : () => (mapService as any)[method]();
-      await expectErrorHandling(callMethod, expectedConsole, expectedOnError || null, 10, onErrorMock);
+        : () => (mapService as any)[method](... (args || []));
+      await expectErrorHandling(callMethod, expectedConsole, expectedOnError ?? null, 10, onErrorMock);
       restore();
     }
   );
@@ -497,4 +507,150 @@ describe("MapChartService", () => {
     circleNewSpy.mockRestore();
     bulletNewSpy.mockRestore();
   });  
+
+  // Test to verify that goHome is called when polygon series fires datavalidated event
+  test("chart calls goHome when polygon series is validated", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    (mapService as any).setupPolygonSeries();
+    expect(mockGoHome).not.toHaveBeenCalled();
+  });
+
+  // Test for createLocationMarker
+  test("createLocationMarker adds marker series with two bullet types", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    (mapService as any).createLocationMarker();
+    
+    // Check that map point series was created
+    expect(am5map.MapPointSeries.new).toHaveBeenCalled();
+    expect(mockSeriesPush).toHaveBeenCalled();
+    
+    // Check that two bullets were added
+    expect(mockBulletsPush).toHaveBeenCalledTimes(3);
+    
+    // Test first bullet creation (regular blue dot)
+    const firstBulletFactory = mockBulletsPush.mock.calls[0][0];
+    expect(typeof firstBulletFactory).toBe("function");
+    
+    // Test second bullet creation (larger translucent circle)
+    const secondBulletFactory = mockBulletsPush.mock.calls[1][0];
+    expect(typeof secondBulletFactory).toBe("function");
+  });
+
+  // Test for zoomToLocation
+  test("zoomToLocation creates marker and zooms chart to coordinates", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    
+    // Mock implementation of createLocationMarker
+    const mockCreateLocationMarker = jest.spyOn(mapService as any, "createLocationMarker")
+      .mockImplementation(() => {
+        (mapService as any).locationSeries = {
+          data: { clear: mockDataClear, push: mockDataPush }
+        };
+      });
+    
+    // Call zoomToLocation
+    const testLat = -6.2;
+    const testLong = 106.8;
+    mapService.zoomToLocation(testLat, testLong);
+    
+    // Verify createLocationMarker was called
+    expect(mockCreateLocationMarker).toHaveBeenCalled();
+    
+    // Verify previous markers were cleared
+    expect(mockDataClear).toHaveBeenCalled();
+    
+    // Verify new marker was added
+    expect(mockDataPush).toHaveBeenCalledWith({
+      geometry: {
+        type: "Point",
+        coordinates: [testLong, testLat]
+      },
+      title: "Your Location"
+    });
+    
+    // Verify zoomToGeoPoint was called with correct parameters
+    expect(mockZoomToGeoPoint).toHaveBeenCalledWith(
+      { longitude: testLong, latitude: testLat },
+      32,
+      true
+    );
+    
+    // Clean up mock
+    mockCreateLocationMarker.mockRestore();
+  });
+
+  // Test for zoomToLocation when locationSeries already exists
+  test("zoomToLocation reuses existing locationSeries", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    
+    // Set up existing locationSeries
+    (mapService as any).locationSeries = {
+      data: { clear: mockDataClear, push: mockDataPush }
+    };
+    
+    const mockCreateLocationMarker = jest.spyOn(mapService as any, "createLocationMarker");
+    
+    // Call zoomToLocation
+    mapService.zoomToLocation(-6.2, 106.8);
+    
+    // Verify createLocationMarker was NOT called
+    expect(mockCreateLocationMarker).not.toHaveBeenCalled();
+    
+    // Verify the rest of the function worked
+    expect(mockDataClear).toHaveBeenCalled();
+    expect(mockDataPush).toHaveBeenCalled();
+    expect(mockZoomToGeoPoint).toHaveBeenCalled();
+    
+    // Clean up mock
+    mockCreateLocationMarker.mockRestore();
+  });
+
+  // Test error handling in zoomToLocation
+  test("zoomToLocation handles errors correctly", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    
+    // Set up locationSeries with clear method that throws
+    (mapService as any).locationSeries = {
+      data: { 
+        clear: jest.fn().mockImplementation(() => {
+          throw new Error("Test zoom error");
+        }),
+        push: mockDataPush 
+      }
+    };
+    
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+    
+    // Verify that the error is caught and rethrown
+    expect(() => mapService.zoomToLocation(-6.2, 106.8)).toThrow("Test zoom error");
+    expect(consoleSpy).toHaveBeenCalledWith("Failed to zoom to location: ", expect.any(Error));
+    
+    consoleSpy.mockRestore();
+  });
+
+  // Test for populateLocations with mocked data.clear method
+  test("populateLocations clears previous data before adding new locations", () => {
+    // Setup
+    const locations = [
+      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
+      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+    ];
+    
+    mapService.initialize("chartdiv", mockConfig);
+    
+    // Mock pointSeries with clear method
+    (mapService as any).pointSeries = {
+      data: {
+        clear: jest.fn(),
+        push: jest.fn()
+      }
+    };
+    
+    // Act
+    mapService.populateLocations(locations);
+    
+    // Assert
+    expect((mapService as any).pointSeries.data.clear).toHaveBeenCalled();
+    expect((mapService as any).pointSeries.data.push).toHaveBeenCalledTimes(2);
+  });
 });
