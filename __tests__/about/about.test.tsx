@@ -10,60 +10,76 @@ describe("About Page", () => {
     render(<About />);
   });
 
+  const checkTextPresence = (text: string, shouldBePresent: boolean = true) => {
+    if (shouldBePresent) {
+      expect(screen.getByText(text)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
+    }
+  };
+
+  const checkAltTextPresence = (altText: string, shouldBePresent: boolean = true) => {
+    if (shouldBePresent) {
+      expect(screen.getByAltText(altText)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByAltText(altText)).not.toBeInTheDocument();
+    }
+  };
+
   it("menampilkan judul utama 'Tentang PantauTular'", () => {
-    expect(screen.getByText("Tentang PantauTular")).toBeInTheDocument();
+    checkTextPresence("Tentang PantauTular");
   });
 
   it("tidak menampilkan teks yang salah pada judul utama", () => {
-    expect(screen.queryByText("Tentang Fasilkom UI")).not.toBeInTheDocument();
+    checkTextPresence("Tentang Fasilkom UI", false);
   });
 
   it("menampilkan paragraf utama dengan BRIN", () => {
-    expect(screen.getByText(/Bekerja sama dengan Badan Riset dan Inovasi Nasional/i)).toBeInTheDocument();
+    checkTextPresence(/Bekerja sama dengan Badan Riset dan Inovasi Nasional/i);
   });
 
   it("tidak menampilkan paragraf dengan teks yang salah", () => {
-    expect(screen.queryByText("Bekerja sama dengan NASA")).not.toBeInTheDocument();
+    checkTextPresence("Bekerja sama dengan NASA", false);
   });
 
   it("menampilkan gambar 'PantauTular_tentang_kami'", () => {
-    expect(screen.getByAltText("PantauTular_tentang_kami")).toBeInTheDocument();
+    checkAltTextPresence("PantauTular_tentang_kami");
   });
 
   it("tidak menampilkan gambar dengan alt text yang salah", () => {
-    expect(screen.queryByAltText("Tentang Kami PantauTular")).not.toBeInTheDocument();
+    checkAltTextPresence("Tentang Kami PantauTular", false);
   });
 
   it("menampilkan bagian 'Kami memahami pentingnya'", () => {
-    expect(screen.getByText("Kami memahami pentingnya")).toBeInTheDocument();
+    checkTextPresence("Kami memahami pentingnya");
   });
 
   it("tidak menampilkan teks yang tidak relevan", () => {
-    expect(screen.queryByText("Kami tidak peduli dengan ini")).not.toBeInTheDocument();
+    checkTextPresence("Kami tidak peduli dengan ini", false);
   });
 
   it("menampilkan bagian 'Latar Belakang'", () => {
-    expect(screen.getByText("Latar Belakang")).toBeInTheDocument();
+    checkTextPresence("Latar Belakang");
   });
 
   it("tidak menampilkan teks yang salah pada bagian latar belakang", () => {
-    expect(screen.queryByText("Sejarah Kami")).not.toBeInTheDocument();
+    checkTextPresence("Sejarah Kami", false);
   });
 
   it("menampilkan gambar 'PantauTular_latarbelakang'", () => {
-    expect(screen.getByAltText("PantauTular_latar_belakang")).toBeInTheDocument();
+    checkAltTextPresence("PantauTular_latar_belakang");
   });
 
   it("tidak menampilkan gambar yang tidak relevan", () => {
-    expect(screen.queryByAltText("PantauTular_sejarah")).not.toBeInTheDocument();
+    checkAltTextPresence("PantauTular_sejarah", false);
   });
 
   it("menampilkan bagian 'Dengan demikian'", () => {
-    expect(screen.getByText("Dengan demikian,")).toBeInTheDocument();
+    checkTextPresence("Dengan demikian,");
   });
 
   it("tidak menampilkan elemen dengan teks yang salah", () => {
-    expect(screen.queryByText("Tentang Fasilkom UI")).not.toBeInTheDocument();
-    expect(screen.queryByText("Pusat Informasi Medis")).not.toBeInTheDocument();
+    checkTextPresence("Tentang Fasilkom UI", false);
+    checkTextPresence("Pusat Informasi Medis", false);
   });
 });

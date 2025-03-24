@@ -3,17 +3,25 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import HumidityButton from '../../../../app/components/floating_buttons/HumidityButton';
 
+// Helper function to check button's class and aria-pressed state
+const checkButtonState = (
+  button: HTMLElement,
+  expectedClasses: string[],
+  expectedAriaPressed: string
+) => {
+  expectedClasses.forEach(className => {
+    expect(button).toHaveClass(className);
+  });
+  expect(button).toHaveAttribute('aria-pressed', expectedAriaPressed);
+};
+
 describe('HumidityButton', () => {
   // Test default rendering
   test('renders with default props', () => {
     render(<HumidityButton />);
     
     const button = screen.getByRole('button', { name: 'Toggle humidity map view' });
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveClass('bg-white');
-    expect(button).toHaveClass('text-teal-500');
-    expect(button).toHaveClass('h-12 w-12'); // Default size is md
-    expect(button).toHaveAttribute('aria-pressed', 'false');
+    checkButtonState(button, ['bg-white', 'text-teal-500', 'h-12', 'w-12'], 'false');
   });
 
   // Test different size props
@@ -43,25 +51,15 @@ describe('HumidityButton', () => {
     const button = screen.getByRole('button');
     
     // Initial state
-    expect(button).toHaveClass('bg-white');
-    expect(button).toHaveClass('text-teal-500');
-    expect(button).toHaveAttribute('aria-pressed', 'false');
+    checkButtonState(button, ['bg-white', 'text-teal-500', 'h-12', 'w-12'], 'false');
     
     // Click to activate
     fireEvent.click(button);
-    
-    // After first click
-    expect(button).toHaveClass('bg-teal-500');
-    expect(button).toHaveClass('text-white');
-    expect(button).toHaveAttribute('aria-pressed', 'true');
+    checkButtonState(button, ['bg-teal-500', 'text-white'], 'true');
     
     // Click to deactivate
     fireEvent.click(button);
-    
-    // After second click
-    expect(button).toHaveClass('bg-white');
-    expect(button).toHaveClass('text-teal-500');
-    expect(button).toHaveAttribute('aria-pressed', 'false');
+    checkButtonState(button, ['bg-white', 'text-teal-500'], 'false');
   });
 
   // Test onClick callback

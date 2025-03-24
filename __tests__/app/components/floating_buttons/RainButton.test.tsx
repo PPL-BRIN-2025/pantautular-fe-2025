@@ -3,19 +3,34 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import RainButton from '../../../../app/components/floating_buttons/RainButton';
 
+// Helper function to check button's state and classes
+const checkButtonState = (
+  button: HTMLElement,
+  expectedClasses: string[],
+  expectedAriaPressed: string
+) => {
+  expectedClasses.forEach(className => {
+    expect(button).toHaveClass(className);
+  });
+  expect(button).toHaveAttribute('aria-pressed', expectedAriaPressed);
+};
+
+// Helper function to check SVG properties
+const checkSVGState = (svg: SVGElement, expectedSize: number) => {
+  expect(svg).toHaveAttribute('width', expectedSize.toString());
+  expect(svg).toHaveAttribute('height', expectedSize.toString());
+};
+
 describe('RainButton', () => {
   // Test default rendering
   test('renders with default props', () => {
     render(<RainButton />);
     
     const button = screen.getByRole('button');
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveClass('bg-white');
-    expect(button).toHaveClass('text-blue-600');
-    expect(button).toHaveClass('border');
-    expect(button).toHaveClass('border-gray-200');
-    expect(button).toHaveClass('h-12 w-12'); // Default size is md
-    expect(button).toHaveAttribute('aria-pressed', 'false');
+    checkButtonState(button, ['bg-white', 'text-blue-600', 'border', 'border-gray-200', 'h-12', 'w-12'], 'false');
+    
+    const svg = document.querySelector('svg');
+    checkSVGState(svg, 20); // Default icon size for md
   });
 
   // Test different size props
@@ -30,8 +45,7 @@ describe('RainButton', () => {
     expect(button).toHaveClass(expectedClass);
     
     const svg = document.querySelector('svg');
-    expect(svg).toHaveAttribute('width', expectedIconSize.toString());
-    expect(svg).toHaveAttribute('height', expectedIconSize.toString());
+    checkSVGState(svg, expectedIconSize);
   });
 
   // Test custom className prop
@@ -49,25 +63,15 @@ describe('RainButton', () => {
     const button = screen.getByRole('button');
     
     // Initial state
-    expect(button).toHaveClass('bg-white');
-    expect(button).toHaveClass('text-blue-600');
-    expect(button).toHaveAttribute('aria-pressed', 'false');
+    checkButtonState(button, ['bg-white', 'text-blue-600'], 'false');
     
     // Click to activate
     fireEvent.click(button);
-    
-    // After first click
-    expect(button).toHaveClass('bg-blue-600');
-    expect(button).toHaveClass('text-white');
-    expect(button).toHaveAttribute('aria-pressed', 'true');
+    checkButtonState(button, ['bg-blue-600', 'text-white'], 'true');
     
     // Click to deactivate
     fireEvent.click(button);
-    
-    // After second click
-    expect(button).toHaveClass('bg-white');
-    expect(button).toHaveClass('text-blue-600');
-    expect(button).toHaveAttribute('aria-pressed', 'false');
+    checkButtonState(button, ['bg-white', 'text-blue-600'], 'false');
   });
 
   // Test onClick callback
@@ -115,9 +119,7 @@ describe('RainButton', () => {
     }).not.toThrow();
     
     // State should still change
-    expect(button).toHaveClass('bg-blue-600');
-    expect(button).toHaveClass('text-white');
-    expect(button).toHaveAttribute('aria-pressed', 'true');
+    checkButtonState(button, ['bg-blue-600', 'text-white'], 'true');
   });
 
   // Test transition classes
