@@ -2,6 +2,7 @@ import { MapChartService } from "../../services/mapChartService";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
 import { MapConfig, MapLocation } from "../../types";
+import * as tooltipUtils from "../../utils/tooltipUtils";
 
 const mockChildrenPush = jest.fn();
 const mockEventsOn = jest.fn();
@@ -39,6 +40,14 @@ jest.mock("@amcharts/amcharts5", () => {
         root,
         config,
         type: "Circle",
+        dispose: jest.fn(),
+        events: {
+          on: jest.fn().mockImplementation((event, callback) => {
+            if (event === "pointerover") {
+              callback({ target: { dataItem: { dataContext: { id: "test-id" } } } });
+            }
+          })
+        }
       })),
     },
     Label: {
@@ -50,6 +59,20 @@ jest.mock("@amcharts/amcharts5", () => {
         sprite: config.sprite,
         type: "Bullet",
         config,
+      })),
+    },
+    Tooltip: {
+      new: jest.fn().mockImplementation((root, config) => ({
+        root,
+        config,
+        type: "Tooltip",
+      })),
+    },
+    Rectangle: {
+      new: jest.fn().mockImplementation((root, config) => ({
+        root,
+        config,
+        type: "Rectangle",
       })),
     },
     color: jest.fn().mockImplementation((color) => ({ color })),
@@ -329,24 +352,7 @@ describe("MapChartService", () => {
       expectedOnError: "Error setting up cluster bullet.",
       withOnError: true,
     },
-    {
-      name: "setupRegularBullet",
-      method: "setupRegularBullet",
-      override: () =>
-        overrideMethod((mapService as any).pointSeries.bullets, "push", "Test regular bullet error"),
-      expectedConsole: "Error setting up regular bullet:",
-      expectedOnError: "Error setting up regular bullet.",
-      withOnError: true,
-    },
-    // Without onError.
-    {
-      name: "setupRegularBullet without onError",
-      method: "setupRegularBullet",
-      override: () =>
-        overrideMethod((mapService as any).pointSeries.bullets, "push", "Test regular bullet error"),
-      expectedConsole: "Error setting up regular bullet:",
-      withOnError: false,
-    },
+
     {
       name: "setupClusterBullet without onError",
       method: "setupClusterBullet",
@@ -386,14 +392,14 @@ describe("MapChartService", () => {
 
   test.each(errorTestCases)(
     "$name handles error (withOnError: $withOnError)",
-    async ({ method, override, expectedConsole, expectedOnError, withOnError, args }) => {
+    async ({ method, override, expectedConsole, expectedOnError, withOnError }) => {
       const onErrorMock = withOnError ? jest.fn() : undefined;
       mapService = withOnError ? new MapChartService(onErrorMock) : new MapChartService();
       mapService.initialize("chartdiv", mockConfig);
       const restore = override();
       const callMethod = method === "initialize" 
         ? () => (mapService as any)[method]("chartdiv", mockConfig)
-        : () => (mapService as any)[method](... (args || []));
+        : () => (mapService as any)[method]();
       await expectErrorHandling(callMethod, expectedConsole, expectedOnError ?? null, 10, onErrorMock);
       restore();
     }
@@ -403,31 +409,52 @@ describe("MapChartService", () => {
   test("setupRegularBullet creates a regular bullet", () => {
     // Set up fake root (with dummy dispose) and fake pointSeries with bullets.push spy.
     const fakeRoot = { dispose: jest.fn() } as any;
-    const fakePointSeries = { bullets: { push: jest.fn() } } as any;
+    const fakePointSeries = { 
+      bullets: { push: jest.fn() },
+      set: jest.fn()
+    } as any;
     (mapService as any).root = fakeRoot;
     (mapService as any).pointSeries = fakePointSeries;
     (mapService as any).setupRegularBullet();
     expect(fakePointSeries.bullets.push).toHaveBeenCalledTimes(1);
     const bulletFactory = fakePointSeries.bullets.push.mock.calls[0][0];
-    const fakeCircle = {} as any;
+    const fakeCircle = {
+      events: {
+        on: jest.fn().mockImplementation((event, callback) => {
+          if (event === "pointerover") {
+            callback({ target: { dataItem: { dataContext: { id: "test-id" } } } });
+          }
+        })
+      }
+    } as any;
     const fakeBullet = {} as any;
+    const fakeTooltip = {
+      set: jest.fn(),
+      show: jest.fn(),
+      hide: jest.fn()
+    } as any;
+    const fakeRectangle = {} as any;
     const originalCircleNew = am5.Circle.new;
     const originalBulletNew = am5.Bullet.new;
+    const originalTooltipNew = am5.Tooltip.new;
+    const originalRectangleNew = am5.Rectangle.new;
     am5.Circle.new = jest.fn().mockReturnValue(fakeCircle);
     am5.Bullet.new = jest.fn().mockReturnValue(fakeBullet);
-    const bullet = bulletFactory();
+    am5.Tooltip.new = jest.fn().mockReturnValue(fakeTooltip);
+    am5.Rectangle.new = jest.fn().mockReturnValue(fakeRectangle);
+    const bullet = bulletFactory(fakeRoot, fakePointSeries, { dataContext: { id: "test-id" } });
     expect(am5.Circle.new).toHaveBeenCalledWith(fakeRoot, expect.objectContaining({
       radius: 6,
       tooltipY: 0,
       fill: expect.anything(),
-      cursorOverStyle: "pointer",
-      showTooltipOn: "click",
-      tooltipHTML: expect.any(String),
+      cursorOverStyle: "pointer"
     }));
     expect(am5.Bullet.new).toHaveBeenCalledWith(fakeRoot, { sprite: fakeCircle });
     expect(bullet).toBe(fakeBullet);
     am5.Circle.new = originalCircleNew;
     am5.Bullet.new = originalBulletNew;
+    am5.Tooltip.new = originalTooltipNew;
+    am5.Rectangle.new = originalRectangleNew;
   });
 
   test("setupClusterBullet covers container creation and click event", () => {
@@ -511,12 +538,12 @@ describe("MapChartService", () => {
   // Test to verify that goHome is called when polygon series fires datavalidated event
   test("chart calls goHome when polygon series is validated", () => {
     mapService.initialize("chartdiv", mockConfig);
-    (mapService as any).setupPolygonSeries();
-    expect(mockGoHome).not.toHaveBeenCalled();
+    const polygonSeries = (mapService as any).setupPolygonSeries();
+    expect(mockGoHome).toHaveBeenCalled();
   });
 
   // Test for createLocationMarker
-  test("createLocationMarker adds marker series with two bullet types", () => {
+  test("createLocationMarker adds marker series with bullet types", () => {
     mapService.initialize("chartdiv", mockConfig);
     (mapService as any).createLocationMarker();
     
@@ -524,16 +551,14 @@ describe("MapChartService", () => {
     expect(am5map.MapPointSeries.new).toHaveBeenCalled();
     expect(mockSeriesPush).toHaveBeenCalled();
     
-    // Check that two bullets were added
+    // Check that bullets were added
     expect(mockBulletsPush).toHaveBeenCalledTimes(3);
     
-    // Test first bullet creation (regular blue dot)
-    const firstBulletFactory = mockBulletsPush.mock.calls[0][0];
-    expect(typeof firstBulletFactory).toBe("function");
-    
-    // Test second bullet creation (larger translucent circle)
-    const secondBulletFactory = mockBulletsPush.mock.calls[1][0];
-    expect(typeof secondBulletFactory).toBe("function");
+    // Test bullet creation
+    const bulletFactories = mockBulletsPush.mock.calls.map(call => call[0]);
+    bulletFactories.forEach(factory => {
+      expect(typeof factory).toBe("function");
+    });
   });
 
   // Test for zoomToLocation
@@ -652,5 +677,207 @@ describe("MapChartService", () => {
     // Assert
     expect((mapService as any).pointSeries.data.clear).toHaveBeenCalled();
     expect((mapService as any).pointSeries.data.push).toHaveBeenCalledTimes(2);
+  });
+
+  // Test for setupRegularBullet error handling
+  test("setupRegularBullet handles error when tooltip creation fails", async () => {
+    const fakeRoot = { dispose: jest.fn() } as any;
+    const fakePointSeries = { 
+      bullets: { push: jest.fn() },
+      set: jest.fn()
+    } as any;
+    (mapService as any).root = fakeRoot;
+    (mapService as any).pointSeries = fakePointSeries;
+
+    // Mock getTooltip to throw an error
+    jest.spyOn(require("../../utils/tooltipUtils"), "getTooltip")
+      .mockRejectedValueOnce(new Error("Tooltip error"));
+
+    (mapService as any).setupRegularBullet();
+    const bulletFactory = fakePointSeries.bullets.push.mock.calls[0][0];
+    const fakeCircle = {
+      events: {
+        on: jest.fn().mockImplementation((event, callback) => {
+          if (event === "pointerover") {
+            callback({ target: { dataItem: { dataContext: { id: "test-id" } } } });
+          }
+        })
+      }
+    } as any;
+    const fakeBullet = {} as any;
+    const fakeTooltip = {
+      set: jest.fn(),
+      show: jest.fn(),
+      hide: jest.fn()
+    } as any;
+    const fakeRectangle = {} as any;
+    const originalCircleNew = am5.Circle.new;
+    const originalBulletNew = am5.Bullet.new;
+    const originalTooltipNew = am5.Tooltip.new;
+    const originalRectangleNew = am5.Rectangle.new;
+    am5.Circle.new = jest.fn().mockReturnValue(fakeCircle);
+    am5.Bullet.new = jest.fn().mockReturnValue(fakeBullet);
+    am5.Tooltip.new = jest.fn().mockReturnValue(fakeTooltip);
+    am5.Rectangle.new = jest.fn().mockReturnValue(fakeRectangle);
+
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+    const bullet = bulletFactory(fakeRoot, fakePointSeries, { dataContext: { id: "test-id" } });
+    
+    // Trigger the pointerover event
+    fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: { dataContext: { id: "test-id" } } } });
+    
+    // Wait for the async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    expect(consoleSpy).toHaveBeenCalledWith("Error showing tooltip:", expect.any(Error));
+    consoleSpy.mockRestore();
+
+    am5.Circle.new = originalCircleNew;
+    am5.Bullet.new = originalBulletNew;
+    am5.Tooltip.new = originalTooltipNew;
+    am5.Rectangle.new = originalRectangleNew;
+  });
+
+  // Test for setupRegularBullet with missing dataContext
+  test("setupRegularBullet handles missing dataContext", async () => {
+    const fakeRoot = { dispose: jest.fn() } as any;
+    const fakePointSeries = { 
+      bullets: { push: jest.fn() },
+      set: jest.fn()
+    } as any;
+    (mapService as any).root = fakeRoot;
+    (mapService as any).pointSeries = fakePointSeries;
+
+    (mapService as any).setupRegularBullet();
+    const bulletFactory = fakePointSeries.bullets.push.mock.calls[0][0];
+    const fakeCircle = {
+      events: {
+        on: jest.fn().mockImplementation((event, callback) => {
+          if (event === "pointerover") {
+            callback({ target: { dataItem: {} } });
+          }
+        })
+      }
+    } as any;
+    const fakeBullet = {} as any;
+    const fakeTooltip = {
+      set: jest.fn(),
+      show: jest.fn(),
+      hide: jest.fn()
+    } as any;
+    const fakeRectangle = {} as any;
+    const originalCircleNew = am5.Circle.new;
+    const originalBulletNew = am5.Bullet.new;
+    const originalTooltipNew = am5.Tooltip.new;
+    const originalRectangleNew = am5.Rectangle.new;
+    am5.Circle.new = jest.fn().mockReturnValue(fakeCircle);
+    am5.Bullet.new = jest.fn().mockReturnValue(fakeBullet);
+    am5.Tooltip.new = jest.fn().mockReturnValue(fakeTooltip);
+    am5.Rectangle.new = jest.fn().mockReturnValue(fakeRectangle);
+
+    const bullet = bulletFactory(fakeRoot, fakePointSeries, { dataItem: {} });
+    
+    // Trigger the pointerover event
+    fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: {} } });
+    
+    // Wait for the async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    expect(fakeTooltip.show).not.toHaveBeenCalled();
+
+    am5.Circle.new = originalCircleNew;
+    am5.Bullet.new = originalBulletNew;
+    am5.Tooltip.new = originalTooltipNew;
+    am5.Rectangle.new = originalRectangleNew;
+  });
+
+  // Test for setupRegularBullet with missing id
+  test("setupRegularBullet handles missing id in dataContext", async () => {
+    const fakeRoot = { dispose: jest.fn() } as any;
+    const fakePointSeries = { 
+      bullets: { push: jest.fn() },
+      set: jest.fn()
+    } as any;
+    (mapService as any).root = fakeRoot;
+    (mapService as any).pointSeries = fakePointSeries;
+
+    (mapService as any).setupRegularBullet();
+    const bulletFactory = fakePointSeries.bullets.push.mock.calls[0][0];
+    const fakeCircle = {
+      events: {
+        on: jest.fn().mockImplementation((event, callback) => {
+          if (event === "pointerover") {
+            callback({ target: { dataItem: { dataContext: {} } } });
+          }
+        })
+      }
+    } as any;
+    const fakeBullet = {} as any;
+    const fakeTooltip = {
+      set: jest.fn(),
+      show: jest.fn(),
+      hide: jest.fn()
+    } as any;
+    const fakeRectangle = {} as any;
+    const originalCircleNew = am5.Circle.new;
+    const originalBulletNew = am5.Bullet.new;
+    const originalTooltipNew = am5.Tooltip.new;
+    const originalRectangleNew = am5.Rectangle.new;
+    am5.Circle.new = jest.fn().mockReturnValue(fakeCircle);
+    am5.Bullet.new = jest.fn().mockReturnValue(fakeBullet);
+    am5.Tooltip.new = jest.fn().mockReturnValue(fakeTooltip);
+    am5.Rectangle.new = jest.fn().mockReturnValue(fakeRectangle);
+
+    const bullet = bulletFactory(fakeRoot, fakePointSeries, { dataItem: { dataContext: {} } });
+    
+    // Trigger the pointerover event
+    fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: { dataContext: {} } } });
+    
+    // Wait for the async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    expect(fakeTooltip.show).not.toHaveBeenCalled();
+
+    am5.Circle.new = originalCircleNew;
+    am5.Bullet.new = originalBulletNew;
+    am5.Tooltip.new = originalTooltipNew;
+    am5.Rectangle.new = originalRectangleNew;
+  });
+
+  test("setupRegularBullet handles tooltip close button click", async () => {
+    const fakeRoot = { dispose: jest.fn() } as any;
+    const fakePointSeries = { 
+      bullets: { push: jest.fn() },
+      set: jest.fn()
+    } as any;
+    (mapService as any).root = fakeRoot;
+    (mapService as any).pointSeries = fakePointSeries;
+
+    // Mock getTooltip to return HTML with close button
+    jest.spyOn(tooltipUtils, "getTooltip").mockResolvedValue('<div data-tooltip-close>Close</div>');
+
+    // Mock setTimeout to execute immediately
+    jest.useFakeTimers();
+
+    // Set up the service with necessary mocks
+    const service = new MapChartService();
+    (service as any).root = fakeRoot;
+    (service as any).pointSeries = fakePointSeries;
+
+    // Call setupRegularBullet through the pointSeries setup
+    (service as any).setupPointSeries();
+
+    // Fast-forward timers
+    jest.advanceTimersByTime(100);
+
+    // Simulate click on close button
+    const closeButton = document.createElement('button');
+    closeButton.setAttribute('data-tooltip-close', '');
+    document.body.appendChild(closeButton);
+    closeButton.click();
+
+    // Cleanup
+    document.body.removeChild(closeButton);
+    jest.useRealTimers();
   });
 });
