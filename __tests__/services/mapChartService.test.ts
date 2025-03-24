@@ -523,7 +523,7 @@ describe("MapChartService", () => {
       
       (service as any).setupRegularBullet();
       const bulletFactory = fakes.fakePointSeries.bullets.push.mock.calls[0][0];
-      const bullet = bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataItem: {} });
+      bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataItem: {} });
       
       fakes.fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: {} } });
       
@@ -616,7 +616,7 @@ describe("MapChartService", () => {
   // Test to verify that goHome is called when polygon series fires datavalidated event
   test("chart calls goHome when polygon series is validated", () => {
     mapService.initialize("chartdiv", mockConfig);
-    const polygonSeries = (mapService as any).setupPolygonSeries();
+    (mapService as any).setupPolygonSeries();
     expect(mockGoHome).toHaveBeenCalled();
   });
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import CaseDetailHeader from '../../app/components/case_detail/CaseDetailHeader';
-import { FaTimesCircle } from "react-icons/fa";
 
 // Mock the FaTimesCircle icon for easier testing
 jest.mock("react-icons/fa", () => ({
