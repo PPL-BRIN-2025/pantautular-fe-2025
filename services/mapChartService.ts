@@ -3,7 +3,7 @@ import * as am5map from "@amcharts/amcharts5/map";
 import am5geodata_indonesiaLow from "@amcharts/amcharts5-geodata/indonesiaLow";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import { MapLocation, MapConfig } from "../types";
-import { getTooltipHTML } from "../utils/tooltipUtils";
+import { getTooltip } from "../utils/tooltipUtils";
 
 export class MapChartService {
   private root: am5.Root | null = null;
@@ -157,39 +157,66 @@ export class MapChartService {
 
   private setupRegularBullet(): void {
     if (!this.pointSeries || !this.root) return;
-    try {
-      const root = this.root;
-      const tooltipData = {
-        id: "{id}",
-        location: "{city}",
-        summary: "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo",
-        gender: "Lorem",
-        age: "0",
-        alertLevel: "Lorem",
-        relatedSearch: "Lorem ipsum dolor sit",
-        source: "https://www.detik.com",
-      };
+  
+    // First, set up the tooltip configuration
+    const tooltip = am5.Tooltip.new(this.root, {
+      getFillFromSprite: false,
+      background: am5.Rectangle.new(this.root, {
+        fill: am5.color(0xffffff),
+        fillOpacity: 1,
+      }),
+      labelText: "",
+      autoTextColor: false,
+      interactive: true,
+    });
 
-      const tooltipHTML = getTooltipHTML(tooltipData);
+    this.pointSeries.bullets.push((root, series, dataItem) => {
+      const circle = am5.Circle.new(root, {
+        radius: 6,
+        tooltipY: 0,
+        fill: am5.color(0xfc0339),
+        cursorOverStyle: "pointer",
+      });
+  
+      circle.events.on("pointerover", async (ev) => {
+        if (dataItem?.dataContext) {
+          try {
+            const dataContext = dataItem.dataContext as { id: string };
+            if (dataContext.id) {
+              const tooltipHtml = await getTooltip({ id: dataContext.id });
+              tooltip.set("html", tooltipHtml);
+              
+              // Set up click handler for close button
+              const closeHandler = (e: Event) => {
+                const target = e.target as HTMLElement;
+                const closeButton = target.closest('[data-tooltip-close]');
+                if (closeButton) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  tooltip.hide();
+                }
+              };
 
-      this.pointSeries.bullets.push(() =>
-        am5.Bullet.new(root, {
-          sprite: am5.Circle.new(root, {
-            radius: 6,
-            tooltipY: 0,
-            fill: am5.color(0xfc0339),
-            cursorOverStyle: "pointer",
-            showTooltipOn: "click",
-            tooltipHTML: tooltipHTML,
-          }),
-        })
-      );
-    } catch (error) {
-      console.error("Error setting up regular bullet:", error);
-      if (this.onError) this.onError("Error setting up regular bullet.");
-    }
+              // Add event listener after a small delay to ensure the tooltip is rendered
+              setTimeout(() => {
+                document.addEventListener('click', closeHandler, { once: true });
+              }, 100);
+
+              tooltip.show();
+            }
+          } catch (error) {
+            console.error('Error showing tooltip:', error);
+          }
+        }
+      });
+
+      return am5.Bullet.new(root, { sprite: circle });
+    });
+  
+    // Set the tooltip for the series
+    this.pointSeries.set("tooltip", tooltip);
   }
-
+  
   populateLocations(locations: MapLocation[]): void {
     if (!this.pointSeries) return;
     
