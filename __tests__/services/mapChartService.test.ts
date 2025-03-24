@@ -506,7 +506,7 @@ describe("MapChartService", () => {
       
       (service as any).setupRegularBullet();
       const bulletFactory = fakes.fakePointSeries.bullets.push.mock.calls[0][0];
-      const bullet = bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataContext: { id: "test-id" } });
+      bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataContext: { id: "test-id" } });
       
       fakes.fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: { dataContext: { id: "test-id" } } } });
       

@@ -28,7 +28,7 @@ describe('CaseDetailHeader Component', () => {
     render(<CaseDetailHeader onClose={mockOnClose} />);
     
     const closeButton = screen.getByTestId('close-icon').parentElement;
-    fireEvent.click(closeButton!);
+    fireEvent.click(closeButton);
     
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
@@ -39,7 +39,7 @@ describe('CaseDetailHeader Component', () => {
     const closeButton = screen.getByTestId('close-icon').parentElement;
     
     // Should not throw when clicked without onClose handler
-    expect(() => fireEvent.click(closeButton!)).not.toThrow();
+    expect(() => fireEvent.click(closeButton)).not.toThrow();
   });
 
   it('has correct styling classes', () => {
