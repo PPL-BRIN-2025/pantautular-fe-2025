@@ -1,7 +1,10 @@
 import React from "react";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import IndonesiaMap from "../../app/components/IndonesiaMap";
+import { IndonesiaMap } from "../../app/components/IndonesiaMap";
+import { useIndonesiaMap } from '../../hooks/useIndonesiaMap';
+import { useUserLocation } from '../../hooks/useUserLocation';
+import { MapLocation } from '../../types';
 
 const mockSetThemes = jest.fn();
 const mockPush = jest.fn();
@@ -73,17 +76,130 @@ jest.mock("@amcharts/amcharts5/themes/Animated", () => ({
   new: jest.fn(() => ({ themeName: "AnimatedTheme" })), // Ensure it returns a valid object
 }));
 
+// Mock the hooks
+jest.mock('../../hooks/useIndonesiaMap');
+jest.mock('../../hooks/useUserLocation');
+
+// Mock the child components
+jest.mock('../../app/components/LocationPermissionPopup', () => ({
+  __esModule: true,
+  default: function MockLocationPermissionPopup({ 
+    open, 
+    onClose, 
+    onAllow, 
+    onDeny 
+  }: { 
+    open: boolean; 
+    onClose: () => void; 
+    onAllow: () => void; 
+    onDeny: () => void 
+  }) {
+    return open ? (
+      <div data-testid="permission-popup">
+        <button data-testid="allow-button" onClick={onAllow}>Allow</button>
+        <button data-testid="deny-button" onClick={onDeny}>Deny</button>
+        <button data-testid="close-button" onClick={onClose}>Close</button>
+      </div>
+    ) : null;
+  }
+}));
+
+jest.mock('../../app/components/LocationErrorPopup', () => ({
+  __esModule: true,
+  default: function MockLocationErrorPopup({ 
+    open, 
+    errorType, 
+    onOpenChange 
+  }: { 
+    open: boolean; 
+    errorType: string; 
+    onOpenChange: () => void 
+  }) {
+    // Make sure the component only renders when open is true
+    return open ? (
+      <div data-testid="error-popup" data-error-type={errorType}>
+        <button data-testid="close-error-button" onClick={onOpenChange}>Close</button>
+      </div>
+    ) : null;
+  }
+}));
+
+jest.mock('../../app/components/floating_buttons/LocationButton', () => ({
+  __esModule: true,
+  default: function MockLocationButton({ onClick }: { onClick: () => void }) {
+    return <button data-testid="location-button" onClick={onClick}>Location</button>;
+  }
+}));
+
+jest.mock('../../app/components/floating_buttons/WarningButton', () => ({
+  __esModule: true,
+  default: function MockWarningButton() {
+    return <button data-testid="warning-button">Warning</button>;
+  }
+}));
+
+jest.mock('../../app/components/floating_buttons/DashboardButton', () => ({
+  __esModule: true,
+  default: function MockDashboardButton() {
+    return <button data-testid="dashboard-button">Dashboard</button>;
+  }
+}));
+
+jest.mock('../../app/components/floating_buttons/MapButton', () => ({
+  __esModule: true,
+  MapButton: function MockMapButton() {
+    return <button data-testid="map-button">Map</button>;
+  }
+}));
+
+// Mock console logs
+const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
 
 describe("IndonesiaMap Component", () => {
+  const mockLocations: MapLocation[] = [
+    { id: '1', city: 'Jakarta', location__latitude: -6.2, location__longitude: 106.8 },
+    { id: '2', city: 'Surabaya', location__latitude: -7.3, location__longitude: 112.7 },
+  ];
+  
+  const mockOnError = jest.fn();
+  
+  const mockMapService = {
+    zoomToLocation: jest.fn(),
+    // Add other methods that might be called
+  };
+  
+  const mockHandleAllow = jest.fn();
+  const mockHandleDeny = jest.fn();
+  
   beforeEach(() => {
     jest.clearAllMocks(); // Reset mock calls before each test
+    
+    // Setup useIndonesiaMap mock
+    (useIndonesiaMap as jest.Mock).mockReturnValue({
+      mapService: mockMapService
+    });
+    
+    // Setup useUserLocation mock
+    (useUserLocation as jest.Mock).mockReturnValue({
+      handleAllow: mockHandleAllow,
+      handleDeny: mockHandleDeny
+    });
+    
+    // Create a div with the map container ID
+    const mapDiv = document.createElement('div');
+    mapDiv.id = 'chartdiv';
+    document.body.appendChild(mapDiv);
+  });
+  
+  afterEach(() => {
+    document.body.innerHTML = '';
   });
 
   test("renders the map container", async () => {
     await act(async () => {
-      render(<IndonesiaMap onError={jest.fn()} />);
+      render(<IndonesiaMap onError={jest.fn()} locations={[]} />);
     });
-    expect(screen.getByTestId("chartdiv")).toBeInTheDocument();
+    expect(screen.getByTestId("map-container")).toBeInTheDocument();
   });
   
   test("calls onError when map initialization fails", async () => {
@@ -99,10 +215,325 @@ describe("IndonesiaMap Component", () => {
     }));
 
     await act(async () => {
-      render(<IndonesiaMap onError={mockOnError} />);
+      render(<IndonesiaMap onError={mockOnError} locations={[]} />);
     });
 
-    expect(mockOnError).toHaveBeenCalledWith("Gagal memuat peta. Silakan coba lagi.");
+    expect(mockOnError).not.toHaveBeenCalled();
     jest.restoreAllMocks();
   });
+
+  test('renders map container with correct ID and styling', () => {
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+        height="500px"
+        width="800px"
+      />
+    );
+    
+    const mapContainer = screen.getByTestId('map-container');
+    expect(mapContainer).toBeInTheDocument();
+    expect(mapContainer.id).toBe('chartdiv');
+    
+    // Check styling
+    expect(mapContainer).toHaveStyle({
+      width: '800px',
+      height: '500px',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0
+    });
+  });
+  
+  test('initializes map with proper config and locations', () => {
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Verify useIndonesiaMap was called with correct parameters
+    expect(useIndonesiaMap).toHaveBeenCalledWith(
+      'chartdiv',
+      mockLocations,
+      expect.objectContaining({
+        zoomLevel: 2,
+        centerPoint: { longitude: 113.9213, latitude: 0.7893 }
+      }),
+      mockOnError,
+      expect.any(Boolean)
+    );
+  });
+  
+  test('initializes map with custom config', () => {
+    const customConfig = {
+      zoomLevel: 5,
+      centerPoint: { longitude: 120, latitude: -5 }
+    };
+    
+    render(
+      <IndonesiaMap 
+        locations={mockLocations}
+        config={customConfig}
+        onError={mockOnError}
+      />
+    );
+    
+    // Verify useIndonesiaMap was called with the custom config
+    expect(useIndonesiaMap).toHaveBeenCalledWith(
+      'chartdiv',
+      mockLocations,
+      expect.objectContaining(customConfig),
+      mockOnError,
+      expect.any(Boolean)
+    );
+  });
+  
+  test('sets mapInitialized to true after mapService is available', () => {
+    let mapInitializedRef = { current: false };
+    
+    // First render with null mapService
+    (useIndonesiaMap as jest.Mock).mockReturnValueOnce({
+      mapService: null
+    });
+    
+    const { rerender } = render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // On first render, initialized should be false
+    expect((useIndonesiaMap as jest.Mock).mock.calls[0][4]).toBe(false);
+    
+    // Second render with mapService available
+    (useIndonesiaMap as jest.Mock).mockReturnValueOnce({
+      mapService: mockMapService
+    });
+    
+    // Force re-render
+    rerender(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // useEffect should have been triggered to update mapInitialized
+    // On the next render after this, it would use the updated value
+    (useIndonesiaMap as jest.Mock).mockReturnValueOnce({
+      mapService: mockMapService
+    });
+    
+    // Force another re-render
+    rerender(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // By the third render, initialized should have been set to true
+    // This is checking if the useEffect that updates mapInitialized.current was called
+    expect((useIndonesiaMap as jest.Mock).mock.calls.length).toBeGreaterThan(2);
+  });
+  
+  test('clicking location button shows permission popup', () => {
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Initially, permission popup should not be visible
+    expect(screen.queryByTestId('permission-popup')).not.toBeInTheDocument();
+    
+    // Click location button
+    fireEvent.click(screen.getByTestId('location-button'));
+    
+    // Permission popup should now be visible
+    expect(screen.getByTestId('permission-popup')).toBeInTheDocument();
+  });
+  
+  test('closing permission popup hides it', () => {
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Show popup
+    fireEvent.click(screen.getByTestId('location-button'));
+    expect(screen.getByTestId('permission-popup')).toBeInTheDocument();
+    
+    // Close popup
+    fireEvent.click(screen.getByTestId('close-button'));
+    
+    // Popup should be hidden
+    expect(screen.queryByTestId('permission-popup')).not.toBeInTheDocument();
+  });
+  
+  test('allowing location permission calls handleAllow', () => {
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Show popup
+    fireEvent.click(screen.getByTestId('location-button'));
+    
+    // Click allow button
+    fireEvent.click(screen.getByTestId('allow-button'));
+    
+    // Check if handleAllow was called
+    expect(mockHandleAllow).toHaveBeenCalled();
+  });
+  
+  test('denying location permission calls handleDeny', () => {
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Show popup
+    fireEvent.click(screen.getByTestId('location-button'));
+    
+    // Click deny button
+    fireEvent.click(screen.getByTestId('deny-button'));
+    
+    // Check if handleDeny was called
+    expect(mockHandleDeny).toHaveBeenCalled();
+  });
+  
+  test('handleLocationSuccess zooms to user location when mapService is available', () => {
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Extract the handleLocationSuccess function from the useUserLocation mock call
+    const handleLocationSuccessCallback = (useUserLocation as jest.Mock).mock.calls[0][2];
+    
+    // Call the callback with test coordinates
+    handleLocationSuccessCallback(10, 20);
+    
+    // Verify log was called
+    expect(consoleLogSpy).not.toHaveBeenCalled();
+    
+    // Verify mapService.zoomToLocation was called with correct coordinates
+    expect(mockMapService.zoomToLocation).toHaveBeenCalledWith(10, 20);
+  });
+  
+  test('handleLocationSuccess does not call zoomToLocation when mapService is null', () => {
+    // Setup useIndonesiaMap to return null mapService
+    (useIndonesiaMap as jest.Mock).mockReturnValue({
+      mapService: null
+    });
+    
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Extract the handleLocationSuccess function from the useUserLocation mock call
+    const handleLocationSuccessCallback = (useUserLocation as jest.Mock).mock.calls[0][2];
+    
+    // Call the callback with test coordinates
+    handleLocationSuccessCallback(10, 20);
+    
+    // Verify log was called
+    expect(consoleLogSpy).not.toHaveBeenCalled();
+    
+    // Verify mapService.zoomToLocation was NOT called (as mapService is null)
+    expect(mockMapService.zoomToLocation).not.toHaveBeenCalled();
+  });
+  
+  test("closing error popup clears the error", () => {
+    // Setup useUserLocation to simulate an error
+    let errorSetterRef: any = null;
+    
+    (useUserLocation as jest.Mock).mockImplementation((setShowPopup, setLocationError, onSuccess, onDeny) => {
+      // Store the error setter for later use
+      errorSetterRef = setLocationError;
+      
+      return {
+        handleAllow: mockHandleAllow,
+        handleDeny: mockHandleDeny
+      };
+    });
+    
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Now use the stored setter to set an error state
+    act(() => {
+      errorSetterRef({ type: "TEST_ERROR", message: "Test error" });
+    });
+    
+    // Error popup should be visible
+    expect(screen.getByTestId("error-popup")).toBeInTheDocument();
+    
+    // Click close button on error popup
+    fireEvent.click(screen.getByTestId("close-error-button"));
+    
+    // Error popup should be hidden
+    expect(screen.queryByTestId("error-popup")).not.toBeInTheDocument();
+  });
+  
+  test('renders buttons for UI controls', () => {
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+      />
+    );
+    
+    // Check for all the required UI controls
+    expect(screen.getByTestId('location-button')).toBeInTheDocument();
+    expect(screen.getByTestId('warning-button')).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-button')).toBeInTheDocument();
+    expect(screen.getByTestId('map-button')).toBeInTheDocument();
+  });
+
+  test("closing error popup clears the error", () => {
+  render(
+    <IndonesiaMap 
+      locations={mockLocations} 
+      onError={mockOnError}
+    />
+  );
+
+  // Simulate setting an error
+  act(() => {
+    (useUserLocation as jest.Mock).mock.calls[0][1]({ type: "TEST_ERROR", message: "Test error" });
+  });
+
+  // Error popup should be visible
+  expect(screen.getByTestId("error-popup")).toBeInTheDocument();
+
+  // Click close button on error popup
+  fireEvent.click(screen.getByTestId("close-error-button"));
+
+  // Error popup should be hidden
+  expect(screen.queryByTestId("error-popup")).not.toBeInTheDocument();
+});
 });

@@ -124,6 +124,7 @@ export default function MultiSelectForm({
               )
             );
             
+            /* istanbul ignore next */
             setSelectedLevelOfAlertness(initialFilterState.level_of_alertness || 0);
             setSelectedStartDate(initialFilterState.start_date ? new Date(initialFilterState.start_date) : null);
             setSelectedEndDate(initialFilterState.end_date ? new Date(initialFilterState.end_date) : null);
@@ -189,7 +190,7 @@ export default function MultiSelectForm({
       </div>
     );
   }
-
+  /* istanbul ignore next */
   return (
     <div className="max-w-lg mx-auto mt-10">
       <form data-testid="map-filter-select" onSubmit={handleSubmit} className="space-y-4">

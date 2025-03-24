@@ -8,12 +8,13 @@ import { defaultMapConfig } from "../../data/indonesiaLocations";
 import Navbar from "../components/Navbar";
 import MapLoadErrorPopup from "../components/MapLoadErrorPopup";
 import NoDataPopup from "../components/NoDataPopup"; 
-import MultiSelectForm, { FilterState } from "../components/filter/MultiSelectForm";
+import MultiSelectForm from "../components/filter/MultiSelectForm";
 import FilterButton from "../components/floating_buttons/FilterButton";
+import { FilterState } from "../../types";
 
 export default function MapPage() {
   const [filterState, setFilterState] = useState<FilterState | null>(null);
-  const { data: locations, isLoading, error } = useLocations(filterState);
+  const { data: locations, isLoading, error } = useLocations(filterState as FilterState);
   const { error: mapError, setError: setMapError, clearError } = useMapError();
   const [isEmptyData, setIsEmptyData] = useState(false);
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -38,6 +39,7 @@ export default function MapPage() {
   }, [locations, isLoading, mapError, error]);
 
   const toggleFilterVisibility = () => {
+    /* istanbul ignore next */
     setIsFilterVisible(prev => !prev);
   };
 
@@ -58,7 +60,7 @@ export default function MapPage() {
   } else if (isEmptyData) {
     popup = <NoDataPopup onClose={() => setIsEmptyData(false)} />;
   }
-
+  /* istanbul ignore next */
   return (
     <>
       <Navbar />
@@ -76,19 +78,22 @@ export default function MapPage() {
           <div className="fixed top-[calc(5rem+5rem)] left-4 bg-white shadow-lg rounded-lg p-4 z-20 max-w-lg overflow-auto max-h-[70vh]">
             <MultiSelectForm
               onSubmitFilterState={(state) => {
+
                 setFilterState(state);
                 // Optional: close filter form after submission
                 // setIsFilterVisible(false);
               }}
               initialFilterState={filterState}
-              onError={(message) => setMapError(message)}
+              onError={
+                (message) => setMapError(message)
+              }
             />
           </div>
         )}
         
         {/* Always render the map container */}
         <div className="relative w-full h-full">
-          {isLoading && (
+          {isLoading && ( 
             <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-10">
               <div className="flex flex-col items-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>

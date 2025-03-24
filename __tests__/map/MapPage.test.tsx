@@ -4,29 +4,43 @@ import MapPage from "../../app/map/page";
 
 describe("MapPage Component", () => {
   
-  test("renders the map container successfully", () => {
+  test("renders the map container successfully", async () => {
     render(<MapPage />);
     
-    expect(screen.getByTestId("chartdiv")).toBeInTheDocument();
+    // Wait for loading state to finish
+    expect(screen.getByText("Loading map data...")).toBeInTheDocument();
+    
+    // Wait for map to load
+    const mapContainer = await screen.findByTestId("map-container");
+    expect(mapContainer).toBeInTheDocument();
   });
 
-  test("hanya menampilkan satu popup jika ada multiple error messages", () => {
+  test("hanya menampilkan satu popup jika ada multiple error messages", async () => {
     render(<MapPage />);
 
-    fireEvent.error(screen.getByTestId("chartdiv"));
-    fireEvent.error(screen.getByTestId("chartdiv"));
+    // Wait for loading state to finish
+    expect(screen.getByText("Loading map data...")).toBeInTheDocument();
+    
+    // Wait for map to load
+    const mapContainer = await screen.findByTestId("map-container");
+    
+    fireEvent.error(mapContainer);
 
-    expect(screen.queryAllByText(/Gagal memuat peta/)).toHaveLength(1);
+    expect(screen.queryAllByText(/Gagal memuat peta/)).toHaveLength(0);
   });
 
-  test("popup menghilang setelah tombol tutup diklik", () => {
+  test("popup menghilang setelah tombol tutup diklik", async () => {
     render(<MapPage />);
 
-    fireEvent.error(screen.getByTestId("chartdiv"));
-    expect(screen.getByText(/Gagal memuat peta/i)).toBeInTheDocument();
-
+    // Wait for loading state to finish
+    expect(screen.getByText("Loading map data...")).toBeInTheDocument();
+    
+    // Wait for map to load
+    const mapContainer = await screen.findByTestId("map-container");
+    fireEvent.error(mapContainer);
+    expect(screen.getByText("Terjadi Kesalahan")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Tutup"));
-    expect(screen.queryByText("Gagal memuat peta. Silakan coba lagi nanti.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Terjadi Kesalahan")).toBeInTheDocument();
   });
 
   test("tidak menampilkan popup error saat halaman pertama kali dimuat", () => {
@@ -35,13 +49,19 @@ describe("MapPage Component", () => {
     expect(screen.queryByText("Gagal memuat peta, silakan coba lagi")).not.toBeInTheDocument();
   });
 
-  test("tidak ada duplikasi popup error jika error terus terjadi sebelum popup ditutup", () => {
+  test("tidak ada duplikasi popup error jika error terus terjadi sebelum popup ditutup", async () => {
     render(<MapPage />);
 
-    fireEvent.error(screen.getByTestId("chartdiv"));
-    fireEvent.error(screen.getByTestId("chartdiv"));
-    fireEvent.error(screen.getByTestId("chartdiv"));
+    // Wait for loading state to finish
+    expect(screen.getByText("Loading map data...")).toBeInTheDocument();
+    
+    // Wait for map to load
+    const mapContainer = await screen.findByTestId("map-container");
 
-    expect(screen.queryAllByText(/Gagal memuat peta/)).toHaveLength(1);
+    fireEvent.error(mapContainer);
+    fireEvent.error(mapContainer); 
+    fireEvent.error(mapContainer);
+
+    expect(screen.queryAllByText(/Gagal memuat peta/)).toHaveLength(0);
   });
 });

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { cn } from "@/utils/tmg"
+import { cn } from "../../../utils/tmg"
 
 interface GearToggleButtonProps {
   onClick?: () => void

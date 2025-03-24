@@ -59,7 +59,7 @@ describe("About Page", () => {
 
   it("menampilkan gambar 'PantauTular_latarbelakang'", () => {
     render(<About />);
-    expect(screen.getByAltText("PantauTular_latarbelakang")).toBeInTheDocument();
+    expect(screen.getByAltText("PantauTular_latar_belakang")).toBeInTheDocument();
   });
 
   it("tidak menampilkan gambar yang tidak relevan (negative test)", () => {

@@ -156,10 +156,13 @@ describe("MultiSelectForm Component", () => {
     );
   });
 
+  // Add a mock error handler for fixing the linter errors
+  const mockOnError = jest.fn();
+
   // HAPPY PATH TESTS
   describe("Happy Path", () => {
     test("renders the form correctly and fetches filter options", async () => {
-      render(<MultiSelectForm />);
+      render(<MultiSelectForm onError={mockOnError} />);
       
       await waitForLoading();
       
@@ -173,7 +176,7 @@ describe("MultiSelectForm Component", () => {
 
     test("submits form with selected values", async () => {
       const mockOnSubmitFilterState = jest.fn();
-      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} />);
+      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} onError={mockOnError} />);
       
       await waitForLoading();
 
@@ -202,7 +205,7 @@ describe("MultiSelectForm Component", () => {
 
     test("reset button clears all selected values", async () => {
       const mockOnSubmitFilterState = jest.fn();
-      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} />);
+      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} onError={mockOnError} />);
       
       await waitForLoading();
 
@@ -240,7 +243,7 @@ describe("MultiSelectForm Component", () => {
         })
       );
 
-      render(<MultiSelectForm />);
+      render(<MultiSelectForm onError={mockOnError} />);
       
       await waitForLoading();
       expect(console.error).toHaveBeenCalledWith("Failed to fetch filter options");
@@ -251,7 +254,7 @@ describe("MultiSelectForm Component", () => {
         Promise.reject(new Error("Network error"))
       );
 
-      render(<MultiSelectForm />);
+      render(<MultiSelectForm onError={mockOnError} />);
       
       await waitForLoading();
       expect(console.error).toHaveBeenCalled();
@@ -264,7 +267,7 @@ describe("MultiSelectForm Component", () => {
       
       console.error = jest.fn();
       
-      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} />);
+      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} onError={mockOnError} />);
       
       await waitForLoading();
       await submitForm();
@@ -287,7 +290,7 @@ describe("MultiSelectForm Component", () => {
       )
     );
 
-    render(<MultiSelectForm />);
+    render(<MultiSelectForm onError={mockOnError} />);
     
     // Check that loading state is displayed
     expect(screen.getByText("Loading filter options...")).toBeInTheDocument();
@@ -299,7 +302,7 @@ describe("MultiSelectForm Component", () => {
   describe("Edge Cases", () => {
     test("handles custom API endpoint", async () => {
       const customEndpoint = "https://example.com/api/customFilters";
-      render(<MultiSelectForm apiFilterOptions={customEndpoint} />);
+      render(<MultiSelectForm apiFilterOptions={customEndpoint} onError={mockOnError} />);
       
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
@@ -315,7 +318,7 @@ describe("MultiSelectForm Component", () => {
     });
 
     test("handles 'Select All' option for diseases", async () => {
-      render(<MultiSelectForm />);
+      render(<MultiSelectForm onError={mockOnError} />);
       
       await waitForLoading();
       await selectDisease("all");
@@ -342,7 +345,7 @@ describe("MultiSelectForm Component", () => {
     });
 
     test("handles 'Select All' option for locations", async () => {
-      render(<MultiSelectForm />);
+      render(<MultiSelectForm onError={mockOnError} />);
       
       await waitForLoading();
       await selectLocation("all");
@@ -352,7 +355,7 @@ describe("MultiSelectForm Component", () => {
     });
 
     test("handles 'Select All' option for news", async () => {
-      render(<MultiSelectForm />);
+      render(<MultiSelectForm onError={mockOnError} />);
       
       await waitForLoading();
       await selectNews("all");
@@ -362,7 +365,7 @@ describe("MultiSelectForm Component", () => {
     });
 
     test("handles date selection edge cases", async () => {
-      render(<MultiSelectForm />);
+      render(<MultiSelectForm onError={mockOnError} />);
       
       await waitForLoading();
       
@@ -396,7 +399,7 @@ describe("MultiSelectForm Component", () => {
 
     test("submits form with no selections", async () => {
       const mockOnSubmitFilterState = jest.fn();
-      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} />);
+      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} onError={mockOnError} />);
       
       await waitForLoading();
       await submitForm();
@@ -429,7 +432,7 @@ describe("MultiSelectForm Component", () => {
     test("correctly pre-populates form with initialFilterState", async () => {
       const initialState = createInitialState();
       
-      render(<MultiSelectForm initialFilterState={initialState} />);
+      render(<MultiSelectForm initialFilterState={initialState} onError={mockOnError} />);
       
       await waitForLoading();
 
@@ -462,6 +465,73 @@ describe("MultiSelectForm Component", () => {
       expect(endDatePicker).toHaveValue("2023-02-28");
     });
     
+    // New test to cover lines 127-129: date conversions in initialFilterState
+    test("handles string dates in initialFilterState by converting them to Date objects", async () => {
+      // Create initialState with string ISO dates instead of Date objects
+      // This simulates what might happen if dates are serialized/deserialized
+      const initialStateWithStringDates = {
+        diseases: ["covid"],
+        locations: ["jakarta"],
+        portals: ["cnn"],
+        level_of_alertness: 3,
+        // Use string dates to test the conversion logic
+        start_date: "2023-03-15T00:00:00.000Z",
+        end_date: "2023-03-31T00:00:00.000Z"
+      };
+      
+      const mockOnSubmitFilterState = jest.fn();
+      render(<MultiSelectForm 
+        initialFilterState={initialStateWithStringDates as any}
+        onSubmitFilterState={mockOnSubmitFilterState}
+        onError={mockOnError}
+      />);
+      
+      await waitForLoading();
+      
+      // Check that string dates were properly converted to Date objects
+      const startDatePicker = screen.getByTestId("date-picker-Mulai");
+      const endDatePicker = screen.getByTestId("date-picker-Selesai");
+      
+      // ISO date strings should be correctly parsed and displayed in YYYY-MM-DD format
+      expect(startDatePicker).toHaveValue("2023-03-15");
+      expect(endDatePicker).toHaveValue("2023-03-31");
+      
+      // Submit the form to check that dates are submitted as Date objects
+      await submitForm();
+      
+      // Verify that the callback received proper Date objects
+      expect(mockOnSubmitFilterState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          start_date: expect.any(Date),
+          end_date: expect.any(Date)
+        })
+      );
+      
+      // Further verify the actual date values
+      const submittedArgs = mockOnSubmitFilterState.mock.calls[0][0];
+      expect(submittedArgs.start_date.toISOString().split('T')[0]).toBe("2023-03-15");
+      expect(submittedArgs.end_date.toISOString().split('T')[0]).toBe("2023-03-31");
+    });
+    
+    // Test for null dates in initialFilterState (cover the null case in lines 127-129)
+    test("handles null dates in initialFilterState", async () => {
+      const initialStateWithNullDates = createInitialState({
+        start_date: null,
+        end_date: null
+      });
+      
+      render(<MultiSelectForm initialFilterState={initialStateWithNullDates} onError={mockOnError} />);
+      
+      await waitForLoading();
+      
+      // Check that null dates result in empty date pickers
+      const startDatePicker = screen.getByTestId("date-picker-Mulai");
+      const endDatePicker = screen.getByTestId("date-picker-Selesai");
+      
+      expect(startDatePicker).toHaveValue("");
+      expect(endDatePicker).toHaveValue("");
+    });
+    
     test("handles initialFilterState with values not in filter options", async () => {
       const initialState = createInitialState({
         diseases: ["malaria"], // Not in original options
@@ -470,7 +540,7 @@ describe("MultiSelectForm Component", () => {
         level_of_alertness: 2
       });
       
-      render(<MultiSelectForm initialFilterState={initialState} />);
+      render(<MultiSelectForm initialFilterState={initialState} onError={mockOnError} />);
       
       await waitForLoading();
       
@@ -502,6 +572,7 @@ describe("MultiSelectForm Component", () => {
       render(<MultiSelectForm 
         initialFilterState={initialState}
         onSubmitFilterState={mockOnSubmitFilterState}
+        onError={mockOnError}
       />);
       
       await waitForLoading();
@@ -530,6 +601,7 @@ describe("MultiSelectForm Component", () => {
       render(<MultiSelectForm 
         initialFilterState={initialState}
         onSubmitFilterState={mockOnSubmitFilterState}
+        onError={mockOnError}
       />);
       
       await waitForLoading();
