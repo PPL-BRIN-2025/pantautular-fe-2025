@@ -48,3 +48,9 @@
   justify-content: center;
   align-items: center;
 }
+
+.am5-Tooltip [data-tooltip-close] {
+  pointer-events: auto !important;
+  z-index: 1001 !important;
+  position: relative !important;
+}

@@ -8,10 +8,6 @@ module.exports = {
     "node_modules/(?!@amcharts|d3-|internmap)"
   ],
   moduleNameMapper: {
-    // "\\.(css|less|scss|sass)$": "identity-obj-proxy",
-    // "@amcharts/amcharts5$": "<rootDir>/__mocks__/@amcharts/amcharts5.js",
-    // "@amcharts/amcharts5/map$": "<rootDir>/__mocks__/@amcharts/amcharts5/map.js",
-    // '^@/components/(.*)$': '<rootDir>/components/$1'
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
     "^@/(.*)$": "<rootDir>/app/$1",
     "^@amcharts/amcharts5$": "<rootDir>/__mocks__/amcharts5.js",

@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RelatedSearch Component matches snapshot with query 1`] = `
+<DocumentFragment>
+  <div
+    class="px-2 mt-2"
+  >
+    <span
+      class="text-xs font-bold text-blue-600"
+    >
+      Pencarian Terkait:
+    </span>
+     
+    <a
+      class="text-blue-600 underline italic text-xs"
+      href="https://example.com/search?q=test+query"
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      test query?
+    </a>
+    <hr
+      class="my-3"
+    />
+  </div>
+</DocumentFragment>
+`;
+
+exports[`RelatedSearch Component matches snapshot without query 1`] = `
+<DocumentFragment>
+  <div
+    class="px-2 mt-2"
+  >
+    <span
+      class="text-xs font-bold text-blue-600"
+    >
+      Pencarian Terkait:
+    </span>
+     
+    <a
+      class="text-blue-600 underline italic text-xs"
+      href="https://example.com/search"
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      Pencarian?
+    </a>
+    <hr
+      class="my-3"
+    />
+  </div>
+</DocumentFragment>
+`;

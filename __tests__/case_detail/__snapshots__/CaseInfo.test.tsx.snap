@@ -1,0 +1,82 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CaseInfo Component matches snapshot 1`] = `
+<DocumentFragment>
+  <div
+    class="flex justify-between text-sm font-semibold mt-3 px-2"
+  >
+    <div>
+      <div
+        class="text-base font-bold"
+      >
+        ID Kasus
+      </div>
+      <div
+        class="text-gray-600 font-normal"
+      >
+        CASE-001
+      </div>
+    </div>
+    <div>
+      <div
+        class="text-base font-bold"
+      >
+        Lokasi
+      </div>
+      <div
+        class="text-gray-600 font-normal"
+      >
+        Jakarta Pusat
+      </div>
+    </div>
+  </div>
+  <hr
+    class="my-3"
+  />
+  <div
+    class="px-2 mb-3"
+  >
+    <div
+      class="text-base font-bold"
+    >
+      Ringkasan
+    </div>
+    <p
+      class="text-sm text-gray-600 mt-1 text-justify"
+    >
+      Ini adalah ringkasan berita tentang kasus yang ditemukan.
+    </p>
+  </div>
+  <div
+    class="flex justify-between text-sm px-2"
+  >
+    <div>
+      <div
+        class="text-base font-bold"
+      >
+        Jenis Kelamin
+      </div>
+      <div
+        class="text-gray-600"
+      >
+        Laki-laki
+      </div>
+    </div>
+    <div>
+      <div
+        class="text-base font-bold"
+      >
+        Usia
+      </div>
+      <div
+        class="text-gray-600"
+      >
+        35 Tahun
+      </div>
+    </div>
+  </div>
+  <hr
+    class="my-3"
+  />
+</DocumentFragment>
+`;

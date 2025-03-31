@@ -1,0 +1,63 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HealthProtocols Component matches snapshot with empty protocols 1`] = `<DocumentFragment />`;
+
+exports[`HealthProtocols Component matches snapshot with protocols 1`] = `
+<DocumentFragment>
+  <div
+    class="px-2"
+  >
+    <div
+      class="font-bold text-lg mb-2"
+    >
+      Protokol Kesehatan
+    </div>
+    <ul
+      class="space-y-2"
+    >
+      <li
+        class="flex items-center space-x-2"
+      >
+        <div
+          class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full"
+        >
+          <span
+            class="text-gray-600"
+          >
+            →
+          </span>
+        </div>
+        <a
+          class="text-sm italic underline text-gray-800 truncate w-full"
+          href="https://example.com/mask"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Pakai Masker
+        </a>
+      </li>
+      <li
+        class="flex items-center space-x-2"
+      >
+        <div
+          class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full"
+        >
+          <span
+            class="text-gray-600"
+          >
+            →
+          </span>
+        </div>
+        <a
+          class="text-sm italic underline text-gray-800 truncate w-full"
+          href="https://example.com/handwash"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Cuci Tangan
+        </a>
+      </li>
+    </ul>
+  </div>
+</DocumentFragment>
+`;

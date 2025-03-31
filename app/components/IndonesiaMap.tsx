@@ -9,7 +9,7 @@ import DashboardButton from "./floating_buttons/DashboardButton";
 import WarningButton from "./floating_buttons/WarningButton";
 import LocationButton from "./floating_buttons/LocationButton";
 import {MapButton} from "./floating_buttons/MapButton";
-import { useMapStore } from "@/store/store";
+import { useMapStore } from "../../store/store";
 
 interface IndonesiaMapProps {
   locations: MapLocation[];
