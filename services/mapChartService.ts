@@ -4,6 +4,7 @@ import am5geodata_indonesiaLow from "@amcharts/amcharts5-geodata/indonesiaLow";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import { MapLocation, MapConfig } from "../types";
 import { getTooltip } from "../utils/tooltipUtils";
+import { useMapStore } from "../store/store";
 
 export class MapChartService {
   private root: am5.Root | null = null;
@@ -11,6 +12,8 @@ export class MapChartService {
   private pointSeries: am5map.ClusteredPointSeries | null = null;
   private locationSeries: am5map.MapPointSeries | null = null;
   private readonly onError: ((message: string) => void) | null = null;
+  private locations: MapLocation[] | null = null;
+  private _countSelectedPoints: number = 0;
 
   constructor(onError?: (message: string) => void) {
     this.onError = onError || null;
@@ -50,6 +53,58 @@ export class MapChartService {
     const root = this.root;
     const zoomControl = this.chart.set("zoomControl", am5map.ZoomControl.new(root, {}));
     zoomControl.homeButton.set("visible", true);
+    this.chart.on('zoomLevel', this.getPointsInSelection.bind(this));
+    this.chart.on('translateX', this.getPointsInSelection.bind(this));
+    this.chart.on('translateY', this.getPointsInSelection.bind(this));
+  }
+  get countSelectedPoints(): number {
+    return this._countSelectedPoints;
+  }
+
+  // Private setter for countSelectedPoints
+  private set countSelectedPoints(value: number) {
+    this._countSelectedPoints = value;
+    // Update Zustand store
+    useMapStore.getState().setCountSelectedPoints(value); // Update global state
+  }
+
+  // Your method that updates the count of selected points
+  private getPointsInSelection(): void {
+    console.log('Runnnnn');
+    const tl = this.chart?.invert({ x: 0, y: 0 });
+    const br = this.chart?.invert({ x: this.chart.innerWidth(), y: this.chart.innerHeight() });
+
+    // Check if tl or br is undefined and handle the case
+    if (!tl || !br) {
+      console.error('Failed to get points in selection: tl or br is undefined');
+      return;
+    }
+
+    // Now safely use tl and br since they are guaranteed to be defined
+    if (tl.longitude > br.longitude) {
+      tl.longitude = -180;
+      br.longitude = 180;
+    }
+
+    const selectedPoints: string[] = [];
+
+    this.locations?.forEach((dataItem) => {
+      const longitude = dataItem.location__longitude;
+      const latitude = dataItem.location__latitude;
+
+      if (
+        longitude >= tl.longitude &&
+        longitude <= br.longitude &&
+        latitude <= tl.latitude &&
+        latitude >= br.latitude
+      ) {
+        selectedPoints.push(dataItem.id);
+      }
+    });
+
+    // Set the countSelectedPoints using the private setter
+    this.countSelectedPoints = selectedPoints.length;
+    console.log(this._countSelectedPoints);
   }
 
   private setupPolygonSeries(): void {
@@ -219,6 +274,7 @@ export class MapChartService {
   
   populateLocations(locations: MapLocation[]): void {
     if (!this.pointSeries) return;
+    this.locations = locations
     
     // Clear existing data first
     this.pointSeries.data.clear();
