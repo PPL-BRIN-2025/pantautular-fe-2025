@@ -252,9 +252,12 @@ export class MapChartService {
                 }
               };
 
+              // Remove any existing event listeners
+              document.removeEventListener('click', closeHandler);
+              
               // Add event listener after a small delay to ensure the tooltip is rendered
               setTimeout(() => {
-                document.addEventListener('click', closeHandler, { once: true });
+                document.addEventListener('click', closeHandler);
               }, 100);
 
               tooltip.show();
