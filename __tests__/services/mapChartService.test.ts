@@ -13,6 +13,66 @@ const mockDataPush = jest.fn();
 const mockDataClear = jest.fn();
 const mockZoomToGeoPoint = jest.fn();
 
+// Common mock implementations
+const mockHomeButton = { set: jest.fn() };
+const mockZoomControl = { homeButton: mockHomeButton };
+
+const commonMockImplementations = {
+  circle: (root: any, config: any) => ({
+    root,
+    config,
+    type: "Circle",
+    dispose: jest.fn(),
+    events: {
+      on: jest.fn().mockImplementation((event, callback) => {
+        if (event === "pointerover") {
+          callback({ target: { dataItem: { dataContext: { id: "test-id" } } } });
+        }
+      })
+    }
+  }),
+  bullet: (root: any, config: any) => ({
+    root,
+    sprite: config.sprite,
+    type: "Bullet",
+    config,
+  }),
+  tooltip: (root: any, config: any) => ({
+    root,
+    config,
+    type: "Tooltip",
+    show: jest.fn(),
+    hide: jest.fn(),
+    set: jest.fn(),
+  }),
+  rectangle: (root: any, config: any) => ({
+    root,
+    config,
+    type: "Rectangle",
+  }),
+};
+
+// Common test setup patterns
+const commonTestSetup = {
+  createMockSeries: () => ({
+    bullets: { push: mockBulletsPush },
+    data: { 
+      push: mockDataPush,
+      clear: mockDataClear
+    },
+    set: jest.fn(),
+    zoomToCluster: jest.fn(),
+  }),
+  createMockChart: () => ({
+    series: { push: mockSeriesPush.mockImplementation((series) => series) },
+    set: jest.fn().mockImplementation((prop, value) => (prop === "zoomControl" ? mockZoomControl : null)),
+    appear: jest.fn(),
+    goHome: mockGoHome,
+    zoomToGeoPoint: mockZoomToGeoPoint
+  }),
+};
+
+// Update the mock implementations to use common patterns
 jest.mock("@amcharts/amcharts5", () => {
   const originalModule = jest.requireActual("@amcharts/amcharts5");
   return {
@@ -36,44 +96,19 @@ jest.mock("@amcharts/amcharts5", () => {
       })),
     },
     Circle: {
-      new: jest.fn().mockImplementation((root, config) => ({
-        root,
-        config,
-        type: "Circle",
-        dispose: jest.fn(),
-        events: {
-          on: jest.fn().mockImplementation((event, callback) => {
-            if (event === "pointerover") {
-              callback({ target: { dataItem: { dataContext: { id: "test-id" } } } });
-            }
-          })
-        }
-      })),
+      new: jest.fn().mockImplementation((root, config) => commonMockImplementations.circle(root, config)),
     },
     Label: {
       new: jest.fn().mockImplementation((root, config) => ({ root, config })),
     },
     Bullet: {
-      new: jest.fn().mockImplementation((root, config) => ({
-        root,
-        sprite: config.sprite,
-        type: "Bullet",
-        config,
-      })),
+      new: jest.fn().mockImplementation((root, config) => commonMockImplementations.bullet(root, config)),
     },
     Tooltip: {
-      new: jest.fn().mockImplementation((root, config) => ({
-        root,
-        config,
-        type: "Tooltip",
-      })),
+      new: jest.fn().mockImplementation((root, config) => commonMockImplementations.tooltip(root, config)),
     },
     Rectangle: {
-      new: jest.fn().mockImplementation((root, config) => ({
-        root,
-        config,
-        type: "Rectangle",
-      })),
+      new: jest.fn().mockImplementation((root, config) => commonMockImplementations.rectangle(root, config)),
     },
     color: jest.fn().mockImplementation((color) => ({ color })),
     p50: 0.5,
@@ -86,13 +121,7 @@ jest.mock("@amcharts/amcharts5/map", () => {
   return {
     __esModule: true,
     MapChart: {
-      new: jest.fn().mockImplementation(() => ({
-        series: { push: mockSeriesPush.mockImplementation((series) => series) },
-        set: jest.fn().mockImplementation((prop, value) => (prop === "zoomControl" ? mockZoomControl : null)),
-        appear: jest.fn(),
-        goHome: mockGoHome,
-        zoomToGeoPoint: mockZoomToGeoPoint
-      })),
+      new: jest.fn().mockImplementation(() => commonTestSetup.createMockChart()),
     },
     MapPolygonSeries: {
       new: jest.fn().mockImplementation(() => ({
@@ -101,27 +130,20 @@ jest.mock("@amcharts/amcharts5/map", () => {
       })),
     },
     MapPointSeries: {
-      new: jest.fn().mockImplementation(() => ({
-        bullets: { push: mockBulletsPush },
-        data: { 
-          push: mockDataPush,
-          clear: mockDataClear
-        }
-      })),
+      new: jest.fn().mockImplementation(() => commonTestSetup.createMockSeries()),
     },
     ClusteredPointSeries: {
       new: jest.fn().mockImplementation(() => ({
-        set: jest.fn(),
-        bullets: { push: mockBulletsPush },
-        data: { 
-          push: jest.fn(),
-          clear: jest.fn()
-        },
+        ...commonTestSetup.createMockSeries(),
         zoomToCluster: jest.fn(),
       })),
     },
     ZoomControl: {
-      new: jest.fn().mockImplementation(() => mockZoomControl),
+      new: jest.fn().mockImplementation(() => ({
+        homeButton: {
+          set: jest.fn()
+        }
+      })),
     },
     geoMercator: jest.fn().mockReturnValue({}),
   };
@@ -180,26 +202,11 @@ async function expectErrorHandling(
 // Helper untuk setup fake objects yang sering digunakan
 function createFakeObjects() {
   const fakeRoot = { dispose: jest.fn() } as any;
-  const fakePointSeries = { 
-    bullets: { push: jest.fn() },
-    set: jest.fn()
-  } as any;
-  const fakeCircle = {
-    events: {
-      on: jest.fn().mockImplementation((event, callback) => {
-        if (event === "pointerover") {
-          callback({ target: { dataItem: { dataContext: { id: "test-id" } } } });
-        }
-      })
-    }
-  } as any;
-  const fakeTooltip = {
-    set: jest.fn(),
-    show: jest.fn(),
-    hide: jest.fn()
-  } as any;
-  const fakeBullet = {} as any;
-  const fakeRectangle = {} as any;
+  const fakePointSeries = commonTestSetup.createMockSeries() as any;
+  const fakeCircle = commonMockImplementations.circle(null, {}) as any;
+  const fakeTooltip = commonMockImplementations.tooltip(null, {}) as any;
+  const fakeBullet = commonMockImplementations.bullet(null, {}) as any;
+  const fakeRectangle = commonMockImplementations.rectangle(null, {}) as any;
 
   return {
     fakeRoot,
@@ -319,10 +326,24 @@ describe("MapChartService", () => {
 
   // Functional tests.
   test("setupZoomControl adds zoom control to chart", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    expect(am5map.ZoomControl.new).toHaveBeenCalled();
-    const zoomControlSet = am5map.ZoomControl.new((mapService as any).root, {}).homeButton?.set;
-    expect(zoomControlSet).toHaveBeenCalledWith("visible", true);
+    const mockSet = jest.fn();
+    const mockHomeButton = { set: mockSet };
+    const mockZoomControl = { homeButton: mockHomeButton };
+    const mockZoomControlNew = jest.fn().mockReturnValue(mockZoomControl);
+    
+    // Mock the ZoomControl.new function before initializing
+    jest.spyOn(am5map.ZoomControl, 'new').mockImplementation(mockZoomControlNew);
+
+    // Mock the chart.set method
+    const mockChartSet = jest.fn().mockReturnValue(mockZoomControl);
+    (mapService as any).chart = { set: mockChartSet, on: jest.fn() };
+    (mapService as any).root = { dispose: jest.fn() };
+
+    // Call setupZoomControl directly since we've mocked the dependencies
+    (mapService as any).setupZoomControl();
+
+    expect(mockChartSet).toHaveBeenCalledWith("zoomControl", mockZoomControl);
+    expect(mockSet).toHaveBeenCalledWith("visible", true);
   });
 
   test("setupPolygonSeries adds polygon series to chart", () => {
