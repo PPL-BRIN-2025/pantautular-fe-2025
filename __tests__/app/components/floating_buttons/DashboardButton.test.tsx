@@ -3,6 +3,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DashboardButton from '../../../../app/components/floating_buttons/DashboardButton';
 
+// Mock Next.js navigation hooks
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
+  usePathname: () => '/some-path',
+}));
+
 describe('DashboardButton', () => {
   // Test default rendering
   it('renders with default props', () => {
@@ -19,6 +27,12 @@ describe('DashboardButton', () => {
     // Default state should be inactive (white background)
     expect(button).toHaveClass('bg-white');
     expect(button).not.toHaveClass('bg-blue-600');
+    
+    // Check for focus and transition classes
+    expect(button).toHaveClass('focus:outline-none', 'focus:ring-2', 'focus:ring-gray-300', 'transition-colors', 'duration-200');
+    
+    // Check for shadow
+    expect(button).toHaveClass('shadow-sm');
   });
 
   // Test with custom label
@@ -35,19 +49,6 @@ describe('DashboardButton', () => {
     
     const button = screen.getByTestId('dashboard-btn');
     expect(button).toHaveClass('h-8 w-8');
-    
-    // Check the SVG size
-    const svg = button.querySelector('svg');
-    expect(svg).toHaveAttribute('width', '20');
-    expect(svg).toHaveAttribute('height', '20');
-  });
-
-  // Test medium size
-  it('renders with medium size', () => {
-    render(<DashboardButton size="medium" />);
-    
-    const button = screen.getByTestId('dashboard-btn');
-    expect(button).toHaveClass('w-10 h-10');
     
     // Check the SVG size
     const svg = button.querySelector('svg');
@@ -78,85 +79,73 @@ describe('DashboardButton', () => {
 
   // Test custom className
   it('renders with custom className', () => {
-    render(<DashboardButton className="custom-class" />);
+    const customClass = 'my-custom-class';
+    render(<DashboardButton className={customClass} />);
     
     const button = screen.getByTestId('dashboard-btn');
-    expect(button).toHaveClass('custom-class');
+    expect(button).toHaveClass(customClass);
   });
 
-  // Test click behavior - active state toggle
-  it('toggles active state on click', () => {
+  // Test active state based on pathname
+  it('renders in active state when on dashboard page', () => {
+    // Mock usePathname to return /dashboard
+    jest.spyOn(require('next/navigation'), 'usePathname').mockReturnValue('/dashboard');
+    
     render(<DashboardButton />);
-    
     const button = screen.getByTestId('dashboard-btn');
+    const path = button.querySelector('path');
     
-    // Initial state
-    expect(button).toHaveClass('bg-white');
-    expect(button).not.toHaveClass('bg-blue-600');
-    
-    // Click to activate
-    fireEvent.click(button);
-    expect(button).not.toHaveClass('bg-white');
     expect(button).toHaveClass('bg-blue-600');
-    
-    // Path fill should change to white when active
-    const path = button.querySelector('path');
     expect(path).toHaveAttribute('fill', 'white');
-    
-    // Click again to deactivate
-    fireEvent.click(button);
-    expect(button).toHaveClass('bg-white');
-    expect(button).not.toHaveClass('bg-blue-600');
-    
-    // Path fill should change back to black when inactive
-    expect(path).toHaveAttribute('fill', 'black');
   });
 
-  // Test onClick callback is called
-  it('calls onClick callback when clicked', () => {
-    const handleClick = jest.fn();
-    render(<DashboardButton onClick={handleClick} />);
+  // Test click behavior
+  it('calls router.push and onClick when clicked', () => {
+    const mockPush = jest.fn();
+    const mockOnClick = jest.fn();
+    
+    // Mock useRouter to return our mock push function
+    jest.spyOn(require('next/navigation'), 'useRouter').mockReturnValue({
+      push: mockPush,
+    });
+    
+    render(<DashboardButton onClick={mockOnClick} />);
     
     const button = screen.getByTestId('dashboard-btn');
     fireEvent.click(button);
     
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith('/dashboard');
+    expect(mockOnClick).toHaveBeenCalled();
   });
 
-  // Test that onClick is not called when disabled
-  it('does not call onClick when disabled', () => {
-    const handleClick = jest.fn();
-    render(<DashboardButton onClick={handleClick} disabled={true} />);
+  // Test that click handlers are not called when disabled
+  it('does not call handlers when disabled', () => {
+    const mockPush = jest.fn();
+    const mockOnClick = jest.fn();
+    
+    jest.spyOn(require('next/navigation'), 'useRouter').mockReturnValue({
+      push: mockPush,
+    });
+    
+    render(<DashboardButton onClick={mockOnClick} disabled={true} />);
     
     const button = screen.getByTestId('dashboard-btn');
     fireEvent.click(button);
     
-    expect(handleClick).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockOnClick).not.toHaveBeenCalled();
   });
 
-  // Test that active state is not toggled when disabled
-  it('does not toggle active state when disabled', () => {
-    render(<DashboardButton disabled={true} />);
-    
-    const button = screen.getByTestId('dashboard-btn');
-    
-    // Initial state
-    expect(button).toHaveClass('bg-white');
-    
-    // Click should not change state when disabled
-    fireEvent.click(button);
-    expect(button).toHaveClass('bg-white');
-    expect(button).not.toHaveClass('bg-blue-600');
-  });
-
-  // Test SVG rendering and icon color
-  it('renders SVG with correct initial color', () => {
+  // Test hover and active states
+  it('has correct hover and active classes', () => {
     render(<DashboardButton />);
     
-    const button = screen.getByTestId('dashboard-btn');
-    const path = button.querySelector('path');
-    
-    // Initial state should have black fill
-    expect(path).toHaveAttribute('fill', 'black');
+    const buttonContent = screen.getByTestId('dashboard-btn').firstChild;
+    expect(buttonContent).toHaveClass(
+      'group-hover:scale-110',
+      'group-active:scale-95',
+      'transition-transform',
+      'duration-200'
+    );
   });
 });

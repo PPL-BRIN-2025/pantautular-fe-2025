@@ -3,7 +3,15 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MapButton } from '../../../../app/components/floating_buttons/MapButton';
 
-// Mock the imported button components
+// Mock Next.js navigation hooks
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
+  usePathname: () => '/some-path',
+}));
+
+// Mock child components
 jest.mock('../../../../app/components/floating_buttons/SeverityButton', () => ({
   __esModule: true,
   default: ({ size }: { size: string }) => (
@@ -42,6 +50,9 @@ describe('MapButton', () => {
     expect(button).toHaveClass('bg-white'); // Default state
     expect(button).toHaveClass('w-10 h-10'); // Default size is medium
     expect(button).toHaveAttribute('aria-pressed', 'false');
+    
+    // Check for transition classes
+    expect(button).toHaveClass('transition-colors', 'duration-200');
     
     // Additional buttons should not be visible initially
     expect(screen.queryByTestId('severity-button')).not.toBeInTheDocument();
@@ -111,12 +122,16 @@ describe('MapButton', () => {
   test('renders with correct container and positioning classes', () => {
     render(<MapButton />);
     
+    // Check main container
+    const mainContainer = screen.getByRole('button').parentElement;
+    expect(mainContainer).toHaveClass('relative', 'flex', 'flex-col', 'items-center');
+    
     // Click to show additional buttons
     fireEvent.click(screen.getByRole('button'));
     
     // Check additional buttons container
-    const additionalButtonsContainer = document.querySelectorAll('div')[1];
-    expect(additionalButtonsContainer).toHaveClass('relative flex flex-col items-center');
+    const additionalButtonsContainer = screen.getByTestId('severity-button').parentElement;
+    expect(additionalButtonsContainer).toHaveClass('absolute', 'top-[3.5rem]', 'flex', 'flex-col', 'gap-2', 'items-center');
   });
 
   // Test SVG rendering and attributes
@@ -127,12 +142,37 @@ describe('MapButton', () => {
     expect(svg).toBeInTheDocument();
     expect(svg).toHaveAttribute('viewBox', '0 0 20 20');
     expect(svg).toHaveAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    expect(svg).toHaveClass('transition-colors');
-    expect(svg).toHaveClass('duration-200');
+    expect(svg).toHaveClass('transition-colors', 'duration-200');
     
     const path = document.querySelector('path');
-    expect(path).not.toHaveAttribute('fillRule', 'evenodd');
-    expect(path).not.toHaveAttribute('clipRule', 'evenodd');
+    expect(path).toHaveAttribute('fill-rule', 'evenodd');
+    expect(path).toHaveAttribute('clip-rule', 'evenodd');
     expect(path).toHaveAttribute('fill', 'black'); // Default state
+  });
+
+  // Test active state based on pathname
+  test('renders in active state when on map page', () => {
+    // Mock usePathname to return /map
+    jest.spyOn(require('next/navigation'), 'usePathname').mockReturnValue('/map');
+    
+    render(<MapButton />);
+    const button = screen.getByRole('button');
+    const path = document.querySelector('path');
+    
+    expect(button).toHaveClass('bg-blue-600');
+    expect(path).toHaveAttribute('fill', 'white');
+  });
+
+  // Test router.push is called on click
+  test('calls router.push when clicked', () => {
+    const mockPush = jest.fn();
+    jest.spyOn(require('next/navigation'), 'useRouter').mockReturnValue({
+      push: mockPush,
+    });
+    
+    render(<MapButton />);
+    fireEvent.click(screen.getByRole('button'));
+    
+    expect(mockPush).toHaveBeenCalledWith('/map');
   });
 });
