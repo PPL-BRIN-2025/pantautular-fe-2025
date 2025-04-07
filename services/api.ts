@@ -1,4 +1,4 @@
-import { MapLocation, FilterState } from "../types";
+import { MapLocation, FilterState} from "../types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
@@ -76,10 +76,9 @@ export const mapApi = {
 };
 
 export const diseaseApi = {
-  async getSeverityStats(): Promise<any[]> {
+  async getSeverityStats() {
     try {
-      const response = await fetch(`${API_BASE_URL}/diseases/severity-stats/`, {
-      //const response = await fetch(`http://localhost:8000/api/diseases/severity-stats/`, {
+      const response = await fetch(`${API_BASE_URL}/api/diseases/severity-stats/`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -104,5 +103,5 @@ export const diseaseApi = {
       console.error("Error fetching severity stats:", error);
       throw error;
     }
-  },
+  }
 };
