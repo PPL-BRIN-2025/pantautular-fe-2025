@@ -11,7 +11,17 @@ jest.mock("../../hooks/useMapError");
 // Mock the components
 jest.mock("../../app/components/IndonesiaMap", () => ({
   IndonesiaMap: ({ onError }: { onError: (message: string) => void }) => (
-    <div data-testid="map-container" onClick={() => onError("Map error")}>
+    <div 
+      data-testid="map-container" 
+      onClick={() => onError("Map error")}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onError("Map error");
+        }
+      }}
+    >
       Map Container
     </div>
   ),
@@ -23,7 +33,13 @@ jest.mock("../../app/components/MapLoadErrorPopup", () => ({
   default: ({ message, onClose }: { message: string; onClose: () => void }) => (
     <div data-testid="error-popup">
       {message}
-      <button onClick={onClose}>Close</button>
+      <button 
+        onClick={onClose}
+        role="button"
+        aria-label="Close error message"
+      >
+        Close
+      </button>
     </div>
   ),
 }));
