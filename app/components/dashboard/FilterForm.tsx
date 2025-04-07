@@ -60,17 +60,124 @@ const SelectField = ({
   value: SelectOption[];
   onChange: (newValue: MultiValue<SelectOption>) => void;
   instanceId: string;
+}) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div>
+        <label className="block text-sm font-medium">{label}</label>
+        <div className="mt-1 h-10 bg-gray-100 rounded-md animate-pulse" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <label className="block text-sm font-medium">{label}</label>
+      <Select
+        options={options}
+        isMulti
+        value={value}
+        onChange={onChange}
+        className="mt-1 text-sm"
+        instanceId={instanceId}
+        aria-activedescendant={undefined}
+      />
+    </div>
+  );
+};
+
+const DateRangeField = ({
+  startDate,
+  endDate,
+  onStartDateChange,
+  onEndDateChange
+}: {
+  startDate: Date | null;
+  endDate: Date | null;
+  onStartDateChange: (date: Date | null) => void;
+  onEndDateChange: (date: Date | null) => void;
+}) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div>
+        <span className="block text-sm font-medium mb-1">Tanggal</span>
+        <div className="flex items-center gap-2 text-sm">
+          <div className="w-full h-10 bg-gray-100 rounded-md animate-pulse" />
+          <span>-</span>
+          <div className="w-full h-10 bg-gray-100 rounded-md animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <span className="block text-sm font-medium mb-1">Tanggal</span>
+      <div className="flex items-center gap-2 text-sm">
+        <DatePicker
+          selected={startDate}
+          onChange={onStartDateChange}
+          selectsStart
+          startDate={startDate}
+          endDate={endDate}
+          maxDate={endDate || undefined}
+          placeholderText="Mulai"
+          className="border p-2 rounded-md w-full"
+        />
+        <span>-</span>
+        <DatePicker
+          selected={endDate}
+          onChange={onEndDateChange}
+          selectsEnd
+          startDate={startDate}
+          endDate={endDate}
+          minDate={startDate || undefined}
+          placeholderText="Selesai"
+          className="border p-2 rounded-md w-full"
+        />
+      </div>
+    </div>
+  );
+};
+
+const AlertLevelField = ({
+  level,
+  onChange
+}: {
+  level: number;
+  onChange: (level: number) => void;
 }) => (
   <div>
-    <label className="block text-sm font-medium">{label}</label>
-    <Select
-      options={options}
-      isMulti
-      value={value}
-      onChange={onChange}
-      className="mt-1 text-sm"
-      instanceId={instanceId}
-    />
+    <span className="block text-sm font-medium mb-1">Tingkat Kewaspadaan:</span>
+    <div className="border border-gray-300 text-sm rounded-md pb-1 pr-3 flex items-center justify-between shadow-sm mb-4">
+      <span className="text-gray-400 pl-3">Atur tingkat Kewaspadaan:</span>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            className={`text-3xl transition-all ${
+              star <= level ? "text-yellow-400" : "text-gray-300"
+            }`}
+            onClick={() => onChange(star)}
+          >
+            {star <= level ? "★" : "☆"}
+          </button>
+        ))}
+      </div>
+    </div>
   </div>
 );
 
@@ -93,6 +200,11 @@ const FilterForm = ({
     locations: [],
     news: [],
   });
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchFilters() {
@@ -196,6 +308,23 @@ const FilterForm = ({
     setSelectedEndDate(null);
   };
 
+  if (!isMounted) {
+    return (
+      <div className="bg-white rounded-lg shadow-md overflow-hidden w-full max-w-md">
+        <div className="bg-blue-500 px-6 py-4">
+          <h2 className="text-white text-lg font-semibold">Filter Informasi Penyakit Menular</h2>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   if (isLoadingFilters) {
     return (
       <div className="flex flex-col items-center justify-center">
@@ -235,53 +364,17 @@ const FilterForm = ({
           instanceId="news-select"
         />
 
-        <div>
-          <span className="block text-sm font-medium mb-1">Tingkat Kewaspadaan:</span>
-          <div className="border border-gray-300 text-sm rounded-md pb-1 pr-3 flex items-center justify-between shadow-sm mb-4">
-            <span className="text-gray-400 pl-3">Atur tingkat Kewaspadaan:</span>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  className={`text-3xl transition-all ${
-                    star <= selectedLevelOfAlertness ? "text-yellow-400" : "text-gray-300"
-                  }`}
-                  onClick={() => setSelectedLevelOfAlertness(star)}
-                >
-                  {star <= selectedLevelOfAlertness ? "★" : "☆"}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <AlertLevelField
+          level={selectedLevelOfAlertness}
+          onChange={setSelectedLevelOfAlertness}
+        />
 
-        <div>
-          <span className="block text-sm font-medium mb-1">Tanggal</span>
-          <div className="flex items-center gap-2 text-sm">
-            <DatePicker
-              selected={selectedStartDate}
-              onChange={(date: Date | null) => setSelectedStartDate(date)}
-              selectsStart
-              startDate={selectedStartDate}
-              endDate={selectedEndDate}
-              maxDate={selectedEndDate || undefined}
-              placeholderText="Mulai"
-              className="border p-2 rounded-md w-full"
-            />
-            <span>-</span>
-            <DatePicker
-              selected={selectedEndDate}
-              onChange={(date: Date | null) => setSelectedEndDate(date)}
-              selectsEnd
-              startDate={selectedStartDate}
-              endDate={selectedEndDate}
-              minDate={selectedStartDate || undefined}
-              placeholderText="Selesai"
-              className="border p-2 rounded-md w-full"
-            />
-          </div>
-        </div>
+        <DateRangeField
+          startDate={selectedStartDate}
+          endDate={selectedEndDate}
+          onStartDateChange={setSelectedStartDate}
+          onEndDateChange={setSelectedEndDate}
+        />
 
         <div className="flex justify-end gap-2 text-sm">
           <button
