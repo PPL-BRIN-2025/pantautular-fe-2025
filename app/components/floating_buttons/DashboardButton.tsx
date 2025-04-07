@@ -19,7 +19,7 @@ export default function DashboardButton({
   className,
 }: Readonly<DashboardButtonProps>) {
   const pathname = usePathname()
-  const [isActive, setIsActive] = useState(pathname === "/dashboard")
+  const [isActive] = useState(pathname === "/dashboard")
   const router = useRouter()
 
   // Size mapping for the button and SVG
