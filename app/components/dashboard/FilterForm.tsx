@@ -210,6 +210,62 @@ const createFilterState = (
   end_date: selectedEndDate
 });
 
+const fetchFilterOptions = async (apiFilterOptions: string) => {
+  const response = await fetch(apiFilterOptions, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    mode: "cors",
+  });
+  
+  if (!response.ok) {
+    throw new Error("Failed to fetch filter options");
+  }
+  
+  return response.json();
+};
+
+const createFilterOptions = (responseFilters: any) => ({
+  diseases: createSelectOptions(responseFilters.data.diseases),
+  locations: createSelectOptions(responseFilters.data.locations),
+  news: createSelectOptions(responseFilters.data.news),
+});
+
+const setInitialFilterValues = (
+  initialFilterState: FilterState,
+  options: FilterOptions,
+  setters: {
+    setDiseases: (value: SelectOption[]) => void;
+    setLocations: (value: SelectOption[]) => void;
+    setNews: (value: SelectOption[]) => void;
+    setLevelOfAlertness: (value: number) => void;
+    setStartDate: (value: Date | null) => void;
+    setEndDate: (value: Date | null) => void;
+  }
+) => {
+  const setInitialValues = (
+    items: string[],
+    options: SelectOption[],
+    setter: (value: SelectOption[]) => void
+  ) => {
+    setter(
+      items.map(item => 
+        options.find(option => option.value === item) || 
+        { value: item, label: item }
+      )
+    );
+  };
+
+  setInitialValues(initialFilterState.diseases, options.diseases, setters.setDiseases);
+  setInitialValues(initialFilterState.locations, options.locations, setters.setLocations);
+  setInitialValues(initialFilterState.portals, options.news, setters.setNews);
+  
+  setters.setLevelOfAlertness(initialFilterState.level_of_alertness || 0);
+  setters.setStartDate(initialFilterState.start_date ? new Date(initialFilterState.start_date) : null);
+  setters.setEndDate(initialFilterState.end_date ? new Date(initialFilterState.end_date) : null);
+};
+
 const FilterForm = ({
   apiFilterOptions = `${API_BASE_URL}/api/filters/`,
   onSubmitFilterState,
@@ -239,47 +295,19 @@ const FilterForm = ({
     async function fetchFilters() {
       setIsLoadingFilters(true);
       try {
-        const response = await fetch(apiFilterOptions, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          mode: "cors",
-        });
+        const responseFilters = await fetchFilterOptions(apiFilterOptions);
+        const options = createFilterOptions(responseFilters);
+        setFilterOptions(options);
         
-        if (response.ok) {
-          const responseFilters = await response.json();
-          const options = {
-            diseases: createSelectOptions(responseFilters.data.diseases),
-            locations: createSelectOptions(responseFilters.data.locations),
-            news: createSelectOptions(responseFilters.data.news),
-          };
-          setFilterOptions(options);
-          
-          if (initialFilterState) {
-            const setInitialValues = (
-              items: string[],
-              options: SelectOption[],
-              setter: (value: SelectOption[]) => void
-            ) => {
-              setter(
-                items.map(item => 
-                  options.find(option => option.value === item) || 
-                  { value: item, label: item }
-                )
-              );
-            };
-
-            setInitialValues(initialFilterState.diseases, options.diseases, setSelectedDiseases);
-            setInitialValues(initialFilterState.locations, options.locations, setSelectedLocations);
-            setInitialValues(initialFilterState.portals, options.news, setSelectedNews);
-            
-            setSelectedLevelOfAlertness(initialFilterState.level_of_alertness || 0);
-            setSelectedStartDate(initialFilterState.start_date ? new Date(initialFilterState.start_date) : null);
-            setSelectedEndDate(initialFilterState.end_date ? new Date(initialFilterState.end_date) : null);
-          }
-        } else {
-          console.error("Failed to fetch filter options");
+        if (initialFilterState) {
+          setInitialFilterValues(initialFilterState, options, {
+            setDiseases: setSelectedDiseases,
+            setLocations: setSelectedLocations,
+            setNews: setSelectedNews,
+            setLevelOfAlertness: setSelectedLevelOfAlertness,
+            setStartDate: setSelectedStartDate,
+            setEndDate: setSelectedEndDate,
+          });
         }
       } catch (error) {
         handleError(error, onError);
