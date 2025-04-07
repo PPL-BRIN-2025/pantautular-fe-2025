@@ -75,89 +75,42 @@ export const mapApi = {
   }
 };
 
+const fetchSeverityStats = async (endpoint: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "x-api-key": String(API_KEY),
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data.map((item: any) => ({
+      name: item.name,
+      hospitalisasi: item.severity_counts.hospitalisasi,
+      insiden: item.severity_counts.insiden,
+      mortalitas: item.severity_counts.mortalitas,
+      total_cases: item.total_cases
+    }));
+  } catch (error) {
+    console.error(`Error fetching severity stats from ${endpoint}:`, error);
+    throw error;
+  }
+};
+
 export const severityApi = {
   async getDiseaseSeverityStats() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/diseases/severity-stats/`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "x-api-key": String(API_KEY),
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Disease data:', data); // Debug log
-      return data.data.map((item: any) => ({
-        name: item.name,
-        hospitalisasi: item.severity_counts.hospitalisasi,
-        insiden: item.severity_counts.insiden,
-        mortalitas: item.severity_counts.mortalitas,
-        total_cases: item.total_cases
-      }));
-    } catch (error) {
-      console.error("Error fetching severity stats:", error);
-      throw error;
-    }
+    return fetchSeverityStats('/api/diseases/severity-stats/');
   },
   async getProvinceSeverityStats() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/locations/province/severity-stats/`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "x-api-key": String(API_KEY),
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Province data:', data); // Debug log
-      return data.data.map((item: any) => ({
-        name: item.name,
-        hospitalisasi: item.severity_counts.hospitalisasi,
-        insiden: item.severity_counts.insiden,
-        mortalitas: item.severity_counts.mortalitas,
-        total_cases: item.total_cases
-      }));
-    } catch (error) {
-      console.error("Error fetching province severity stats:", error);
-      throw error;
-    }
+    return fetchSeverityStats('/api/locations/province/severity-stats/');
   },
   async getCitySeverityStats() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/locations/city/severity-stats/`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "x-api-key": String(API_KEY),
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('City data:', data); // Debug log
-      return data.data.map((item: any) => ({
-        name: item.name,
-        hospitalisasi: item.severity_counts.hospitalisasi,
-        insiden: item.severity_counts.insiden,
-        mortalitas: item.severity_counts.mortalitas,
-        total_cases: item.total_cases
-      }));
-    } catch (error) {
-      console.error("Error fetching city severity stats:", error);
-      throw error;
-    }
+    return fetchSeverityStats('/api/locations/city/severity-stats/');
   }
 };

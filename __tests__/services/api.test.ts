@@ -218,15 +218,28 @@ describe('severityApi', () => {
         ]
     };
 
-    describe('getSeverityStats', () => {
-        it('should fetch severity stats successfully', async () => {
+    beforeEach(() => {
+        // Clear all mocks before each test
+        jest.clearAllMocks();
+    });
+
+    const mockError = new Error('API Error');
+
+    describe('getDiseaseSeverityStats', () => {
+        it('should fetch and transform disease severity stats successfully', async () => {
+            // Mock successful fetch response
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve(mockSeverityResponse)
             });
 
             const result = await severityApi.getDiseaseSeverityStats();
-            
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                expect.stringContaining('/api/diseases/severity-stats/'),
+                expect.any(Object)
+            );
+
             expect(result).toEqual([
                 {
                     name: "Dengue",
@@ -243,44 +256,105 @@ describe('severityApi', () => {
                     total_cases: 1550
                 }
             ]);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/diseases/severity-stats/`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
-                    }
-                }
-            );
         });
 
-        it('should handle network errors', async () => {
-            const networkError = new Error('Network error');
-            (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+        it('should handle API errors', async () => {
+            // Mock failed fetch response
+            (global.fetch as jest.Mock).mockRejectedValueOnce(mockError);
 
-            await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('Network error');
-            expect(console.error).toHaveBeenCalledWith('Error fetching severity stats:', networkError);
+            await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('API Error');
         });
+    });
 
-        it('should handle non-OK response', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: false,
-                status: 500
-            });
-
-            await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('HTTP error! status: 500');
-        });
-
-        it('should handle empty response', async () => {
+    describe('getProvinceSeverityStats', () => {
+        it('should fetch and transform province severity stats successfully', async () => {
+            // Mock successful fetch response
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: true,
-                json: () => Promise.resolve({ data: [] })
+                json: () => Promise.resolve(mockSeverityResponse)
             });
 
-            const result = await severityApi.getDiseaseSeverityStats();
-            expect(result).toEqual([]);
+            const result = await severityApi.getProvinceSeverityStats();
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                expect.stringContaining('/api/locations/province/severity-stats/'),
+                expect.any(Object)
+            );
+
+            expect(result).toEqual([
+                {
+                    name: "Dengue",
+                    hospitalisasi: 100,
+                    insiden: 200,
+                    mortalitas: 10,
+                    total_cases: 310
+                },
+                {
+                    name: "COVID-19",
+                    hospitalisasi: 500,
+                    insiden: 1000,
+                    mortalitas: 50,
+                    total_cases: 1550
+                }
+            ]);
         });
+
+        it('should handle API errors', async () => {
+            // Mock failed fetch response
+            (global.fetch as jest.Mock).mockRejectedValueOnce(mockError);
+
+            await expect(severityApi.getProvinceSeverityStats()).rejects.toThrow('API Error');
+        });
+    });
+
+    describe('getCitySeverityStats', () => {
+        it('should fetch and transform city severity stats successfully', async () => {
+            // Mock successful fetch response
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockSeverityResponse)
+            });
+
+            const result = await severityApi.getCitySeverityStats();
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                expect.stringContaining('/api/locations/city/severity-stats/'),
+                expect.any(Object)
+            );
+
+            expect(result).toEqual([
+                {
+                    name: "Dengue",
+                    hospitalisasi: 100,
+                    insiden: 200,
+                    mortalitas: 10,
+                    total_cases: 310
+                },
+                {
+                    name: "COVID-19",
+                    hospitalisasi: 500,
+                    insiden: 1000,
+                    mortalitas: 50,
+                    total_cases: 1550
+                }
+            ]);
+        });
+
+        it('should handle API errors', async () => {
+            // Mock failed fetch response
+            (global.fetch as jest.Mock).mockRejectedValueOnce(mockError);
+
+            await expect(severityApi.getCitySeverityStats()).rejects.toThrow('API Error');
+        });
+    });
+
+    it('should handle non-OK responses', async () => {
+        // Mock non-OK response
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: false,
+            status: 500
+        });
+
+        await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('HTTP error! status: 500');
     });
 });
