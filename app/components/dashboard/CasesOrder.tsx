@@ -1,11 +1,12 @@
 import React from "react";
+import { DiseaseSeverityChart } from "../severity/DeseaseSeverity";
 
 const CasesOrder = () => {
     return (
-        <div className="flex items-center justify-center bg-transparent text-black text-lg p-6 rounded-lg shadow-md border">
-            <p>Urutan Kasus</p>
+        <div className="chart-card">
+            <DiseaseSeverityChart/>
         </div>
     );
 };
 
-export default CasesOrder
+export default CasesOrder;
