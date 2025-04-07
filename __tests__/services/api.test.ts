@@ -1,4 +1,5 @@
 import { mapApi } from "../../services/api";
+import { diseaseApi } from "../../services/api";
 
 describe('mapApi', () => {
     const mockResponse = [
@@ -190,6 +191,97 @@ describe('mapApi', () => {
 
             const result = await mapApi.getCaseDetail(mockCaseId);
             expect(result).toEqual({});
+        });
+    });
+});
+
+describe('diseaseApi', () => {
+    const mockSeverityResponse = {
+        data: [
+            {
+                name: "Dengue",
+                severity_counts: {
+                    hospitalisasi: 100,
+                    insiden: 200,
+                    mortalitas: 10
+                },
+                total_cases: 310
+            },
+            {
+                name: "COVID-19",
+                severity_counts: {
+                    hospitalisasi: 500,
+                    insiden: 1000,
+                    mortalitas: 50
+                },
+                total_cases: 1550
+            }
+        ]
+    };
+
+    describe('getSeverityStats', () => {
+        it('should fetch severity stats successfully', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockSeverityResponse)
+            });
+
+            const result = await diseaseApi.getSeverityStats();
+            
+            expect(result).toEqual([
+                {
+                    name: "Dengue",
+                    hospitalisasi: 100,
+                    insiden: 200,
+                    mortalitas: 10,
+                    total_cases: 310
+                },
+                {
+                    name: "COVID-19",
+                    hospitalisasi: 500,
+                    insiden: 1000,
+                    mortalitas: 50,
+                    total_cases: 1550
+                }
+            ]);
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/diseases/severity-stats/`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    }
+                }
+            );
+        });
+
+        it('should handle network errors', async () => {
+            const networkError = new Error('Network error');
+            (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+
+            await expect(diseaseApi.getSeverityStats()).rejects.toThrow('Network error');
+            expect(console.error).toHaveBeenCalledWith('Error fetching severity stats:', networkError);
+        });
+
+        it('should handle non-OK response', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 500
+            });
+
+            await expect(diseaseApi.getSeverityStats()).rejects.toThrow('HTTP error! status: 500');
+        });
+
+        it('should handle empty response', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve({ data: [] })
+            });
+
+            const result = await diseaseApi.getSeverityStats();
+            expect(result).toEqual([]);
         });
     });
 });
