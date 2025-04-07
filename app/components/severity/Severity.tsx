@@ -35,6 +35,9 @@ interface SeriesConfig {
   chartData: ChartData[];
 }
 
+// Add this at the top of the file, outside any component
+let chartIdCounter = 0;
+
 const LegendItem = ({ color, label }: { color: string; label: string }) => (
   <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
     <span
@@ -193,7 +196,10 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [data, setData] = useState<ChartData[]>([]);
-  const chartId = useMemo(() => `chartdiv-${Math.random().toString(36).substr(2, 9)}`, []);
+  const chartId = useMemo(() => {
+    chartIdCounter += 1;
+    return `chartdiv-${Date.now()}-${chartIdCounter}`;
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
