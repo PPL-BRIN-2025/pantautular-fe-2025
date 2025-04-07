@@ -14,13 +14,15 @@ jest.mock("../../app/components/IndonesiaMap", () => ({
     <div 
       data-testid="map-container" 
       onClick={() => onError("Map error")}
-      role="button"
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
           onError("Map error");
         }
       }}
+      role="button"
+      tabIndex={0}
+      aria-label="Map container"
     >
       Map Container
     </div>
