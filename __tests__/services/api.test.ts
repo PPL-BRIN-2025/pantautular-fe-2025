@@ -1,4 +1,4 @@
-import { mapApi, diseaseApi } from "../../services/api";
+import { mapApi, severityApi } from "../../services/api";
 
 describe('mapApi', () => {
     const mockResponse = [
@@ -194,7 +194,7 @@ describe('mapApi', () => {
     });
 });
 
-describe('diseaseApi', () => {
+describe('severityApi', () => {
     const mockSeverityResponse = {
         data: [
             {
@@ -225,7 +225,7 @@ describe('diseaseApi', () => {
                 json: () => Promise.resolve(mockSeverityResponse)
             });
 
-            const result = await diseaseApi.getSeverityStats();
+            const result = await severityApi.getDiseaseSeverityStats();
             
             expect(result).toEqual([
                 {
@@ -260,7 +260,7 @@ describe('diseaseApi', () => {
             const networkError = new Error('Network error');
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
 
-            await expect(diseaseApi.getSeverityStats()).rejects.toThrow('Network error');
+            await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('Network error');
             expect(console.error).toHaveBeenCalledWith('Error fetching severity stats:', networkError);
         });
 
@@ -270,7 +270,7 @@ describe('diseaseApi', () => {
                 status: 500
             });
 
-            await expect(diseaseApi.getSeverityStats()).rejects.toThrow('HTTP error! status: 500');
+            await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('HTTP error! status: 500');
         });
 
         it('should handle empty response', async () => {
@@ -279,7 +279,7 @@ describe('diseaseApi', () => {
                 json: () => Promise.resolve({ data: [] })
             });
 
-            const result = await diseaseApi.getSeverityStats();
+            const result = await severityApi.getDiseaseSeverityStats();
             expect(result).toEqual([]);
         });
     });
