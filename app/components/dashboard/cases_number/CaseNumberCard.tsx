@@ -34,7 +34,7 @@ const CaseNumberCard:  React.FC<CaseNumbersProps> = ({ jumlah_kasus, jumlah_kasu
         </div>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-6">
       <StatsItem
           type="kasus_kematian"
           count={jumlah_kasus_kematian}
