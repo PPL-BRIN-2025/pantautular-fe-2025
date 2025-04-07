@@ -1,5 +1,4 @@
-import { mapApi } from "../../services/api";
-import { diseaseApi } from "../../services/api";
+import { mapApi, diseaseApi } from "../../services/api";
 
 describe('mapApi', () => {
     const mockResponse = [
