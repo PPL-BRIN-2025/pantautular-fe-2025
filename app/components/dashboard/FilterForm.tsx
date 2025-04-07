@@ -48,6 +48,28 @@ const handleSelectChange = (
   }
 };
 
+const LoadingPlaceholder = ({ label }: { label?: string }) => (
+  <div>
+    {label && <span className="block text-sm font-medium mb-1">{label}</span>}
+    <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
+  </div>
+);
+
+const LoadingForm = () => (
+  <div className="bg-white rounded-lg shadow-md overflow-hidden w-full max-w-md">
+    <div className="bg-blue-500 px-6 py-4">
+      <h2 className="text-white text-lg font-semibold">Filter Informasi Penyakit Menular</h2>
+    </div>
+    <div className="p-6 space-y-4">
+      <LoadingPlaceholder label="Jenis Penyakit" />
+      <LoadingPlaceholder label="Lokasi" />
+      <LoadingPlaceholder label="Sumber Berita" />
+      <LoadingPlaceholder label="Tingkat Kewaspadaan" />
+      <LoadingPlaceholder label="Tanggal" />
+    </div>
+  </div>
+);
+
 const SelectField = ({
   label,
   options,
@@ -68,12 +90,7 @@ const SelectField = ({
   }, []);
 
   if (!isMounted) {
-    return (
-      <div>
-        <label className="block text-sm font-medium">{label}</label>
-        <div className="mt-1 h-10 bg-gray-100 rounded-md animate-pulse" />
-      </div>
-    );
+    return <LoadingPlaceholder label={label} />;
   }
 
   return (
@@ -110,16 +127,7 @@ const DateRangeField = ({
   }, []);
 
   if (!isMounted) {
-    return (
-      <div>
-        <span className="block text-sm font-medium mb-1">Tanggal</span>
-        <div className="flex items-center gap-2 text-sm">
-          <div className="w-full h-10 bg-gray-100 rounded-md animate-pulse" />
-          <span>-</span>
-          <div className="w-full h-10 bg-gray-100 rounded-md animate-pulse" />
-        </div>
-      </div>
-    );
+    return <LoadingPlaceholder label="Tanggal" />;
   }
 
   return (
@@ -309,29 +317,11 @@ const FilterForm = ({
   };
 
   if (!isMounted) {
-    return (
-      <div className="bg-white rounded-lg shadow-md overflow-hidden w-full max-w-md">
-        <div className="bg-blue-500 px-6 py-4">
-          <h2 className="text-white text-lg font-semibold">Filter Informasi Penyakit Menular</h2>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
-          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
-          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
-          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
-          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
-        </div>
-      </div>
-    );
+    return <LoadingForm />;
   }
 
   if (isLoadingFilters) {
-    return (
-      <div className="flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-        <p>Loading filter options...</p>
-      </div>
-    );
+    return <LoadingForm />;
   }
 
   return (
