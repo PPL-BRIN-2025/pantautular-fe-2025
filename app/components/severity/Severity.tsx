@@ -201,6 +201,36 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
     return `chartdiv-${Date.now()}-${chartIdCounter}`;
   }, []);
 
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-red-500 text-center p-4">
+          Error: {error.message}
+        </div>
+      );
+    }
+
+    if (data.length === 0) {
+      return (
+        <div className="text-gray-500 text-center p-4">
+          No data available
+        </div>
+      );
+    }
+
+    return (
+      <div id={chartId} className="w-full h-96"></div>
+    );
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -279,32 +309,18 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
   }, [data, seriesConfig, chartId]);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex justify-between items-center">
-        <h3 className="chart-title">{title}</h3>
-        <div className="flex gap-3">
-          {seriesConfig.map((config) => (
-            <LegendItem key={config.field} color={config.color} label={config.name} />
-          ))}
-        </div>
+    <div className="bg-white rounded-lg shadow p-4">
+      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <div className="flex flex-wrap gap-4 mb-4">
+        {seriesConfig.map((config) => (
+          <LegendItem
+            key={config.name}
+            color={config.color}
+            label={config.name}
+          />
+        ))}
       </div>
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </div>
-      ) : error ? (
-        <div className="text-red-500 text-center p-4">
-          Error: {error.message}
-        </div>
-      ) : data.length === 0 ? (
-        <div className="text-gray-500 text-center p-4">
-          No data available
-        </div>
-      ) : (
-        <div className="relative">
-          <div id={chartId} className="w-full h-64"></div>
-        </div>
-      )}
+      {renderContent()}
     </div>
   );
 };
