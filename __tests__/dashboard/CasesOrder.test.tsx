@@ -1,19 +1,22 @@
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import CasesOrder from "../../app/components/dashboard/CasesOrder"
 
+// Mock the DiseaseSeverityChart component
+jest.mock("../../app/components/severity/DeseaseSeverity", () => ({
+  DiseaseSeverityChart: () => <div>Disease Severity Chart</div>
+}));
+
 describe("CasesOrder Component", () => {
-    it("renders correctly with the expected text", () => {
-      render(<CasesOrder />);
-  
-      const textElement = screen.getByText(/Urutan Kasus/i);
-      expect(textElement).toBeInTheDocument();
-    });
-  
-    it("applies the correct CSS classes", () => {
-      render(<CasesOrder />);
-      
-      const divElement = screen.getByText(/Urutan Kasus/i).parentElement;
-      expect(divElement).toHaveClass("flex", "items-center", "justify-center", "bg-transparent", "text-black", "text-lg", "p-6", "rounded-lg", "shadow-md", "border");
-    });
+  it("renders with correct layout", () => {
+    render(<CasesOrder />);
+    
+    // Check if the main container has the correct class
+    const container = document.querySelector('.chart-card');
+    expect(container).toBeInTheDocument();
+    
+    // Check if the DiseaseSeverityChart is rendered
+    expect(screen.getByText('Disease Severity Chart')).toBeInTheDocument();
   });
+});
