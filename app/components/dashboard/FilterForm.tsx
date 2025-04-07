@@ -26,6 +26,54 @@ interface MultiSelectFormProps {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+const createSelectOptions = (items: any[], allOption = true) => {
+  const baseOptions = allOption ? [{ value: "all", label: "Pilih Semua" }] : [];
+  return [...baseOptions, ...items];
+};
+
+const handleSelectChange = (
+  newValue: MultiValue<SelectOption>,
+  currentSelected: SelectOption[],
+  allOptions: SelectOption[],
+  setSelected: (value: SelectOption[]) => void
+) => {
+  if (newValue.some((option) => option.value === "all")) {
+    if (currentSelected.length === allOptions.length - 1) {
+      setSelected([]);
+    } else {
+      setSelected(allOptions.slice(1));
+    }
+  } else {
+    setSelected(newValue as SelectOption[]);
+  }
+};
+
+const SelectField = ({
+  label,
+  options,
+  value,
+  onChange,
+  instanceId
+}: {
+  label: string;
+  options: SelectOption[];
+  value: SelectOption[];
+  onChange: (newValue: MultiValue<SelectOption>) => void;
+  instanceId: string;
+}) => (
+  <div>
+    <label className="block text-sm font-medium">{label}</label>
+    <Select
+      options={options}
+      isMulti
+      value={value}
+      onChange={onChange}
+      className="mt-1 text-sm"
+      instanceId={instanceId}
+    />
+  </div>
+);
+
 const FilterForm = ({
   apiFilterOptions = `${API_BASE_URL}/api/filters/`,
   onSubmitFilterState,
@@ -61,33 +109,29 @@ const FilterForm = ({
         if (response.ok) {
           const responseFilters = await response.json();
           const options = {
-            diseases: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.diseases],
-            locations: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.locations],
-            news: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.news],
+            diseases: createSelectOptions(responseFilters.data.diseases),
+            locations: createSelectOptions(responseFilters.data.locations),
+            news: createSelectOptions(responseFilters.data.news),
           };
           setFilterOptions(options);
           
           if (initialFilterState) {
-            setSelectedDiseases(
-              initialFilterState.diseases.map(disease => 
-                options.diseases.find(option => option.value === disease) || 
-                { value: disease, label: disease }
-              )
-            );
-            
-            setSelectedLocations(
-              initialFilterState.locations.map(location => 
-                options.locations.find(option => option.value === location) || 
-                { value: location, label: location }
-              )
-            );
-            
-            setSelectedNews(
-              initialFilterState.portals.map(portal => 
-                options.news.find(option => option.value === portal) || 
-                { value: portal, label: portal }
-              )
-            );
+            const setInitialValues = (
+              items: string[],
+              options: SelectOption[],
+              setter: (value: SelectOption[]) => void
+            ) => {
+              setter(
+                items.map(item => 
+                  options.find(option => option.value === item) || 
+                  { value: item, label: item }
+                )
+              );
+            };
+
+            setInitialValues(initialFilterState.diseases, options.diseases, setSelectedDiseases);
+            setInitialValues(initialFilterState.locations, options.locations, setSelectedLocations);
+            setInitialValues(initialFilterState.portals, options.news, setSelectedNews);
             
             setSelectedLevelOfAlertness(initialFilterState.level_of_alertness || 0);
             setSelectedStartDate(initialFilterState.start_date ? new Date(initialFilterState.start_date) : null);
@@ -107,39 +151,15 @@ const FilterForm = ({
   }, [apiFilterOptions, initialFilterState, onError]);
 
   const handleDiseaseChange = (newValue: MultiValue<SelectOption>) => {
-    if (newValue.some((option) => option.value === "all")) {
-      if (selectedDiseases.length === filterOptions.diseases.length - 1) {
-        setSelectedDiseases([]);
-      } else {
-        setSelectedDiseases(filterOptions.diseases.slice(1));
-      }
-    } else {
-      setSelectedDiseases(newValue as SelectOption[]);
-    }
+    handleSelectChange(newValue, selectedDiseases, filterOptions.diseases, setSelectedDiseases);
   };
 
   const handleLocationChange = (newValue: MultiValue<SelectOption>) => {
-    if (newValue.some((option) => option.value === "all")) {
-      if (selectedLocations.length === filterOptions.locations.length - 1) {
-        setSelectedLocations([]);
-      } else {
-        setSelectedLocations(filterOptions.locations.slice(1));
-      }
-    } else {
-      setSelectedLocations(newValue as SelectOption[]);
-    }
+    handleSelectChange(newValue, selectedLocations, filterOptions.locations, setSelectedLocations);
   };
 
   const handleNewsChange = (newValue: MultiValue<SelectOption>) => {
-    if (newValue.some((option) => option.value === "all")) {
-      if (selectedNews.length === filterOptions.news.length - 1) {
-        setSelectedNews([]);
-      } else {
-        setSelectedNews(filterOptions.news.slice(1));
-      }
-    } else {
-      setSelectedNews(newValue as SelectOption[]);
-    }
+    handleSelectChange(newValue, selectedNews, filterOptions.news, setSelectedNews);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -191,41 +211,29 @@ const FilterForm = ({
         <h2 className="text-white text-lg font-semibold">Filter Informasi Penyakit Menular</h2>
       </div>
       <form data-testid="map-filter-select" onSubmit={handleSubmit} className="space-y-4 p-6">
-        <div>
-          <label className="block text-sm font-medium">Jenis Penyakit</label>
-          <Select
-            options={filterOptions.diseases}
-            isMulti
-            value={selectedDiseases}
-            onChange={handleDiseaseChange}
-            className="mt-1 text-sm"
-            instanceId="disease-select"
-          />
-        </div>
+        <SelectField
+          label="Jenis Penyakit"
+          options={filterOptions.diseases}
+          value={selectedDiseases}
+          onChange={handleDiseaseChange}
+          instanceId="disease-select"
+        />
 
-        <div>
-          <label className="block text-sm font-medium">Lokasi</label>
-          <Select
-            options={filterOptions.locations}
-            isMulti
-            value={selectedLocations}
-            onChange={handleLocationChange}
-            className="mt-1 text-sm"
-            instanceId="location-select"
-          />
-        </div>
+        <SelectField
+          label="Lokasi"
+          options={filterOptions.locations}
+          value={selectedLocations}
+          onChange={handleLocationChange}
+          instanceId="location-select"
+        />
 
-        <div>
-          <label className="block text-sm font-medium">Sumber Berita</label>
-          <Select
-            options={filterOptions.news}
-            isMulti
-            value={selectedNews}
-            onChange={handleNewsChange}
-            className="mt-1 text-sm"
-            instanceId="news-select"
-          />
-        </div>
+        <SelectField
+          label="Sumber Berita"
+          options={filterOptions.news}
+          value={selectedNews}
+          onChange={handleNewsChange}
+          instanceId="news-select"
+        />
 
         <div>
           <span className="block text-sm font-medium mb-1">Tingkat Kewaspadaan:</span>
