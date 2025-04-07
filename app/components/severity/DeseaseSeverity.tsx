@@ -23,6 +23,133 @@ interface SeverityChartProps {
   }[];
 }
 
+const LegendItem = ({ color, label }: { color: string; label: string }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+    <span
+      style={{
+        width: "10px",
+        height: "10px",
+        borderRadius: "50%",
+        backgroundColor: color,
+        display: "inline-block",
+      }}
+    ></span>
+    <span style={{ fontSize: "14px", fontWeight: "500" }}>{label}</span>
+  </div>
+);
+
+const createTooltip = (root: am5.Root) => {
+  const tooltip = am5.Tooltip.new(root, {
+    getFillFromSprite: false,
+    background: am5.RoundedRectangle.new(root, {
+      fill: am5.color("#c4d9ed"),
+      stroke: am5.color("#666666"),
+      strokeWidth: 1,
+      cornerRadiusTL: 5,
+      cornerRadiusTR: 5,
+      cornerRadiusBL: 5,
+      cornerRadiusBR: 5
+    })
+  });
+
+  tooltip.label.setAll({
+    fontSize: 8,
+    fill: am5.color("#ffffff")
+  });
+
+  return tooltip;
+};
+
+const setupXAxis = (root: am5.Root, chart: am5xy.XYChart, categoryField: string) => {
+  const xAxis = chart.xAxes.push(
+    am5xy.CategoryAxis.new(root, {
+      categoryField: categoryField,
+      renderer: am5xy.AxisRendererX.new(root, {
+        minGridDistance: 20,
+      }),
+    })
+  );
+
+  xAxis.get("renderer").labels.template.setAll({
+    oversizedBehavior: "truncate",
+    maxWidth: 50,
+    rotation: -30,
+    fontSize: 12,
+  });
+  xAxis.get("renderer").grid.template.set("visible", false);
+  // @ts-ignore
+  xAxis.get("renderer").setAll({ paddingInner: 0.5, paddingOuter: 0.3 });
+
+  return xAxis;
+};
+
+const setupYAxis = (root: am5.Root, chart: am5xy.XYChart, chartData: ChartData[], seriesConfig: SeverityChartProps['seriesConfig']) => {
+  return chart.yAxes.push(
+    am5xy.ValueAxis.new(root, {
+      renderer: am5xy.AxisRendererY.new(root, {}),
+      min: 0,
+      max: Math.max(...chartData.map(item =>
+        seriesConfig.reduce((sum, config) => sum + (item[config.field] || 0), 0)
+      )) * 1.1,
+      extraMax: 0.1,
+      numberFormat: "#,###",
+    })
+  );
+};
+
+const createSeries = (
+  root: am5.Root,
+  chart: am5xy.XYChart,
+  xAxis: am5xy.CategoryAxis,
+  yAxis: am5xy.ValueAxis,
+  field: string,
+  name: string,
+  color: string,
+  categoryField: string,
+  chartData: ChartData[]
+) => {
+  const series = chart.series.push(
+    am5xy.ColumnSeries.new(root, {
+      name: name,
+      xAxis: xAxis,
+      yAxis: yAxis,
+      valueYField: field,
+      categoryXField: categoryField,
+      stacked: true,
+      fill: am5.color(color)
+    })
+  );
+
+  series.columns.template.setAll({
+    cornerRadiusTL: 6,
+    cornerRadiusTR: 6,
+    cornerRadiusBL: 6,
+    cornerRadiusBR: 6,
+    strokeWidth: 0,
+    width: am5.percent(60)
+  });
+
+  series.columns.template.adapters.add("tooltipText", (text, target) => {
+    const dataItem = target.dataItem;
+    if (dataItem) {
+      const categoryValue = dataItem.get("categoryX" as any);
+      const data = chartData.find(item => item[categoryField] === categoryValue);
+      if (data) {
+        return `[fontSize: 8px][bold]${categoryValue}[/]\nTotal Kasus: ${data.total_cases}\nHospitalisasi: ${data.hospitalisasi}\nInsiden: ${data.insiden}\nMortalitas: ${data.mortalitas}`;
+      }
+    }
+    return "";
+  });
+
+  series.columns.template.states.create("hover", {
+    strokeWidth: 2,
+    stroke: am5.color(color)
+  });
+
+  series.data.setAll(chartData);
+  return series;
+};
+
 const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: SeverityChartProps) => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
 
@@ -38,9 +165,8 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
   useEffect(() => {
     if (chartData.length === 0) return;
 
-    let root = am5.Root.new("chartdiv");
-
-    let chart = root.container.children.push(
+    const root = am5.Root.new("chartdiv");
+    const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
         layout: root.verticalLayout,
         paddingTop: 50,
@@ -48,107 +174,16 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
       })
     );
 
-    // Set tooltip at chart level
-    const tooltip = am5.Tooltip.new(root, {
-      getFillFromSprite: false,
-      background: am5.RoundedRectangle.new(root, {
-        fill: am5.color("#c4d9ed"),
-        stroke: am5.color("#666666"),
-        strokeWidth: 1,
-        cornerRadiusTL: 5,
-        cornerRadiusTR: 5,
-        cornerRadiusBL: 5,
-        cornerRadiusBR: 5
-      })
-    });
-
-
-    tooltip.label.setAll({
-      fontSize: 8,
-      fill: am5.color("#ffffff")
-    });
-
+    const tooltip = createTooltip(root);
     chart.set("tooltip", tooltip);
 
-    let xAxis = chart.xAxes.push(
-      am5xy.CategoryAxis.new(root, {
-        categoryField: categoryField,
-        renderer: am5xy.AxisRendererX.new(root, {
-          minGridDistance: 20,
-        }),
-      })
-    );
-
-    xAxis.get("renderer").labels.template.setAll({
-      oversizedBehavior: "truncate",
-      maxWidth: 50,
-      rotation: -30,
-      fontSize: 12,
-    });
-    xAxis.get("renderer").grid.template.set("visible", false);
-    // @ts-ignore
-    xAxis.get("renderer").setAll({ paddingInner: 0.5, paddingOuter: 0.3 });
-
-    let yAxis = chart.yAxes.push(
-      am5xy.ValueAxis.new(root, {
-        renderer: am5xy.AxisRendererY.new(root, {}),
-        min: 0,
-        max: Math.max(...chartData.map(item =>
-          seriesConfig.reduce((sum, config) => sum + (item[config.field] || 0), 0)
-        )) * 1.1,
-        extraMax: 0.1,
-        numberFormat: "#,###",
-      })
-    );
+    const xAxis = setupXAxis(root, chart, categoryField);
+    const yAxis = setupYAxis(root, chart, chartData, seriesConfig);
 
     xAxis.data.setAll(chartData);
 
-    function createSeries(field: string, name: string, color: string) {
-      let series = chart.series.push(
-        am5xy.ColumnSeries.new(root, {
-          name: name,
-          xAxis: xAxis,
-          yAxis: yAxis,
-          valueYField: field,
-          categoryXField: categoryField,
-          stacked: true,
-          fill: am5.color(color)
-        })
-      );
-
-      series.columns.template.setAll({
-        cornerRadiusTL: 6,
-        cornerRadiusTR: 6,
-        cornerRadiusBL: 6,
-        cornerRadiusBR: 6,
-        strokeWidth: 0,
-        width: am5.percent(60)
-      });
-
-      series.columns.template.adapters.add("tooltipText", (text, target) => {
-        const dataItem = target.dataItem;
-        if (dataItem) {
-          const categoryValue = dataItem.get("categoryX" as any);
-          const data = chartData.find(item => item[categoryField] === categoryValue);
-          if (data) {
-            return `[fontSize: 8px][bold]${categoryValue}[/]\nTotal Kasus: ${data.total_cases}\nHospitalisasi: ${data.hospitalisasi}\nInsiden: ${data.insiden}\nMortalitas: ${data.mortalitas}`;
-          }
-        }
-        return "";
-      });
-
-      // Add hover state
-      series.columns.template.states.create("hover", {
-        strokeWidth: 2,
-        stroke: am5.color(color)
-      });
-
-      series.data.setAll(chartData);
-      return series;
-    }
-
     seriesConfig.forEach(config => {
-      createSeries(config.field, config.name, config.color);
+      createSeries(root, chart, xAxis, yAxis, config.field, config.name, config.color, categoryField, chartData);
     });
 
     return () => root.dispose();
@@ -159,7 +194,6 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
       <h2 className="chart-title">{title}</h2>
       <div className="chart-container">
         <div id="chartdiv" className="chart-wrapper"></div>
-
         <div
           style={{
             position: "absolute",
@@ -179,22 +213,6 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
   );
 };
 
-const LegendItem = ({ color, label }: { color: string; label: string }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-    <span
-      style={{
-        width: "10px",
-        height: "10px",
-        borderRadius: "50%",
-        backgroundColor: color,
-        display: "inline-block",
-      }}
-    ></span>
-    <span style={{ fontSize: "14px", fontWeight: "500" }}>{label}</span>
-  </div>
-);
-
-// Example usage for Disease Severity
 export const DiseaseSeverityChart = () => {
   return (
     <SeverityChart
