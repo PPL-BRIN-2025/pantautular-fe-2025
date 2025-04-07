@@ -23,6 +23,18 @@ interface SeverityChartProps {
   }[];
 }
 
+interface SeriesConfig {
+  root: am5.Root;
+  chart: am5xy.XYChart;
+  xAxis: am5xy.CategoryAxis;
+  yAxis: am5xy.ValueAxis;
+  field: string;
+  name: string;
+  color: string;
+  categoryField: string;
+  chartData: ChartData[];
+}
+
 const LegendItem = ({ color, label }: { color: string; label: string }) => (
   <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
     <span
@@ -97,17 +109,9 @@ const setupYAxis = (root: am5.Root, chart: am5xy.XYChart, chartData: ChartData[]
   );
 };
 
-const createSeries = (
-  root: am5.Root,
-  chart: am5xy.XYChart,
-  xAxis: am5xy.CategoryAxis,
-  yAxis: am5xy.ValueAxis,
-  field: string,
-  name: string,
-  color: string,
-  categoryField: string,
-  chartData: ChartData[]
-) => {
+const createSeries = (config: SeriesConfig) => {
+  const { root, chart, xAxis, yAxis, field, name, color, categoryField, chartData } = config;
+  
   const series = chart.series.push(
     am5xy.ColumnSeries.new(root, {
       name: name,
@@ -183,7 +187,17 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
     xAxis.data.setAll(chartData);
 
     seriesConfig.forEach(config => {
-      createSeries(root, chart, xAxis, yAxis, config.field, config.name, config.color, categoryField, chartData);
+      createSeries({
+        root,
+        chart,
+        xAxis,
+        yAxis,
+        field: config.field,
+        name: config.name,
+        color: config.color,
+        categoryField,
+        chartData
+      });
     });
 
     return () => root.dispose();
