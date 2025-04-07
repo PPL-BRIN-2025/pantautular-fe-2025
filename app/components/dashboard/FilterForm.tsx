@@ -189,6 +189,27 @@ const AlertLevelField = ({
   </div>
 );
 
+const handleError = (error: any, onError: (message: string) => void) => {
+  console.error(error);
+  onError("Failed to load the map. Please try again.");
+};
+
+const createFilterState = (
+  selectedDiseases: SelectOption[],
+  selectedLocations: SelectOption[],
+  selectedNews: SelectOption[],
+  selectedLevelOfAlertness: number,
+  selectedStartDate: Date | null,
+  selectedEndDate: Date | null
+): FilterState => ({
+  diseases: selectedDiseases.map((disease) => disease.value),
+  locations: selectedLocations.map((location) => location.value),
+  portals: selectedNews.map((news) => news.value),
+  level_of_alertness: selectedLevelOfAlertness,
+  start_date: selectedStartDate,
+  end_date: selectedEndDate
+});
+
 const FilterForm = ({
   apiFilterOptions = `${API_BASE_URL}/api/filters/`,
   onSubmitFilterState,
@@ -261,8 +282,7 @@ const FilterForm = ({
           console.error("Failed to fetch filter options");
         }
       } catch (error) {
-        console.error("Error fetching filter data", error);
-        onError("Failed to load the map. Please try again.");
+        handleError(error, onError);
       } finally {
         setIsLoadingFilters(false);
       }
@@ -286,22 +306,20 @@ const FilterForm = ({
     e.preventDefault();
     setIsSubmitting(true);
 
-    const filterState: FilterState = {
-      diseases: selectedDiseases.map((disease) => disease.value),
-      locations: selectedLocations.map((location) => location.value),
-      portals: selectedNews.map((news) => news.value),
-      level_of_alertness: selectedLevelOfAlertness,
-      start_date: selectedStartDate,
-      end_date: selectedEndDate
-    };
-
     try {
       if (onSubmitFilterState) {
+        const filterState = createFilterState(
+          selectedDiseases,
+          selectedLocations,
+          selectedNews,
+          selectedLevelOfAlertness,
+          selectedStartDate,
+          selectedEndDate
+        );
         onSubmitFilterState(filterState);
       }
     } catch (error) {
-      console.error(error);
-      onError("Failed to load the map. Please try again.");
+      handleError(error, onError);
     } finally {
       setIsSubmitting(false);
     }
