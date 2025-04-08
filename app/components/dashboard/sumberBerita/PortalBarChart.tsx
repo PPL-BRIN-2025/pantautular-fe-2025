@@ -37,6 +37,43 @@ const prepareSeriesData = (chartData: any[]) => {
   }));
 };
 
+// X-axis label visibility adapter - only show integer values
+// Moved outside to reduce nesting
+export const labelVisibilityAdapter = (visible: boolean, target: any) => {
+  const value = target.dataItem?.get("value") || 0;
+  // Only show label if it's an integer
+  return visible && Math.abs(value - Math.round(value)) < 0.01;
+};
+
+// Grid line visibility adapter - only show at integer values and zero
+// Moved outside to reduce nesting
+export const gridVisibilityAdapter = (visible: boolean, target: any) => {
+  const value = target.dataItem?.get("value") || 0;
+
+  // Always show the first grid line (at 0)
+  if (Math.abs(value) < 0.01) {
+    return true;
+  }
+
+  // For other values, only show grid lines at integer values
+  return visible && Math.abs(value - Math.round(value)) < 0.01;
+};
+
+// Grid line stroke style adapter - different styles based on position
+// Moved outside to reduce nesting
+export const gridStrokeAdapter = (strokeDasharray: number[], target: any) => {
+  if (!target.dataItem) return [2, 2];
+  const value = target.dataItem?.get("value") || 0;
+
+  // Make the first grid line (at 0) solid
+  if (Math.abs(value) < 0.01) {
+    return [];
+  }
+
+  // Make other integer grid lines dashed
+  return [2, 2];
+};
+
 const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId(); // Generate unique ID for each chart
@@ -111,24 +148,41 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
 
         yAxis.data.setAll(chartData);
 
-        // Create X-axis
+        // Create X-axis with integer values only
         const xAxis = chart.xAxes.push(
           am5xy.ValueAxis.new(root, {
             min: 0,
+            maxDeviation: 0,
             renderer: am5xy.AxisRendererX.new(root, {
-              minGridDistance: 30,
+              minGridDistance: 40,
             }),
           })
         );
+
+        // Properly format X-axis to only show integer values
+        xAxis.set("numberFormat", "#");
+
+        // Configure axis to only show integer labels
+        const renderer = xAxis.get("renderer");
+        
+        // Apply adapters to the renderer - using externally defined functions
+        renderer.labels.template.adapters.add("visible", labelVisibilityAdapter);
+        renderer.grid.template.adapters.add("visible", gridVisibilityAdapter);
+        renderer.grid.template.adapters.add("strokeDasharray", gridStrokeAdapter);
+
+        // Set base style for X-axis grid lines
+        renderer.grid.template.setAll({
+          visible: true,
+          stroke: am5.color("#e0e0e0"),
+          strokeOpacity: 1,
+          strokeWidth: 1
+        });
 
         // Set smaller font size for X-axis labels
         xAxis.get("renderer").labels.template.setAll({
           fontSize: 10,
           fontWeight: "400",
         });
-
-        // Remove grid lines from X-axis
-        xAxis.get("renderer").grid.template.set("visible", false);
 
         // Create series
         const series = chart.series.push(
@@ -149,13 +203,23 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
         // Style the tooltip with our custom color
         if (series.get("tooltip")) {
           series.get("tooltip").label.setAll({
-            fontSize: 9,
+            fontSize: 12,
             fontWeight: "400",
             fill: am5.color("#333333")
           });
         }
 
-        // Configure columns
+        // Make bars narrower when fewer data points
+        let barHeight;
+        if (data.length <= 3) {
+          barHeight = am5.percent(40);
+        } else if (data.length <= 5) {
+          barHeight = am5.percent(60);
+        } else {
+          barHeight = am5.percent(70);
+        }
+
+        // Configure columns - ensure no stroke/border and set width based on data count
         series.columns.template.setAll({
           cornerRadiusTR: 5,
           cornerRadiusBR: 5,
@@ -164,14 +228,15 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
           tooltipText: "{valueX} Artikel",
           fillOpacity: 0.8,
           templateField: "columnSettings",
-          height: am5.percent(70),
-          strokeWidth: 0,
-          stroke: null,
+          height: barHeight,
+          strokeOpacity: 0,
+          strokeWidth: 0, 
+          stroke: null
         });
 
         // Prepare series data using the utility function
         const seriesData = prepareSeriesData(chartData);
-        
+
         // Set the prepared data to the series
         series.data.setAll(seriesData);
 
@@ -199,6 +264,11 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
     return () => clearTimeout(timer);
   }, [data, colors, index, uniqueId]);
 
+  // Calculate chart height based on data items - maintain minimum height
+  const chartHeight = data.length > 0 
+    ? `${Math.max(250, 50 * data.length)}px` 
+    : "250px";
+
   return (
     <div className="w-full bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-6">
@@ -224,7 +294,7 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
       </div>
       
       {data.length > 0 ? (
-        <div ref={chartRef} className="w-full h-[250px]"></div>
+        <div ref={chartRef} className="w-full" style={{ height: chartHeight }}></div>
       ) : (
         <div className="w-full h-[250px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
           <div className="text-center">
