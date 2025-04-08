@@ -154,15 +154,16 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
           stroke: null,
         });
 
-        // Set specific colors for each bar
-        series.data.setAll(
-          chartData.map((item) => ({
-            ...item,
-            columnSettings: {
-              fill: item.color,
-            },
-          }))
-        );
+        // Prepare data with column settings for colors
+        const seriesData = chartData.map((item) => ({
+          ...item,
+          columnSettings: {
+            fill: item.color,
+          },
+        }));
+        
+        // Set the prepared data to the series
+        series.data.setAll(seriesData);
 
         // Add animations
         series.appear(1000);
