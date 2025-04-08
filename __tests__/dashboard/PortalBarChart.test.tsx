@@ -52,6 +52,15 @@ const mockXAxis = {
   })
 };
 
+// Create tooltip mock that can be referenced and tested later
+const mockTooltipLabel = { setAll: jest.fn() };
+const mockTooltip = {
+  label: mockTooltipLabel,
+  get: jest.fn().mockReturnValue({
+    setAll: jest.fn()
+  })
+};
+
 const mockSeries = {
   bullets: { push: jest.fn() },
   columns: { template: { setAll: jest.fn() } },
@@ -59,12 +68,7 @@ const mockSeries = {
   appear: jest.fn(),
   get: jest.fn().mockImplementation(prop => {
     if (prop === "tooltip") {
-      return {
-        label: { setAll: jest.fn() },
-        get: jest.fn().mockReturnValue({
-          setAll: jest.fn()
-        })
-      };
+      return mockTooltip;
     }
     return null;
   }),
@@ -93,7 +97,7 @@ const mockAm5 = {
   Root: {
     new: jest.fn().mockReturnValue(mockRoot)
   },
-  color: jest.fn(),
+  color: jest.fn(value => `mocked-color-${value}`),
   p50: 0.5,
   Tooltip: {
     new: jest.fn().mockReturnValue({
@@ -479,25 +483,13 @@ describe('PortalBarChart Component', () => {
     jest.useRealTimers();
   });
 
-  // Test tooltip customization
-  test('customizes tooltip when it exists', async () => {
+  // Test tooltip customization - specifically covering lines 177-178 in the component
+  test('customizes tooltip with custom color', async () => {
     // Mock implementation of setTimeout
     jest.useFakeTimers();
 
-    // Mock series.get to return a tooltip with a label
-    const mockTooltipLabel = { setAll: jest.fn() };
-    const mockTooltip = {
-      label: mockTooltipLabel,
-    };
-    
-    // Reset mockSeries.get and set our implementation
-    mockSeries.get.mockReset();
-    mockSeries.get.mockImplementation((prop) => {
-      if (prop === "tooltip") {
-        return mockTooltip;
-      }
-      return null;
-    });
+    // Reset mockTooltipLabel.setAll to track new calls
+    mockTooltipLabel.setAll.mockClear();
 
     const title = 'Test Chart';
     const data = [
@@ -513,7 +505,14 @@ describe('PortalBarChart Component', () => {
 
     // Verify tooltip customization
     expect(mockSeries.get).toHaveBeenCalledWith("tooltip");
-    expect(mockTooltipLabel.setAll).toHaveBeenCalled();
+    
+    // Specifically check that setAll was called with the expected parameters
+    // This tests lines 177-178 in the component
+    expect(mockTooltipLabel.setAll).toHaveBeenCalledWith({
+      fontSize: 9,
+      fontWeight: "400",
+      fill: "mocked-color-#333333" // This matches our mockAm5.color implementation
+    });
 
     // Restore timers
     jest.useRealTimers();
@@ -524,9 +523,9 @@ describe('PortalBarChart Component', () => {
     // Mock implementation of setTimeout
     jest.useFakeTimers();
 
-    // Reset and create a new implementation that returns null
-    mockSeries.get.mockReset();
-    mockSeries.get.mockReturnValue(null);
+    // Override mockSeries.get to return null for this test only
+    const originalGet = mockSeries.get;
+    mockSeries.get = jest.fn().mockReturnValue(null);
 
     const title = 'Test Chart';
     const data = [
@@ -542,7 +541,10 @@ describe('PortalBarChart Component', () => {
 
     // Verify series.get was called but no error occurs
     expect(mockSeries.get).toHaveBeenCalledWith("tooltip");
-
+    
+    // Restore original mockSeries.get
+    mockSeries.get = originalGet;
+    
     // Restore timers
     jest.useRealTimers();
   });
