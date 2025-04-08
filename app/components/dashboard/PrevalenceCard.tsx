@@ -15,11 +15,11 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
   const formattedPopulation = populationCount.toLocaleString();
 
   return (
-    <div className="bg-white rounded-lg p-6 shadow-sm">
+    <div className="bg-white rounded-lg p-6 shadow-sm content-center">
       <h2 className="text-xl font-semibold text-blue-600 mb-4 text-center">Estimasi Prevalensi</h2>
       
-      <div className="flex flex-col items-center mb-4">
-        <div className="flex items-center">
+      <div className="flex flex-col items-center justify-center mb-4">
+        <div className="flex items-center justify-center">
           <div className="text-rose-400 mr-2">
             {/* Heart rate icon */}
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">

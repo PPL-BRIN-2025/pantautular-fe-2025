@@ -10,30 +10,22 @@ const GeneralInformation = () => {
             </h2>
             
             <div className="grid grid-cols-2 grid-rows-3 gap-4">
-                <div >
                 <CaseNumberCard
                 jumlah_kasus={100}
                 jumlah_kasus_kematian={5}
                 jumlah_kasus_sembuh={35}
                 jumlah_kasus_terjangkit={60}
                 />
-                </div>
-                <div >
                 <PrevalenceCard 
                 prevalenceRate={0.07315} 
                 populationYear={2024} 
                 populationCount={279390258} 
                 />
-                </div>
-                <div className="row-start-2">3</div>
-                <div className="row-start-2">
                 <GenderDonutChart
                 total={100}
                 priaValue={50}
                 wanitaValue={50}
                 />
-                </div>
-                <div className="col-span-2 row-start-3">6</div>
             </div>
         </div>
     );

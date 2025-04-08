@@ -21,7 +21,7 @@ const GenderDonutChart: React.FC<GenderDonutChartProps> = ({total, priaValue, wa
   useDonutChart(chartRef, priaValue ?? 0, wanitaValue ?? 0);
 
   return (
-    <div className="bg-white rounded-md p-4 shadow-md w-full max-w-sm">
+    <div className="bg-white rounded-md p-4 shadow-md w-full">
       <ChartHeader title="Jenis Kelamin" total={total ?? 0} />
       <div ref={chartRef} className="w-full h-64 mt-4" />
     </div>
