@@ -49,8 +49,34 @@
   align-items: center;
 }
 
-.am5-Tooltip [data-tooltip-close] {
-  pointer-events: auto !important;
-  z-index: 1001 !important;
-  position: relative !important;
+.chart-title {
+  color: #0069cf;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  margin-left: 1rem;
+  margin-top: 0.75rem;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 275px;
+}
+
+.chart-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  color: black;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  margin-right: 2rem;
 }

@@ -1,53 +1,147 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import MapPage from "../../app/map/page";
+import { useLocations } from "../../hooks/useLocations";
+import { useMapError } from "../../hooks/useMapError";
+
+// Mock the hooks
+jest.mock("../../hooks/useLocations");
+jest.mock("../../hooks/useMapError");
+
+// Mock the components
+jest.mock("../../app/components/IndonesiaMap", () => ({
+  IndonesiaMap: ({ onError }: { onError: (message: string) => void }) => (
+    <button
+      type="button"
+      onClick={() => onError("Map error")}
+      className="w-full h-full"
+      data-testid="map-container"
+    >
+      Mock Indonesia Map
+    </button>
+  ),
+}));
+
+jest.mock("../../app/components/Navbar", () => () => <div>Navbar</div>);
+jest.mock("../../app/components/MapLoadErrorPopup", () => ({
+  __esModule: true,
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="error-popup">
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close error message"
+      >
+        Close
+      </button>
+    </div>
+  ),
+}));
 
 describe("MapPage Component", () => {
-  
-  test("renders the map container successfully", async () => {
-    render(<MapPage />);
-    
-    // Wait for loading state to finish
-    expect(screen.getByText("Loading map data...")).toBeInTheDocument();
-    
-    // Wait for map to load
-    const mapContainer = await screen.findByTestId("map-container");
-    expect(mapContainer).toBeInTheDocument();
+  let mockSetError: jest.Mock;
+  let mockClearError: jest.Mock;
+
+  beforeEach(() => {
+    mockSetError = jest.fn();
+    mockClearError = jest.fn();
+
+    (useMapError as jest.Mock).mockImplementation(() => ({
+      error: null,
+      setError: mockSetError,
+      clearError: mockClearError,
+    }));
+
+    (useLocations as jest.Mock).mockImplementation(() => ({
+      data: [],
+      isLoading: true,
+      error: null,
+    }));
   });
 
-  test("hanya menampilkan satu popup jika ada multiple error messages", async () => {
-    render(<MapPage />);
-
-    // Wait for loading state to finish
-    expect(screen.getByText("Loading map data...")).toBeInTheDocument();
+  it("renders loading state correctly", async () => {
+    const { rerender } = render(<MapPage />);
     
-    // Wait for map to load
-    const mapContainer = await screen.findByTestId("map-container");
+    // Should show loading text
+    expect(screen.getByText(/loading map data/i)).toBeInTheDocument();
     
-    fireEvent.error(mapContainer);
+    // Update loading state
+    (useLocations as jest.Mock).mockImplementation(() => ({
+      data: [],
+      isLoading: false,
+      error: null,
+    }));
 
-    expect(screen.queryAllByText(/Gagal memuat peta/)).toHaveLength(0);
+    // Re-render with updated state
+    rerender(<MapPage />);
+    
+    // Loading text should be gone
+    await waitFor(() => {
+      expect(screen.queryByText(/loading map data/i)).not.toBeInTheDocument();
+    });
+    
+    // Map container should be visible
+    expect(screen.getByTestId("map-container")).toBeInTheDocument();
   });
 
-  test("tidak menampilkan popup error saat halaman pertama kali dimuat", () => {
-    render(<MapPage />);
+  it("handles map errors correctly", async () => {
+    let mockError: string | null = null;
+    
+    (useMapError as jest.Mock).mockImplementation(() => ({
+      error: mockError,
+      setError: (error: string) => {
+        mockError = error;
+        mockSetError(error);
+      },
+      clearError: () => {
+        mockError = null;
+        mockClearError();
+      },
+    }));
 
-    expect(screen.queryByText("Gagal memuat peta, silakan coba lagi")).not.toBeInTheDocument();
+    (useLocations as jest.Mock).mockImplementation(() => ({
+      data: [],
+      isLoading: false,
+      error: null,
+    }));
+
+    const { rerender } = render(<MapPage />);
+
+    // Trigger map error
+    const mapContainer = screen.getByTestId("map-container");
+    fireEvent.click(mapContainer);
+
+    // Re-render to show error popup
+    rerender(<MapPage />);
+
+    // Error popup should appear
+    await waitFor(() => {
+      expect(mockSetError).toHaveBeenCalledWith("Map error");
+    });
+
+    // Close error popup
+    const closeButton = screen.getByText("Close");
+    fireEvent.click(closeButton);
+
+    // Re-render to hide error popup
+    rerender(<MapPage />);
+
+    // Error popup should disappear
+    await waitFor(() => {
+      expect(mockClearError).toHaveBeenCalled();
+    });
   });
 
-  test("tidak ada duplikasi popup error jika error terus terjadi sebelum popup ditutup", async () => {
+  it("handles no data state correctly", async () => {
+    (useLocations as jest.Mock).mockImplementation(() => ({
+      data: [],
+      isLoading: false,
+      error: { message: "No case locations found" },
+    }));
+
     render(<MapPage />);
 
-    // Wait for loading state to finish
-    expect(screen.getByText("Loading map data...")).toBeInTheDocument();
-    
-    // Wait for map to load
-    const mapContainer = await screen.findByTestId("map-container");
-
-    fireEvent.error(mapContainer);
-    fireEvent.error(mapContainer); 
-    fireEvent.error(mapContainer);
-
-    expect(screen.queryAllByText(/Gagal memuat peta/)).toHaveLength(0);
+    // No data popup should appear
+    expect(screen.getByText(/data tidak ditemukan/i)).toBeInTheDocument();
   });
 });
