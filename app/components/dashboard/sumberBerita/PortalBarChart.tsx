@@ -12,6 +12,31 @@ interface PortalBarChartProps {
   index?: number; // Add index prop to ensure uniqueness
 }
 
+// Utility functions moved outside of the component
+// Get color for a data item based on index
+const getItemColor = (index: number, colors: string[], am5: any) => {
+  return am5.color(colors[index % colors.length]);
+};
+
+// Process and map the data with colors
+const prepareChartData = (data: PortalData[], colors: string[], am5: any) => {
+  return data.map((item, idx) => ({
+    source: item.portal,
+    value: item.count,
+    color: getItemColor(idx, colors, am5)
+  }));
+};
+
+// Prepare data with column settings for colors
+const prepareSeriesData = (chartData: any[]) => {
+  return chartData.map((item) => ({
+    ...item,
+    columnSettings: {
+      fill: item.color,
+    },
+  }));
+};
+
 const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId(); // Generate unique ID for each chart
@@ -59,17 +84,8 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
           })
         );
 
-        // Get color for the data item
-        const getItemColor = (index: number, am5: any) => {
-          return am5.color(colors[index % colors.length]);
-        };
-
-        // Process and map the data with colors
-        const chartData = data.map((item, idx) => ({
-          source: item.portal,
-          value: item.count,
-          color: getItemColor(idx, am5)
-        }));
+        // Process data using the utility functions
+        const chartData = prepareChartData(data, colors, am5);
 
         // Create Y-axis
         const yAxis = chart.yAxes.push(
@@ -153,13 +169,8 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
           stroke: null,
         });
 
-        // Prepare data with column settings for colors
-        const seriesData = chartData.map((item) => ({
-          ...item,
-          columnSettings: {
-            fill: item.color,
-          },
-        }));
+        // Prepare series data using the utility function
+        const seriesData = prepareSeriesData(chartData);
         
         // Set the prepared data to the series
         series.data.setAll(seriesData);
