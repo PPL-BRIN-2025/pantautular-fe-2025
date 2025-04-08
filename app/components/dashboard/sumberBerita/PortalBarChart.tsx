@@ -60,11 +60,16 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
           })
         );
 
+        // Get color for the data item
+        const getItemColor = (index: number, am5: any) => {
+          return am5.color(colors[index % colors.length]);
+        };
+
         // Process and map the data with colors
         const chartData = data.map((item, idx) => ({
           source: item.portal,
           value: item.count,
-          color: am5.color(colors[idx % colors.length])
+          color: getItemColor(idx, am5)
         }));
 
         // Create Y-axis
