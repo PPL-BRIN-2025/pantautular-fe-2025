@@ -15,7 +15,6 @@ interface PortalBarChartProps {
 const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId(); // Generate unique ID for each chart
-  const chartId = `chart-${uniqueId}-${index}`;
 
   // Color palette for the charts
   const colors = ["#ec848c", "#feb272", "#fecba1", "#ffe69c", "#e3efe8"];
