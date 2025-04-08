@@ -2,9 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import PortalBarChart, { 
-  gridStrokeAdapter, 
-  gridVisibilityAdapter, 
-  labelVisibilityAdapter 
+  gridStrokeAdapter
 } from '../../app/components/dashboard/sumberBerita/PortalBarChart';
 
 // Extend Window interface to include amcharts properties
