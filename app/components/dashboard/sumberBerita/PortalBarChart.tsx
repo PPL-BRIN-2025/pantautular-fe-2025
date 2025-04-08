@@ -37,6 +37,43 @@ const prepareSeriesData = (chartData: any[]) => {
   }));
 };
 
+// X-axis label visibility adapter - only show integer values
+// Moved outside to reduce nesting
+export const labelVisibilityAdapter = (visible: boolean, target: any) => {
+  const value = target.dataItem?.get("value") || 0;
+  // Only show label if it's an integer
+  return visible && Math.abs(value - Math.round(value)) < 0.01;
+};
+
+// Grid line visibility adapter - only show at integer values and zero
+// Moved outside to reduce nesting
+export const gridVisibilityAdapter = (visible: boolean, target: any) => {
+  const value = target.dataItem?.get("value") || 0;
+
+  // Always show the first grid line (at 0)
+  if (Math.abs(value) < 0.01) {
+    return true;
+  }
+
+  // For other values, only show grid lines at integer values
+  return visible && Math.abs(value - Math.round(value)) < 0.01;
+};
+
+// Grid line stroke style adapter - different styles based on position
+// Moved outside to reduce nesting
+export const gridStrokeAdapter = (strokeDasharray: number[], target: any) => {
+  if (!target.dataItem) return [2, 2];
+  const value = target.dataItem?.get("value") || 0;
+
+  // Make the first grid line (at 0) solid
+  if (Math.abs(value) < 0.01) {
+    return [];
+  }
+
+  // Make other integer grid lines dashed
+  return [2, 2];
+};
+
 const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId(); // Generate unique ID for each chart
@@ -127,37 +164,11 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
 
         // Configure axis to only show integer labels
         const renderer = xAxis.get("renderer");
-        renderer.labels.template.adapters.add("visible", (visible: boolean, target: any) => {
-          const value = target.dataItem?.get("value") || 0;
-          // Only show label if it's an integer
-          return visible && Math.abs(value - Math.round(value)) < 0.01;
-        });
-
-        // Customize X-axis grid lines - only show at integer values
-        renderer.grid.template.adapters.add("visible", (visible: boolean, target: any) => {
-          const value = target.dataItem?.get("value") || 0;
-
-          // Always show the first grid line (at 0)
-          if (Math.abs(value) < 0.01) {
-            return true;
-          }
-
-          // For other values, only show grid lines at integer values
-          return visible && Math.abs(value - Math.round(value)) < 0.01;
-        });
-
-        // Style the grid lines differently based on position
-        renderer.grid.template.adapters.add("strokeDasharray", (strokeDasharray: number[], target: any) => {
-          const value = target.dataItem?.get("value") || 0;
-
-          // Make the first grid line (at 0) solid
-          if (Math.abs(value) < 0.01) {
-            return [];
-          }
-
-          // Make other integer grid lines dashed
-          return [2, 2];
-        });
+        
+        // Apply adapters to the renderer - using externally defined functions
+        renderer.labels.template.adapters.add("visible", labelVisibilityAdapter);
+        renderer.grid.template.adapters.add("visible", gridVisibilityAdapter);
+        renderer.grid.template.adapters.add("strokeDasharray", gridStrokeAdapter);
 
         // Set base style for X-axis grid lines
         renderer.grid.template.setAll({
