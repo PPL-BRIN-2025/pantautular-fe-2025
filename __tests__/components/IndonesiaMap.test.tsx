@@ -94,17 +94,13 @@ jest.mock('../../app/components/LocationPermissionPopup', () => ({
     onAllow: () => void; 
     onDeny: () => void 
   }) {
-    const renderPopup = () => (
+    return open ? (
       <div data-testid="permission-popup">
         <button data-testid="allow-button" onClick={onAllow}>Allow</button>
         <button data-testid="deny-button" onClick={onDeny}>Deny</button>
         <button data-testid="close-button" onClick={onClose}>Close</button>
       </div>
-    );
-    
-    const renderEmpty = () => null;
-    
-    return open ? renderPopup() : renderEmpty();
+    ) : null;
   }
 }));
 
@@ -119,15 +115,12 @@ jest.mock('../../app/components/LocationErrorPopup', () => ({
     errorType: string; 
     onOpenChange: () => void 
   }) {
-    const renderErrorPopup = () => (
+    // Make sure the component only renders when open is true
+    return open ? (
       <div data-testid="error-popup" data-error-type={errorType}>
         <button data-testid="close-error-button" onClick={onOpenChange}>Close</button>
       </div>
-    );
-    
-    const renderEmpty = () => null;
-    
-    return open ? renderErrorPopup() : renderEmpty();
+    ) : null;
   }
 }));
 
