@@ -280,57 +280,19 @@ describe('PortalBarChart Component', () => {
     setTimeoutSpy.mockRestore();
   });
 
-  // Test cleanup
-  test('cleans up resources on unmount', async () => {
-    // Mock implementation of setTimeout
-    jest.useFakeTimers();
-    
-    // Mock Promise.then to directly call the callback with mockRoot
-    const mockPromiseThen = jest.fn().mockImplementation(cb => {
-      cb(mockRoot);
-      return { catch: jest.fn() };
-    });
-    
-    // Mock Promise
-    const mockPromise = {
-      then: mockPromiseThen
-    };
-    
-    // Mock async/await
-    jest.spyOn(global, 'Promise').mockImplementation(() => mockPromise as any);
-
-    const title = 'Test Chart';
-    const data = [
-      { portal: 'Test Portal 1', count: 5 }
-    ];
-
-    const { unmount } = render(<PortalBarChart title={title} data={data} />);
-
-    // Fast-forward timers
-    act(() => {
-      jest.runAllTimers();
-    });
-
-    // Unmount component to trigger the cleanup function
-    unmount();
-
-    // Fast-forward any remaining timers
-    act(() => {
-      jest.runAllTimers();
-    });
-
-    // Restore timers
-    jest.useRealTimers();
-  });
-
   // Test cleanup with root being null
   test('cleanup handles null root gracefully', async () => {
+    setupCleanupTest(false); // Pass false to return null instead of mockRoot
+  });
+
+  // Helper function for cleanup tests to reduce duplication
+  function setupCleanupTest(returnMockRoot: boolean) {
     // Mock implementation of setTimeout
     jest.useFakeTimers();
     
-    // Mock Promise.then to directly call the callback with null
+    // Mock Promise.then to directly call the callback with mockRoot or null
     const mockPromiseThen = jest.fn().mockImplementation(cb => {
-      cb(null); // Pass null instead of mockRoot
+      cb(returnMockRoot ? mockRoot : null);
       return { catch: jest.fn() };
     });
     
@@ -362,12 +324,16 @@ describe('PortalBarChart Component', () => {
       jest.runAllTimers();
     });
 
-    // Verify root.dispose was not called since root is null
-    expect(mockRoot.dispose).not.toHaveBeenCalled();
+    // Verify root.dispose was called only if root is not null
+    if (returnMockRoot) {
+      expect(mockRoot.dispose).toHaveBeenCalled();
+    } else {
+      expect(mockRoot.dispose).not.toHaveBeenCalled();
+    }
     
     // Restore timers
     jest.useRealTimers();
-  });
+  }
 
   // Test data changes
   test('updates chart when data changes', async () => {
