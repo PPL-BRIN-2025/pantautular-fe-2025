@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter, usePathname } from "next/navigation"
 
 interface DashboardButtonProps {
   onClick?: () => void
@@ -17,7 +18,9 @@ export default function DashboardButton({
   disabled = false,
   className,
 }: Readonly<DashboardButtonProps>) {
-  const [isActive, setIsActive] = useState(false)
+  const pathname = usePathname()
+  const [isActive] = useState(pathname === "/dashboard")
+  const router = useRouter()
 
   // Size mapping for the button and SVG
   const sizeMap = {
@@ -40,8 +43,8 @@ export default function DashboardButton({
   /* istanbul ignore next */
   const handleClick = () => {
     if (!disabled) {
-      setIsActive(!isActive)
       onClick?.()
+      router.push("/dashboard")
     }
   }
 

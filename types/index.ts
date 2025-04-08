@@ -18,3 +18,4 @@ export interface FilterState {
   start_date: null | Date;
   end_date: null | Date;
 }
+

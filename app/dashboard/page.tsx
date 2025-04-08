@@ -5,7 +5,7 @@ import InformationSection from "../components/dashboard/InformationSection";
 
 const Page = () => {
     return (
-        <div className="h-screen bg-[#ebf3f5]">
+        <div className="min-h-screen bg-[#ebf3f5] overflow-auto">
             <Navbar />
             <div className="h-full flex w-full gap-5">
                 <div className="w-2/5 bg-transparent">
