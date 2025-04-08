@@ -1,7 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import PortalBarChart from '../../app/components/dashboard/sumberBerita/PortalBarChart';
+import PortalBarChart, { 
+  gridStrokeAdapter, 
+  gridVisibilityAdapter, 
+  labelVisibilityAdapter 
+} from '../../app/components/dashboard/sumberBerita/PortalBarChart';
 
 // Extend Window interface to include amcharts properties
 declare global {
@@ -697,4 +701,51 @@ describe('PortalBarChart Component', () => {
     expect(mocks.mockAm5.percent).toHaveBeenCalledWith(60);
   });
 
+  // Test for grid stroke adapter implementation
+  describe('gridStrokeAdapter function', () => {
+    test('returns empty array for values close to zero', () => {
+      const testCases = [
+        { value: 0, expected: [] },
+        { value: 0.001, expected: [] },
+        { value: -0.001, expected: [] },
+        { value: 0.009, expected: [] },
+      ];
+      
+      testCases.forEach(({ value, expected }) => {
+        const target = { dataItem: { get: jest.fn().mockReturnValue(value) } };
+        const result = gridStrokeAdapter([], target);
+        expect(result).toEqual(expected);
+        expect(target.dataItem.get).toHaveBeenCalledWith("value");
+      });
+    });
+    
+    test('returns dashed line array for non-zero values', () => {
+      const testCases = [
+        { value: 1, expected: [2, 2] },
+        { value: -1, expected: [2, 2] },
+        { value: 5.5, expected: [2, 2] },
+        { value: 100, expected: [2, 2] },
+      ];
+      
+      testCases.forEach(({ value, expected }) => {
+        const target = { dataItem: { get: jest.fn().mockReturnValue(value) } };
+        const result = gridStrokeAdapter([], target);
+        expect(result).toEqual(expected);
+        expect(target.dataItem.get).toHaveBeenCalledWith("value");
+      });
+    });
+        
+    test('ignores input strokeDasharray parameter', () => {
+      // The adapter should ignore the input strokeDasharray
+      const inputDash = [1, 1];
+      
+      // Test with zero value (should return [])
+      const zeroTarget = { dataItem: { get: jest.fn().mockReturnValue(0) } };
+      expect(gridStrokeAdapter(inputDash, zeroTarget)).toEqual([]);
+      
+      // Test with non-zero value (should return [2, 2])
+      const nonZeroTarget = { dataItem: { get: jest.fn().mockReturnValue(5) } };
+      expect(gridStrokeAdapter(inputDash, nonZeroTarget)).toEqual([2, 2]);
+    });
+  });
 });
