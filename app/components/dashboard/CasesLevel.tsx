@@ -20,7 +20,7 @@ export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTin
   const chartRef = useRef(null);
 
   useEffect(() => {
-    if (!jsonData || !jsonData.data || !chartRef.current) return;
+    if (!jsonData?.data || !chartRef.current) return;
 
     try {
       const root = am5.Root.new(chartRef.current);
