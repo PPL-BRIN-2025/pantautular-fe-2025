@@ -15,7 +15,7 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
   const formattedPopulation = populationCount.toLocaleString();
 
   return (
-    <div className="bg-white rounded-lg p-6 shadow-sm content-center">
+    <div className="bg-white rounded-lg p-4 shadow content-center">
       <h2 className="text-xl font-semibold text-blue-600 mb-4 text-center">Estimasi Prevalensi</h2>
       
       <div className="flex flex-col items-center justify-center mb-4">
