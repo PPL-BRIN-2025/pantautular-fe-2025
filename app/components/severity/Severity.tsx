@@ -227,7 +227,9 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
     }
 
     return (
-      <div id={chartId} className="w-full h-96"></div>
+      <div className="relative">
+        <div id={chartId} className="w-full h-64"></div>
+      </div>
     );
   };
 
@@ -309,16 +311,14 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
   }, [data, seriesConfig, chartId]);
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      <div className="flex flex-wrap gap-4 mb-4">
-        {seriesConfig.map((config) => (
-          <LegendItem
-            key={config.name}
-            color={config.color}
-            label={config.name}
-          />
-        ))}
+    <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="flex justify-between items-center">
+        <h3 className="chart-title">{title}</h3>
+        <div className="flex gap-3">
+          {seriesConfig.map((config) => (
+            <LegendItem key={config.field} color={config.color} label={config.name} />
+          ))}
+        </div>
       </div>
       {renderContent()}
     </div>
