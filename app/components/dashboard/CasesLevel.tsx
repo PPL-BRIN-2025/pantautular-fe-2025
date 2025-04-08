@@ -80,7 +80,6 @@ export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTin
           yAxis,
           valueYField: 'count',
           valueXField: 'date',
-          legendValueText: '{valueY}',
           tooltip: am5.Tooltip.new(root, {
             pointerOrientation: 'horizontal',
             labelText: '{valueY}'
