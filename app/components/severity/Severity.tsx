@@ -106,7 +106,7 @@ const setupYAxis = (root: am5.Root, chart: am5xy.XYChart, chartData: ChartData[]
   // Ensure chartData is an array and has data
   const maxValue = chartData && Array.isArray(chartData) && chartData.length > 0
     ? Math.max(...chartData.map(item =>
-        seriesConfig.reduce((sum, config) => sum + (item[config.field] || 0), 0)
+        seriesConfig.reduce((sum, config) => sum + (item[config.field] ?? 0), 0)
       )) * 1.1
     : 100; // Default max value if no data
 
@@ -247,11 +247,11 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
           ? response.map(item => {
               console.log('Processing item:', item); // Debug log
               return {
-                name: item.name || '',
-                hospitalisasi: Number(item.hospitalisasi || 0),
-                insiden: Number(item.insiden || 0),
-                mortalitas: Number(item.mortalitas || 0),
-                total_cases: Number(item.total_cases || 0)
+                name: item.name ?? '',
+                hospitalisasi: Number(item.hospitalisasi ?? 0),
+                insiden: Number(item.insiden ?? 0),
+                mortalitas: Number(item.mortalitas ?? 0),
+                total_cases: Number(item.total_cases ?? 0)
               };
             })
           : [];
