@@ -17,7 +17,7 @@ export default function AgeStatisticCard({ data = [
   { age: "12-25 Tahun", value: 1882 },
   { age: "26-45 Tahun", value: 1809 },
   { age: ">45 Tahun", value: 1322 }
-]}: AgeStatisticCardProps) {
+]}:Readonly<AgeStatisticCardProps>) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   const totalCases = data.reduce((sum, item) => sum + item.value, 0);
