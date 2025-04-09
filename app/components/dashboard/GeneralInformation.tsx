@@ -20,9 +20,9 @@ const GeneralInformation = ({ data }: { data: any }) => {
             {/* Case numbers card */}
             <CaseNumberCard
             jumlah_kasus={data.severity_statistics.total_cases}
-            jumlah_kasus_kematian={data.severity_statistics.severity_counts.Mortalitas || 0}
-            jumlah_kasus_terjangkit={data.severity_statistics.severity_counts.Insiden || 0}
-            jumlah_kasus_sembuh={data.severity_statistics.severity_counts.Hospitalisasi || 0}
+            jumlah_kasus_kematian={data.severity_statistics.severity_counts.Mortalitas ?? 0}
+            jumlah_kasus_terjangkit={data.severity_statistics.severity_counts.Insiden ?? 0}
+            jumlah_kasus_sembuh={data.severity_statistics.severity_counts.Hospitalisasi ?? 0}
             />
             {/* Prevalence card */}
             <PrevalenceCard

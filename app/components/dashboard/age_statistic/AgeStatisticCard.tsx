@@ -35,7 +35,7 @@ export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProp
     }));
 
     // Create root element
-    const root = am5.Root.new(chartRef.current!);
+    const root = am5.Root.new(chartRef.current);
 
     // Set themes
     root.setThemes([am5themes_Animated.new(root)]);
