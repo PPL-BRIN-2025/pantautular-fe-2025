@@ -9,8 +9,8 @@ const GeneralInformation = ({ data }: { data: any }) => {
   if (!data) return null;
 
   return (
-    <div className="bg-transparent text-black p-8 rounded-lg shadow-sm">
-      <h2 className="text-xl font-semibold text-blue-900 mb-6 mt-10">
+    <div className="bg-transparent text-black p-4 rounded-lg shadow-sm">
+      <h2 className="text-xl font-semibold text-blue-900 mb-6">
         Informasi Kasus Penyakit Menular
       </h2>
 
