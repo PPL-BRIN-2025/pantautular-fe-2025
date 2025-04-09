@@ -1,4 +1,5 @@
 "use client";
+import { DistributionData } from '@/types';
 import React, { useEffect, useRef, useId } from 'react';
 
 interface PortalData {
@@ -9,6 +10,8 @@ interface PortalData {
 interface PortalBarChartProps {
   title: string;
   data: PortalData[];
+  detailData?: DistributionData[]; // Add detailed data (all_national, all_local, etc.)
+  onViewDetails?: (title: string, detailData: DistributionData[]) => void; // Callback for the button
   index?: number; // Add index prop to ensure uniqueness
 }
 
@@ -74,7 +77,13 @@ export const gridStrokeAdapter = (strokeDasharray: number[], target: any) => {
   return [2, 2];
 };
 
-const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 }) => {
+const PortalBarChart: React.FC<PortalBarChartProps> = ({ 
+  title, 
+  data, 
+  detailData = [],  // Default to empty array if not provided
+  onViewDetails,
+  index = 0 
+}) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId(); // Generate unique ID for each chart
 
@@ -275,7 +284,7 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({ title, data, index = 0 
         <h2 className="text-lg font-bold">{title}</h2>
         <button 
           className="bg-[#0069CF] text-white text-sm py-2 px-4 rounded-[10px] flex items-center font-medium"
-          onClick={() => console.log(`View details for ${title}`)}
+          onClick={() => onViewDetails ? onViewDetails(title, detailData) : console.log(`View details for ${title}`)}
         >
           <span>Lihat Detail</span>
           <svg 
