@@ -204,7 +204,6 @@ const GeneralInformation = ({ data }: GeneralInformationProps) => {
         
         {/* News Source Distribution Section */}
         <div className="flex flex-col gap-4 mt-4">
-          {statsData.national_news_statistics.top_national.length > 0 && (
             <PortalBarChart
               title="Distribusi Sumber Berita (Nasional)"
               data={statsData.national_news_statistics.top_national}
@@ -212,8 +211,7 @@ const GeneralInformation = ({ data }: GeneralInformationProps) => {
               onViewDetails={handleViewDetails}
               index={0}
             />
-          )}
-          {statsData.local_portal_statistics.top_local.length > 0 && (
+          
             <PortalBarChart
               title="Distribusi Sumber Berita (Lokal)"
               data={statsData.local_portal_statistics.top_local}
@@ -221,8 +219,7 @@ const GeneralInformation = ({ data }: GeneralInformationProps) => {
               onViewDetails={handleViewDetails}
               index={1}
             />
-          )}
-          {statsData.healthcare_news_statistics.top_healthcare.length > 0 && (
+          
             <PortalBarChart
               title="Distribusi Sumber Berita (Bidang Kesehatan)"
               data={statsData.healthcare_news_statistics.top_healthcare}
@@ -230,7 +227,6 @@ const GeneralInformation = ({ data }: GeneralInformationProps) => {
               onViewDetails={handleViewDetails}
               index={2}
             />
-          )}
         </div>
       </div>
 
