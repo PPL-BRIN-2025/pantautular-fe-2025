@@ -22,19 +22,19 @@ console.log = jest.fn();
 const createMocks = () => {
   // Mock adapter functions to test
   const labelVisibilityAdapter = jest.fn((visible, target) => {
-    const value = target.dataItem?.get("value") || 0;
+    const value = target.dataItem?.get("value") ?? 0;
     return visible && Math.abs(value - Math.round(value)) < 0.01;
   });
 
   const gridVisibilityAdapter = jest.fn((visible, target) => {
-    const value = target.dataItem?.get("value") || 0;
+    const value = target.dataItem?.get("value") ?? 0;
     if (Math.abs(value) < 0.01) return true;
     return visible && Math.abs(value - Math.round(value)) < 0.01;
   });
 
   const gridStrokeAdapter = jest.fn((strokeDasharray, target) => {
     if (!target.dataItem) return [2, 2];
-    const value = target.dataItem?.get("value") || 0;
+    const value = target.dataItem?.get("value") ?? 0;
   
     if (Math.abs(value) < 0.01) {
       return [];

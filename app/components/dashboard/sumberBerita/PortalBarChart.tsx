@@ -43,7 +43,7 @@ const prepareSeriesData = (chartData: any[]) => {
 // X-axis label visibility adapter - only show integer values
 // Moved outside to reduce nesting
 export const labelVisibilityAdapter = (visible: boolean, target: any) => {
-  const value = target.dataItem?.get("value") || 0;
+  const value = target.dataItem?.get("value") ?? 0;
   // Only show label if it's an integer
   return visible && Math.abs(value - Math.round(value)) < 0.01;
 };
@@ -51,7 +51,7 @@ export const labelVisibilityAdapter = (visible: boolean, target: any) => {
 // Grid line visibility adapter - only show at integer values and zero
 // Moved outside to reduce nesting
 export const gridVisibilityAdapter = (visible: boolean, target: any) => {
-  const value = target.dataItem?.get("value") || 0;
+  const value = target.dataItem?.get("value") ?? 0;
 
   // Always show the first grid line (at 0)
   if (Math.abs(value) < 0.01) {
@@ -66,7 +66,7 @@ export const gridVisibilityAdapter = (visible: boolean, target: any) => {
 // Moved outside to reduce nesting
 export const gridStrokeAdapter = (strokeDasharray: number[], target: any) => {
   if (!target.dataItem) return [2, 2];
-  const value = target.dataItem?.get("value") || 0;
+  const value = target.dataItem?.get("value") ?? 0;
 
   // Make the first grid line (at 0) solid
   if (Math.abs(value) < 0.01) {
