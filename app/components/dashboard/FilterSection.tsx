@@ -1,13 +1,13 @@
+// components/dashboard/FilterSection.tsx
 "use client";
-
 import React from "react";
 import FilterForm from "./FilterForm";
 import { FilterState } from "../../../types";
 
 interface FilterSectionProps {
   onSubmitFilterState?: (filterState: FilterState) => void;
-  initialFilterState?: FilterState | null;
   onError: (message: string) => void;
+  initialFilterState?: FilterState | null;
 }
 
 const FilterSection = ({
@@ -29,3 +29,4 @@ const FilterSection = ({
 };
 
 export default FilterSection;
+

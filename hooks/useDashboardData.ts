@@ -1,9 +1,10 @@
+// hooks/useDashboardData.ts
 "use client";
-
 import { useEffect, useState } from "react";
+import { FilterState } from "../types";
 import { mapApi } from "../services/api";
 
-export const useDashboardData = () => {
+export const useDashboardData = (filters?: FilterState) => {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,7 +13,8 @@ export const useDashboardData = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const result = await mapApi.getDashboardData();
+        // pass the filters (or undefined) to getDashboardData
+        const result = await mapApi.getDashboardData(filters);
         setData(result);
       } catch (err) {
         console.error(err);
@@ -23,7 +25,7 @@ export const useDashboardData = () => {
     };
 
     fetchData();
-  }, []);
+  }, [filters]);
 
   return { data, isLoading, error };
 };

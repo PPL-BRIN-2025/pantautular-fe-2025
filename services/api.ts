@@ -73,6 +73,29 @@ export const mapApi = {
       throw error;
     }
   },
+
+  async getDashboardData(filters?: FilterState): Promise<any> {
+    // Use POST if filters are provided; otherwise, GET.
+    const method = filters ? "POST" : "GET";
+    const body = filters ? JSON.stringify(filters) : undefined;
+  
+    const response = await fetch(`${API_BASE_URL}/api/statistics/`, {
+      method,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "x-api-key": String(API_KEY),
+      },
+      credentials: "include",
+      ...(filters && { body }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  },
 };
 
 const fetchSeverityStats = async (endpoint: string) => {
@@ -113,4 +136,8 @@ export const severityApi = {
   async getCitySeverityStats() {
     return fetchSeverityStats('/api/locations/city/severity-stats/');
   }
+
+  
 };
+
+
