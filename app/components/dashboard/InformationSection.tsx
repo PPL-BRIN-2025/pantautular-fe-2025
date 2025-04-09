@@ -3,10 +3,12 @@ import React, { useState } from "react";
 import GeneralInformation from "./GeneralInformation";
 import CasesOrder from "./CasesOrder";
 import DashboardButton from "../floating_buttons/DashboardButton";
-import {MapButton} from "../floating_buttons/MapButton";
+import { MapButton } from "../floating_buttons/MapButton";
+import { useDashboardData } from "../../../hooks/useDashboardData";
 
 const InformationSection = () => {
     const [activeSection, setActiveSection] = useState("section1");
+    const { data, isLoading, error } = useDashboardData();
 
     return (
         <div className="flex flex-col h-full bg-transparent text-white text-xl p-4 pt-8 pl-8">
@@ -41,7 +43,15 @@ const InformationSection = () => {
 
             {/* Dynamic Section */}
             <div className="flex-grow mt-4">
-                {activeSection === "section1" ? <GeneralInformation /> : <CasesOrder />}
+                {isLoading ? (
+                    <p className="text-black">Loading...</p>
+                ) : error ? (
+                    <p className="text-red-500">{error}</p>
+                ) : activeSection === "section1" ? (
+                    <GeneralInformation data={data} />
+                ) : (
+                    <CasesOrder />
+                )}
             </div>
         </div>
     );
