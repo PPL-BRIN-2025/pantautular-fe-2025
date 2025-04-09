@@ -3,10 +3,25 @@ import React, { useState } from "react";
 import GeneralInformation from "./GeneralInformation";
 import CasesOrder from "./CasesOrder";
 import DashboardButton from "../floating_buttons/DashboardButton";
-import {MapButton} from "../floating_buttons/MapButton";
+import { MapButton } from "../floating_buttons/MapButton";
+import { useDashboardData } from "../../../hooks/useDashboardData";
 
 const InformationSection = () => {
     const [activeSection, setActiveSection] = useState("section1");
+    const { data, isLoading, error } = useDashboardData();
+    
+    // Extract nested ternary into a function
+    const renderContent = () => {
+        if (isLoading) {
+            return <p className="text-black">Loading...</p>;
+        }
+        
+        if (error) {
+            return <p className="text-red-500">{error}</p>;
+        }
+        
+        return activeSection === "section1" ? <GeneralInformation data={data} /> : <CasesOrder />;
+    };
 
     return (
         <div className="flex flex-col h-full bg-transparent text-white text-xl p-4 pt-8 pl-8">
@@ -40,8 +55,8 @@ const InformationSection = () => {
             </div>
 
             {/* Dynamic Section */}
-            <div className="flex-grow mt-24">
-                {activeSection === "section1" ? <GeneralInformation /> : <CasesOrder />}
+            <div className="flex-grow mt-4">
+                {renderContent()}
             </div>
         </div>
     );

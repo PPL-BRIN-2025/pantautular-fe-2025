@@ -51,16 +51,16 @@ export const mapApi = {
     }
   },
 
-  async getCaseDetail(caseId: string): Promise<any> {
+  async getDashboardData(): Promise<any> {
     try {
-      const response = await fetch(`${API_BASE_URL}/cases/${caseId}/`, {
-        method: "GET",
+      const response = await fetch(`${API_BASE_URL}/api/statistics/`, {
+        method: 'GET',
         headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "x-api-key": String(API_KEY),
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
         },
-        credentials: "include",
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -69,48 +69,8 @@ export const mapApi = {
 
       return await response.json();
     } catch (error) {
-      console.error("Error fetching case detail:", error);
+      console.error('Error fetching dashboard data:', error);
       throw error;
     }
-  }
-};
-
-const fetchSeverityStats = async (endpoint: string) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "x-api-key": String(API_KEY),
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.data.map((item: any) => ({
-      name: item.name,
-      hospitalisasi: item.severity_counts.hospitalisasi,
-      insiden: item.severity_counts.insiden,
-      mortalitas: item.severity_counts.mortalitas,
-      total_cases: item.total_cases
-    }));
-  } catch (error) {
-    console.error(`Error fetching severity stats from ${endpoint}:`, error);
-    throw error;
-  }
-};
-
-export const severityApi = {
-  async getDiseaseSeverityStats() {
-    return fetchSeverityStats('/api/diseases/severity-stats/');
   },
-  async getProvinceSeverityStats() {
-    return fetchSeverityStats('/api/locations/province/severity-stats/');
-  },
-  async getCitySeverityStats() {
-    return fetchSeverityStats('/api/locations/city/severity-stats/');
-  }
 };

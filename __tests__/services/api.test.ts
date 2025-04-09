@@ -130,28 +130,49 @@ describe('mapApi', () => {
             expect(result).toEqual([]);
         });
     });
-    
-    describe('getCaseDetail', () => {
-        const mockCaseId = '123';
-        const mockCaseDetail = {
-            id: '123',
-            title: 'Test Case',
-            description: 'Test Description',
-            status: 'Active',
-            location: { lat: -6.2, lng: 106.8 }
+
+    describe('getDashboardData', () => {
+        const dashboardMockData = {
+            severity_statistics: {
+                total_cases: 100,
+                severity_counts: {
+                    Mortalitas: 10,
+                    Insiden: 80,
+                    Hospitalisasi: 10,
+                }
+            },
+            prevalence_statistics: {
+                prevalence: 0.07315,
+                year: 2024,
+                population: 279390258,
+            },
+            gender_statistics: {
+                male: 50,
+                female: 50,
+            },
+            severity_dates_count_statistics: {
+                "Tingkat 1": [
+                    { date: "2024-01", count: 10 },
+                    { date: "2024-02", count: 15 },
+                ],
+                "Tingkat 2": [
+                    { date: "2024-01", count: 5 },
+                    { date: "2024-02", count: 8 },
+                ],
+            }
         };
 
-        it('should fetch case detail successfully', async () => {
+        it('should fetch dashboard data successfully', async () => {
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: true,
-                json: () => Promise.resolve(mockCaseDetail)
+                json: () => Promise.resolve(dashboardMockData)
             });
 
-            const result = await mapApi.getCaseDetail(mockCaseId);
+            const result = await mapApi.getDashboardData();
             
-            expect(result).toEqual(mockCaseDetail);
+            expect(result).toEqual(dashboardMockData);
             expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/cases/${mockCaseId}/`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/statistics/`,
                 {
                     method: 'GET',
                     headers: {
@@ -164,152 +185,23 @@ describe('mapApi', () => {
             );
         });
 
-        it('should handle HTTP error responses for case detail', async () => {
+        it('should throw an error when API returns non-ok response', async () => {
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: false,
-                status: 404
+                status: 404,
+                statusText: 'Not Found'
             });
-
-            await expect(mapApi.getCaseDetail(mockCaseId)).rejects.toThrow('HTTP error! status: 404');
+            
+            await expect(mapApi.getDashboardData()).rejects.toThrow('HTTP error! status: 404');
             expect(console.error).toHaveBeenCalled();
         });
 
-        it('should handle network errors for case detail', async () => {
+        it('should throw an error when fetch fails', async () => {
             const networkError = new Error('Network error');
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
-
-            await expect(mapApi.getCaseDetail(mockCaseId)).rejects.toThrow('Network error');
-            expect(console.error).toHaveBeenCalledWith('Error fetching case detail:', networkError);
+            
+            await expect(mapApi.getDashboardData()).rejects.toThrow(networkError);
+            expect(console.error).toHaveBeenCalledWith('Error fetching dashboard data:', networkError);
         });
-
-        it('should handle empty response for case detail', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({})
-            });
-
-            const result = await mapApi.getCaseDetail(mockCaseId);
-            expect(result).toEqual({});
-        });
-    });
-});
-
-describe('severityApi', () => {
-    const mockSeverityResponse = {
-        data: [
-            {
-                name: "Dengue",
-                severity_counts: {
-                    hospitalisasi: 100,
-                    insiden: 200,
-                    mortalitas: 10
-                },
-                total_cases: 310
-            },
-            {
-                name: "COVID-19",
-                severity_counts: {
-                    hospitalisasi: 500,
-                    insiden: 1000,
-                    mortalitas: 50
-                },
-                total_cases: 1550
-            }
-        ]
-    };
-
-    const expectedTransformedData = [
-        {
-            name: "Dengue",
-            hospitalisasi: 100,
-            insiden: 200,
-            mortalitas: 10,
-            total_cases: 310
-        },
-        {
-            name: "COVID-19",
-            hospitalisasi: 500,
-            insiden: 1000,
-            mortalitas: 50,
-            total_cases: 1550
-        }
-    ];
-
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    const mockError = new Error('API Error');
-
-    // Helper function to test successful API calls
-    const testSuccessfulApiCall = async (
-        apiFunction: () => Promise<any>,
-        expectedEndpoint: string
-    ) => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-            ok: true,
-            json: () => Promise.resolve(mockSeverityResponse)
-        });
-
-        const result = await apiFunction();
-
-        expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining(expectedEndpoint),
-            expect.any(Object)
-        );
-
-        expect(result).toEqual(expectedTransformedData);
-    };
-
-    // Helper function to test error handling
-    const testErrorHandling = async (
-        apiFunction: () => Promise<any>,
-        error: Error
-    ) => {
-        (global.fetch as jest.Mock).mockRejectedValueOnce(error);
-        await expect(apiFunction()).rejects.toThrow(error.message);
-    };
-
-    // Test cases for each API endpoint
-    const apiEndpoints = [
-        {
-            name: 'getDiseaseSeverityStats',
-            function: severityApi.getDiseaseSeverityStats,
-            endpoint: '/api/diseases/severity-stats/'
-        },
-        {
-            name: 'getProvinceSeverityStats',
-            function: severityApi.getProvinceSeverityStats,
-            endpoint: '/api/locations/province/severity-stats/'
-        },
-        {
-            name: 'getCitySeverityStats',
-            function: severityApi.getCitySeverityStats,
-            endpoint: '/api/locations/city/severity-stats/'
-        }
-    ];
-
-    // Run tests for each endpoint
-    apiEndpoints.forEach(({ name, function: apiFunction, endpoint }) => {
-        describe(name, () => {
-            it('should fetch and transform data successfully', async () => {
-                await testSuccessfulApiCall(apiFunction, endpoint);
-            });
-
-            it('should handle API errors', async () => {
-                await testErrorHandling(apiFunction, mockError);
-            });
-        });
-    });
-
-    // Test non-OK responses
-    it('should handle non-OK responses', async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-            ok: false,
-            status: 500
-        });
-
-        await expect(severityApi.getDiseaseSeverityStats())
-            .rejects.toThrow('HTTP error! status: 500');
     });
 });

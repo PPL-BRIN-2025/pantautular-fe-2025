@@ -1,6 +1,5 @@
 import React from "react";
 import { DiseaseSeverityChart, ProvinceSeverityChart, CitySeverityChart } from "../severity/Severity";
-
 const CasesOrder = () => {
     return (
         <div className="grid grid-cols-1 gap-4">

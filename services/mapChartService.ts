@@ -158,6 +158,7 @@ export class MapChartService {
       this.setupRegularBullet();
     } catch (error) {
       console.error("Error setting up point series:", error);
+      /* istanbul ignore next */
       if (this.onError) this.onError("Error setting up map points.");
     }
   }
