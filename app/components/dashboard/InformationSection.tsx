@@ -17,6 +17,17 @@ const InformationSection = ({ filterState }: InformationSectionProps) => {
   // Pass the filterState to the hook so it refetches when filters change.
   const { data, isLoading, error } = useDashboardData(filterState);
 
+  let content;
+  if (isLoading) {
+    content = <p className="text-black">Loading...</p>;
+  } else if (error) {
+    content = <p className="text-red-500">{error}</p>;
+  } else if (activeSection === "section1") {
+    content = <GeneralInformation data={data} />;
+  } else {
+    content = <CasesOrder />;
+  }
+
   return (
     <div className="flex flex-col h-full bg-transparent text-white text-xl p-4 pt-8 pl-8">
       <div className="flex justify-between">
@@ -48,17 +59,9 @@ const InformationSection = ({ filterState }: InformationSectionProps) => {
         </div>
       </div>
 
-      {/* Dynamic Section */}
+      {/* Dynamic Section using extracted content */}
       <div className="flex-grow mt-4">
-        {isLoading ? (
-          <p className="text-black">Loading...</p>
-        ) : error ? (
-          <p className="text-red-500">{error}</p>
-        ) : activeSection === "section1" ? (
-          <GeneralInformation data={data} />
-        ) : (
-          <CasesOrder />
-        )}
+        {content}
       </div>
     </div>
   );
