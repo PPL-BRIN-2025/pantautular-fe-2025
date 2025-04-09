@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import { severityApi } from "../../../services/api";
+import { FilterState } from "../../../types";
 
 interface ChartData {
   [key: string]: any;
@@ -12,15 +13,47 @@ interface ChartData {
   total_cases: number;
 }
 
+interface FilterResponse {
+  disease_stats: Array<{
+    name: string;
+    severity_counts: {
+      hospitalisasi: number;
+      insiden: number;
+      mortalitas: number;
+    };
+    total_cases: number;
+  }>;
+  province_stats: Array<{
+    name: string;
+    severity_counts: {
+      hospitalisasi: number;
+      insiden: number;
+      mortalitas: number;
+    };
+    total_cases: number;
+  }>;
+  city_stats: Array<{
+    name: string;
+    severity_counts: {
+      hospitalisasi: number;
+      insiden: number;
+      mortalitas: number;
+    };
+    total_cases: number;
+  }>;
+}
+
 interface SeverityChartProps {
   title: string;
   categoryField: string;
-  fetchData: () => Promise<Array<{ [key: string]: any }>>;
+  fetchData: (filter?: FilterState) => Promise<Array<{ [key: string]: any }>>;
   seriesConfig: {
     field: string;
     name: string;
     color: string;
   }[];
+  filter?: FilterState;
+  type: 'disease' | 'province' | 'city';
 }
 
 interface SeriesConfig {
@@ -79,7 +112,7 @@ const createTooltip = (root: am5.Root) => {
   return tooltip;
 };
 
-const setupXAxis = (root: am5.Root, chart: am5xy.XYChart, categoryField: string) => {
+const setupXAxis = (root: am5.Root, chart: am5xy.XYChart, categoryField: string, dataLength: number) => {
   const xAxis = chart.xAxes.push(
     am5xy.CategoryAxis.new(root, {
       categoryField: categoryField,
@@ -96,8 +129,14 @@ const setupXAxis = (root: am5.Root, chart: am5xy.XYChart, categoryField: string)
     fontSize: 12,
   });
   xAxis.get("renderer").grid.template.set("visible", false);
+  
+  // Adjust padding based on data length
+  const padding = dataLength <= 3 ? 0.3 : 0.1;
   // @ts-ignore
-  xAxis.get("renderer").setAll({ paddingInner: 0.5, paddingOuter: 0.3 });
+  xAxis.get("renderer").setAll({ 
+    paddingInner: padding,
+    paddingOuter: padding
+  });
 
   return xAxis;
 };
@@ -139,13 +178,16 @@ const createSeries = (config: SeriesConfig) => {
     })
   );
 
+  // Adjust width based on data length
+  const width = validData.length <= 3 ? am5.percent(30) : am5.percent(60);
+
   series.columns.template.setAll({
     cornerRadiusTL: 6,
     cornerRadiusTR: 6,
     cornerRadiusBL: 6,
     cornerRadiusBR: 6,
     strokeWidth: 0,
-    width: am5.percent(60)
+    width: width
   });
 
   // Set tooltip styling
@@ -192,14 +234,73 @@ const createSeries = (config: SeriesConfig) => {
   return series;
 };
 
-const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: SeverityChartProps) => {
+const SeverityChart = ({ 
+  title, 
+  categoryField, 
+  fetchData, 
+  seriesConfig,
+  filter,
+  type
+}: SeverityChartProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<ChartData[]>([]);
+  const [rawData, setRawData] = useState<any[]>([]);
   const chartId = useMemo(() => {
     chartIdCounter += 1;
     return `chartdiv-${Date.now()}-${chartIdCounter}`;
   }, []);
+
+  const transformedData = useMemo(() => {
+    return rawData.map(item => ({
+      name: item.name ?? '',
+      hospitalisasi: Number(item.hospitalisasi ?? 0),
+      insiden: Number(item.insiden ?? 0),
+      mortalitas: Number(item.mortalitas ?? 0),
+      total_cases: Number(item.total_cases ?? 0)
+    }));
+  }, [rawData]);
+
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log('Loading data with filter:', filter);
+      const response = await fetchData(filter);
+      console.log('API Response:', response);
+      
+      let data;
+      if (filter && !Array.isArray(response)) {
+        const filterResponse = response as FilterResponse;
+        const stats = type === 'disease' ? filterResponse.disease_stats :
+                     type === 'province' ? filterResponse.province_stats :
+                     filterResponse.city_stats;
+        
+        // Transform the data to match the expected format
+        data = stats.map(item => ({
+          name: item.name,
+          hospitalisasi: item.severity_counts.hospitalisasi,
+          insiden: item.severity_counts.insiden,
+          mortalitas: item.severity_counts.mortalitas,
+          total_cases: item.total_cases
+        }));
+      } else {
+        data = response;
+      }
+      
+      console.log('Transformed data:', data);
+      setRawData(data);
+    } catch (err) {
+      console.error('Error in SeverityChart:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch data'));
+      setRawData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchData, filter, type]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -218,7 +319,7 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
       );
     }
 
-    if (data.length === 0) {
+    if (transformedData.length === 0) {
       return (
         <div className="text-gray-500 text-center p-4">
           No data available
@@ -234,44 +335,7 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await fetchData();
-        
-        console.log('API Response:', response); // Debug log
-        
-        // Transform data to match ChartData interface
-        const transformedData = Array.isArray(response) 
-          ? response.map(item => {
-              console.log('Processing item:', item); // Debug log
-              return {
-                name: item.name ?? '',
-                hospitalisasi: Number(item.hospitalisasi ?? 0),
-                insiden: Number(item.insiden ?? 0),
-                mortalitas: Number(item.mortalitas ?? 0),
-                total_cases: Number(item.total_cases ?? 0)
-              };
-            })
-          : [];
-
-        console.log('Transformed data:', transformedData); // Debug log
-        setData(transformedData);
-      } catch (err) {
-        console.error('Error in SeverityChart:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch data'));
-        setData([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (data.length === 0) return;
+    if (transformedData.length === 0) return;
 
     const root = am5.Root.new(chartId);
     const chart = root.container.children.push(
@@ -286,10 +350,10 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
       })
     );
 
-    const xAxis = setupXAxis(root, chart, "name");
-    const yAxis = setupYAxis(root, chart, data, seriesConfig);
+    const xAxis = setupXAxis(root, chart, "name", transformedData.length);
+    const yAxis = setupYAxis(root, chart, transformedData, seriesConfig);
 
-    xAxis.data.setAll(data);
+    xAxis.data.setAll(transformedData);
 
     seriesConfig.forEach(config => {
       createSeries({
@@ -301,14 +365,14 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
         name: config.name,
         color: config.color,
         categoryField: "name",
-        chartData: data
+        chartData: transformedData
       });
     });
 
     return () => {
       root.dispose();
     };
-  }, [data, seriesConfig, chartId]);
+  }, [transformedData, seriesConfig, chartId]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
@@ -326,7 +390,7 @@ const SeverityChart = ({ title, categoryField, fetchData, seriesConfig }: Severi
 };
 
 // Disease severity chart
-export const DiseaseSeverityChart = () => {
+export const DiseaseSeverityChart = ({ filter }: { filter?: FilterState }) => {
   return (
     <SeverityChart
       title="Kasus Jenis Penyakit"
@@ -337,38 +401,44 @@ export const DiseaseSeverityChart = () => {
         { field: "insiden", name: "Insiden", color: "#ffcd39" },
         { field: "mortalitas", name: "Mortalitas", color: "#e35d6a" },
       ]}
+      filter={filter}
+      type="disease"
     />
   );
 };
 
 // Province severity chart
-export const ProvinceSeverityChart = () => {
+export const ProvinceSeverityChart = ({ filter }: { filter?: FilterState }) => {
   return (
     <SeverityChart
       title="Kasus Jangkauan Provinsi"
-      categoryField="province"
+      categoryField="name"
       fetchData={severityApi.getProvinceSeverityStats}
       seriesConfig={[
         { field: "hospitalisasi", name: "Hospitalisasi", color: "#3cb371" },
         { field: "insiden", name: "Insiden", color: "#ffcd39" },
         { field: "mortalitas", name: "Mortalitas", color: "#e35d6a" },
       ]}
+      filter={filter}
+      type="province"
     />
   );
 };
 
 // City severity chart
-export const CitySeverityChart = () => {
+export const CitySeverityChart = ({ filter }: { filter?: FilterState }) => {
   return (
     <SeverityChart
       title="Kasus Jangkauan Kota"
-      categoryField="city"
+      categoryField="name"
       fetchData={severityApi.getCitySeverityStats}
       seriesConfig={[
         { field: "hospitalisasi", name: "Hospitalisasi", color: "#3cb371" },
         { field: "insiden", name: "Insiden", color: "#ffcd39" },
         { field: "mortalitas", name: "Mortalitas", color: "#e35d6a" },
       ]}
+      filter={filter}
+      type="city"
     />
   );
 };

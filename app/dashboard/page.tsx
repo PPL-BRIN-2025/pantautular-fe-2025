@@ -12,7 +12,7 @@ const Page = () => {
 
   // This callback will be triggered when the user submits new filters.
   const handleFilterSubmit = (filters: FilterState) => {
-    // Update the shared filter state; InformationSection’s hook will re-run.
+    console.log('Filter submitted:', filters);
     setFilterState(filters);
   };
 
