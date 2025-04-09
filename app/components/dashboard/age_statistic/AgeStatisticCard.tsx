@@ -86,7 +86,7 @@ export default function AgeStatisticCard({ data = [
     // Create series
     const series = chart.series.push(
       am5xy.ColumnSeries.new(root, {
-        name: "Series 1",
+        name: "Series 1", 
         xAxis: xAxis,
         yAxis: yAxis,
         valueYField: "value",
@@ -136,7 +136,7 @@ export default function AgeStatisticCard({ data = [
               </clipPath>
             </defs>
           </svg>
-          <span className="text-[#0069CF] font-medium text-lg">{totalCases.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</span>
+          <span className="text-[#0069CF] font-medium text-lg">{new Intl.NumberFormat('de-DE').format(totalCases)}</span>
         </div>
       </div>
       <div ref={chartRef} data-testid="chart-container" className="w-full h-[85%]" />
