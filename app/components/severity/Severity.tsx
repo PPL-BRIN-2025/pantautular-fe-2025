@@ -271,9 +271,16 @@ const SeverityChart = ({
       let data;
       if (filter && !Array.isArray(response)) {
         const filterResponse = response as FilterResponse;
-        const stats = type === 'disease' ? filterResponse.disease_stats :
-                     type === 'province' ? filterResponse.province_stats :
-                     filterResponse.city_stats;
+        
+        // Extract the nested ternary into a separate statement
+        let stats;
+        if (type === 'disease') {
+          stats = filterResponse.disease_stats;
+        } else if (type === 'province') {
+          stats = filterResponse.province_stats;
+        } else {
+          stats = filterResponse.city_stats;
+        }
         
         // Transform the data to match the expected format
         data = stats.map(item => ({
