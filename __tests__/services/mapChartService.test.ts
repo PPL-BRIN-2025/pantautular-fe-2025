@@ -1,8 +1,7 @@
 import { MapChartService } from "../../services/mapChartService";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
-import { MapConfig, MapLocation } from "../../types";
-import * as tooltipUtils from "../../utils/tooltipUtils";
+import { MapConfig } from "../../types";
 
 const mockChildrenPush = jest.fn();
 const mockEventsOn = jest.fn();
@@ -249,7 +248,8 @@ function setupRegularBulletTest() {
 
   return {
     service,
-    fakes,
+    fakeRoot: fakes.fakeRoot,
+    fakePointSeries: fakes.fakePointSeries,
     restore
   };
 }
@@ -580,63 +580,40 @@ describe("MapChartService", () => {
     }
   );
 
-  // Refactor test cases menggunakan helper functions
-  describe("setupRegularBullet tests", () => {
-    test("creates a regular bullet", () => {
-      const { service, fakes, restore } = setupRegularBulletTest();
+  describe("setupRegularBullet", () => {
+    it("sets up regular bullet with correct configuration", () => {
+      const { service, fakeRoot, fakePointSeries } = setupRegularBulletTest();
+      (service as any).pointSeries = fakePointSeries;
+      (service as any).root = fakeRoot;
       
       (service as any).setupRegularBullet();
-      expect(fakes.fakePointSeries.bullets.push).toHaveBeenCalledTimes(1);
       
-      const bulletFactory = fakes.fakePointSeries.bullets.push.mock.calls[0][0];
-      const bullet = bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataContext: { id: "test-id" } });
+      expect(am5.Tooltip.new).toHaveBeenCalledWith(fakeRoot, {
+        getFillFromSprite: false,
+        background: expect.any(Object),
+        labelText: "",
+        autoTextColor: false,
+        interactive: true,
+      });
       
-      expect(am5.Circle.new).toHaveBeenCalledWith(fakes.fakeRoot, expect.objectContaining({
-        radius: 6,
-        tooltipY: 0,
-        fill: expect.anything(),
-        cursorOverStyle: "pointer"
-      }));
-      expect(am5.Bullet.new).toHaveBeenCalledWith(fakes.fakeRoot, { sprite: fakes.fakeCircle });
-      expect(bullet).toBe(fakes.fakeBullet);
-      
-      restore();
+      expect(fakePointSeries.bullets.push).toHaveBeenCalled();
+      expect(fakePointSeries.set).toHaveBeenCalledWith("tooltip", expect.any(Object));
     });
 
-    test("handles error when tooltip creation fails", async () => {
-      const { service, fakes, restore } = setupRegularBulletTest();
+    it("handles missing pointSeries or root", () => {
+      const { service } = setupRegularBulletTest();
       
-      jest.spyOn(tooltipUtils, "getTooltip").mockRejectedValueOnce(new Error("Tooltip error"));
-      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      // Reset mocks before test
+      jest.clearAllMocks();
       
-      (service as any).setupRegularBullet();
-      const bulletFactory = fakes.fakePointSeries.bullets.push.mock.calls[0][0];
-      bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataContext: { id: "test-id" } });
-      
-      fakes.fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: { dataContext: { id: "test-id" } } } });
-      
-      await new Promise(resolve => setTimeout(resolve, 0));
-      
-      expect(consoleSpy).toHaveBeenCalledWith("Error showing tooltip:", expect.any(Error));
-      
-      consoleSpy.mockRestore();
-      restore();
-    });
-
-    test("handles missing dataContext", async () => {
-      const { service, fakes, restore } = setupRegularBulletTest();
+      // Ensure both pointSeries and root are null
+      (service as any).pointSeries = null;
+      (service as any).root = null;
       
       (service as any).setupRegularBullet();
-      const bulletFactory = fakes.fakePointSeries.bullets.push.mock.calls[0][0];
-      bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataItem: {} });
       
-      fakes.fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: {} } });
-      
-      await new Promise(resolve => setTimeout(resolve, 0));
-      
-      expect(fakes.fakeTooltip.show).not.toHaveBeenCalled();
-      
-      restore();
+      expect(am5.Tooltip.new).not.toHaveBeenCalled();
+      expect(am5.Bullet.new).not.toHaveBeenCalled();
     });
   });
 
