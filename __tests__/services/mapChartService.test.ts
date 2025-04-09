@@ -862,3 +862,4 @@ describe("MapChartService", () => {
     expect((mapService as any).pointSeries.data.push).toHaveBeenCalledTimes(2);
   });
 });
+
