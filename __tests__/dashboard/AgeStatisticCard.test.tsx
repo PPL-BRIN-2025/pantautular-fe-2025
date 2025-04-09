@@ -1,4 +1,4 @@
-import { render, screen, cleanup, act } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import AgeStatisticCard from '../../app/components/dashboard/age_statistic/AgeStatisticCard';
@@ -66,25 +66,25 @@ const mockLabelsTemplate = {
     setAll: jest.fn()
   };
   
-  const mockGridTemplate = {
-    set: jest.fn()
-  };
+const mockGridTemplate = {
+  set: jest.fn()
+};
   
-  const mockXRenderer = {
-    labels: {
-      template: mockLabelsTemplate
-    },
-    grid: {
-      template: mockGridTemplate
-    }
-  };
+const mockXRenderer = {
+  labels: {
+    template: mockLabelsTemplate
+  },
+  grid: {
+    template: mockGridTemplate
+  }
+};
   
-  const mockYRenderer = {
-    labels: {
-      template: mockLabelsTemplate
-    },
-    strokeOpacity: 0.1
-  };
+const mockYRenderer = {
+  labels: {
+    template: mockLabelsTemplate
+  },
+  strokeOpacity: 0.1
+};
 
 // Update mockChart with event handling capabilities
 const mockChart = {
@@ -94,7 +94,7 @@ const mockChart = {
       push: jest.fn(() => ({
         data: { setAll: mockDataSetAll },
         appear: mockSeriesAppear,
-        columns: {  // Add this property
+        columns: {
           template: {
             setAll: jest.fn()
           }
@@ -226,110 +226,55 @@ describe('AgeStatisticCard Component', () => {
   const customTotal = 50 + 150 + 100; // 300
   const customTotalFormatted = "300";
 
+  // Helper function to verify common chart initialization
+  const verifyChartInitialization = (data: { age: string; value: number; }[]) => {
+    expect(am5.Root.new).toHaveBeenCalledTimes(1);
+    expect(mockRoot.setThemes).toHaveBeenCalledTimes(1);
+    expect(mockRoot.yAxes.push).toHaveBeenCalledTimes(1);
+    expect(mockRoot.series.push).toHaveBeenCalledTimes(1);
+    
+    const mockXAxis = mockRoot.xAxes.push();
+    const mockSeries = mockRoot.series.push();
+    expect(mockXAxis.data.setAll).toHaveBeenCalledWith(data);
+    expect(mockSeries.data.setAll).toHaveBeenCalledWith(data);
+  };
+
   // Clear mocks after each test
   afterEach(() => {
     cleanup();
     jest.clearAllMocks();
   });
 
-  it('should render the component with title and default data', () => {
-    render(<AgeStatisticCard />);
+  it.each([
+    ['default data', undefined, defaultTotalFormatted],
+    ['custom data', customData, customTotalFormatted],
+    ['empty data', [], '0']
+  ])('should render component correctly with %s', (_, data, expectedTotal) => {
+    render(<AgeStatisticCard data={data} />);
 
     // Check if title exists
     expect(screen.getByText('Usia')).toBeInTheDocument();
-
-    // Check if total cases with default data is displayed correctly formatted
-    expect(screen.getByText(defaultTotalFormatted)).toBeInTheDocument();
-
-    // Check if the chart container div exists
+    
+    // Check if total cases is displayed correctly formatted
+    expect(screen.getByText(expectedTotal)).toBeInTheDocument();
+    
+    // Check if chart container exists
     expect(screen.getByTestId('chart-container')).toBeInTheDocument();
-  });
-
-  it('should render the component with title and custom data', () => {
-    render(<AgeStatisticCard data={customData} />);
-
-    // Check if title exists
-    expect(screen.getByText('Usia')).toBeInTheDocument();
-
-    // Check if total cases with custom data is displayed correctly formatted
-    expect(screen.getByText(customTotalFormatted)).toBeInTheDocument();
-
-    // Check if the chart container div exists
-    expect(screen.getByTestId('chart-container')).toBeInTheDocument();
-  });
-
-  it('should attempt to initialize amCharts with default data', () => {
-    render(<AgeStatisticCard />);
-
-    // Verify amCharts Root was created
-    expect(am5.Root.new).toHaveBeenCalledTimes(1);
-
-    // Verify themes were set
-    expect(mockRoot.setThemes).toHaveBeenCalledTimes(1);
-
-    // Verify chart type was created (e.g., XYChart)
-    expect(am5xy.XYChart.new).toHaveBeenCalledTimes(1);
-
-    // Verify axes and series were pushed
-    // expect(mockRoot.xAxes.push).toHaveBeenCalledTimes(1);
-    expect(mockRoot.yAxes.push).toHaveBeenCalledTimes(1);
-    expect(mockRoot.series.push).toHaveBeenCalledTimes(1);
-
-    // Verify data was set on axis and series using default data
-    const mockXAxis = mockRoot.xAxes.push(); // Get the mock return value
-    const mockSeries = mockRoot.series.push(); // Get the mock return value
-    expect(mockXAxis.data.setAll).toHaveBeenCalledWith(defaultData);
-    expect(mockSeries.data.setAll).toHaveBeenCalledWith(defaultData);
-
-    // Verify appear animations were called
-    expect(mockSeries.appear).toHaveBeenCalledTimes(1);
-    expect(mockRoot.appear).toHaveBeenCalledTimes(1); // Called on the chart instance
-  });
-
-   it('should attempt to initialize amCharts with custom data', () => {
-    render(<AgeStatisticCard data={customData} />);
-
-    expect(am5.Root.new).toHaveBeenCalledTimes(1);
-    // expect(mockRoot.xAxes.push).toHaveBeenCalledTimes(1);
-    expect(mockRoot.series.push).toHaveBeenCalledTimes(1);
-
-    // Verify data was set on axis and series using CUSTOM data
-    const mockXAxis = mockRoot.xAxes.push();
-    const mockSeries = mockRoot.series.push();
-    expect(mockXAxis.data.setAll).toHaveBeenCalledWith(customData);
-    expect(mockSeries.data.setAll).toHaveBeenCalledWith(customData);
+    
+    // Verify chart initialization with appropriate data
+    verifyChartInitialization(data || defaultData);
   });
 
   it('should call the dispose function on unmount', () => {
-    // Render the component
+    // Render and unmount the component
     const { unmount } = render(<AgeStatisticCard />);
-
-    // Ensure dispose has not been called yet
-    expect(mockDispose).not.toHaveBeenCalled();
-
-    // Unmount the component
     unmount();
-
-    // Verify that the root's dispose function was called exactly once
+    
+    // Verify that the root's dispose function was called
     expect(mockDispose).toHaveBeenCalledTimes(1);
   });
 
-
-    it('should handle empty data array properly', () => {
-    const emptyData: { age: string; value: number }[] = [];
-    render(<AgeStatisticCard data={emptyData} />);
-    
-    // Total should be 0, and formatted as "0"
-    expect(screen.getByText("0")).toBeInTheDocument();
-    
-    // Chart container should still be rendered
-    expect(screen.getByTestId('chart-container')).toBeInTheDocument();
-    
-    // amCharts should still initialize
-    expect(am5.Root.new).toHaveBeenCalledTimes(1);
-    });
-
-    it('should correctly format large numbers with thousand separators', () => {
+  it('should correctly format large numbers with thousand separators', () => {
     const largeNumbersData = [
         { age: "Group 1", value: 10000 },
         { age: "Group 2", value: 20000 },
@@ -339,28 +284,30 @@ describe('AgeStatisticCard Component', () => {
     
     render(<AgeStatisticCard data={largeNumbersData} />);
     expect(screen.getByText("60.000")).toBeInTheDocument();
-    });
+  });
 
-    it('should verify chart config parameters are correctly set', () => {
+  it('should verify chart configurations and styling', () => {
     render(<AgeStatisticCard />);
     
-    // Verify chart cursor is created and configured
+    // Verify chart cursor config
     expect(am5xy.XYCursor.new).toHaveBeenCalledTimes(1);
     expect(mockCursor.lineY.set).toHaveBeenCalledWith("visible", false);
     
-    // Check that ColumnSeries was created with correct config
-    // expect(mockRoot.series.push).toHaveBeenCalled();
+    // Check ColumnSeries config
     const seriesConfig = mockRoot.series.push.mock.calls[0][0];
     expect(seriesConfig).toHaveProperty('name', 'Series 1');
     expect(seriesConfig).toHaveProperty('valueYField', 'value');
     expect(seriesConfig).toHaveProperty('categoryXField', 'age');
-    });
-
-    it('should update chart data when props change', () => {
-    const { rerender } = render(<AgeStatisticCard data={defaultData} />);
     
-    // Initial render should set up chart with default data
-    // expect(mockRoot.xAxes.push().data.setAll).toHaveBeenCalledWith(defaultData);
+    // Check axis styling
+    expect(am5xy.AxisRendererX.new).toHaveBeenCalledWith(mockRoot, expect.objectContaining({
+        minGridDistance: 30,
+        minorGridEnabled: true
+    }));
+  });
+
+  it('should update chart data when props change', () => {
+    const { rerender } = render(<AgeStatisticCard data={defaultData} />);
     
     // Clear mock counts to check next render
     jest.clearAllMocks();
@@ -377,15 +324,5 @@ describe('AgeStatisticCard Component', () => {
     
     // New total should be displayed
     expect(screen.getByText(customTotalFormatted)).toBeInTheDocument();
-    });
-
-    it('should apply correct styling to chart elements', () => {
-    render(<AgeStatisticCard />);
-    
-    // Check axis styling
-    expect(am5xy.AxisRendererX.new).toHaveBeenCalledWith(mockRoot, expect.objectContaining({
-        minGridDistance: 30,
-        minorGridEnabled: true
-    }));
-});
+  });
 });
