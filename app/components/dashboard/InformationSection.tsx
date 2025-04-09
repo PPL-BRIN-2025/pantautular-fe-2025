@@ -10,8 +10,8 @@ const InformationSection = () => {
 
     return (
         <div className="flex flex-col h-full bg-transparent text-white text-xl p-4 pt-8 pl-8">
-            <div className="flex justify-between">
-                <div className="flex gap-4 bg-white p-2 shadow-md rounded-t-lg w-8/12">
+            <div className="fixed flex justify-between z-50 bg-[#ebf3f5] w-full h-24">
+                <div className="fixed flex gap-4 bg-white p-2 shadow-md rounded-t-lg w-5/12">
                     <button
                         className={`px-4 py-2 transition-colors border-b-4 ${
                             activeSection === "section1"
@@ -40,7 +40,7 @@ const InformationSection = () => {
             </div>
 
             {/* Dynamic Section */}
-            <div className="flex-grow mt-4">
+            <div className="flex-grow mt-24">
                 {activeSection === "section1" ? <GeneralInformation /> : <CasesOrder />}
             </div>
         </div>

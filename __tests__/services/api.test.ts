@@ -1,4 +1,4 @@
-import { mapApi } from "../../services/api";
+import { mapApi, severityApi } from "../../services/api";
 
 describe('mapApi', () => {
     const mockResponse = [
@@ -191,5 +191,125 @@ describe('mapApi', () => {
             const result = await mapApi.getCaseDetail(mockCaseId);
             expect(result).toEqual({});
         });
+    });
+});
+
+describe('severityApi', () => {
+    const mockSeverityResponse = {
+        data: [
+            {
+                name: "Dengue",
+                severity_counts: {
+                    hospitalisasi: 100,
+                    insiden: 200,
+                    mortalitas: 10
+                },
+                total_cases: 310
+            },
+            {
+                name: "COVID-19",
+                severity_counts: {
+                    hospitalisasi: 500,
+                    insiden: 1000,
+                    mortalitas: 50
+                },
+                total_cases: 1550
+            }
+        ]
+    };
+
+    const expectedTransformedData = [
+        {
+            name: "Dengue",
+            hospitalisasi: 100,
+            insiden: 200,
+            mortalitas: 10,
+            total_cases: 310
+        },
+        {
+            name: "COVID-19",
+            hospitalisasi: 500,
+            insiden: 1000,
+            mortalitas: 50,
+            total_cases: 1550
+        }
+    ];
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    const mockError = new Error('API Error');
+
+    // Helper function to test successful API calls
+    const testSuccessfulApiCall = async (
+        apiFunction: () => Promise<any>,
+        expectedEndpoint: string
+    ) => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockSeverityResponse)
+        });
+
+        const result = await apiFunction();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            expect.stringContaining(expectedEndpoint),
+            expect.any(Object)
+        );
+
+        expect(result).toEqual(expectedTransformedData);
+    };
+
+    // Helper function to test error handling
+    const testErrorHandling = async (
+        apiFunction: () => Promise<any>,
+        error: Error
+    ) => {
+        (global.fetch as jest.Mock).mockRejectedValueOnce(error);
+        await expect(apiFunction()).rejects.toThrow(error.message);
+    };
+
+    // Test cases for each API endpoint
+    const apiEndpoints = [
+        {
+            name: 'getDiseaseSeverityStats',
+            function: severityApi.getDiseaseSeverityStats,
+            endpoint: '/api/diseases/severity-stats/'
+        },
+        {
+            name: 'getProvinceSeverityStats',
+            function: severityApi.getProvinceSeverityStats,
+            endpoint: '/api/locations/province/severity-stats/'
+        },
+        {
+            name: 'getCitySeverityStats',
+            function: severityApi.getCitySeverityStats,
+            endpoint: '/api/locations/city/severity-stats/'
+        }
+    ];
+
+    // Run tests for each endpoint
+    apiEndpoints.forEach(({ name, function: apiFunction, endpoint }) => {
+        describe(name, () => {
+            it('should fetch and transform data successfully', async () => {
+                await testSuccessfulApiCall(apiFunction, endpoint);
+            });
+
+            it('should handle API errors', async () => {
+                await testErrorHandling(apiFunction, mockError);
+            });
+        });
+    });
+
+    // Test non-OK responses
+    it('should handle non-OK responses', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: false,
+            status: 500
+        });
+
+        await expect(severityApi.getDiseaseSeverityStats())
+            .rejects.toThrow('HTTP error! status: 500');
     });
 });
