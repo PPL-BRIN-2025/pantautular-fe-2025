@@ -330,28 +330,30 @@ const FilterForm = ({
     handleSelectChange(newValue, selectedNews, filterOptions.news, setSelectedNews);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    try {
-      if (onSubmitFilterState) {
-        const filterState = createFilterState(
-          selectedDiseases,
-          selectedLocations,
-          selectedNews,
-          selectedLevelOfAlertness,
-          selectedStartDate,
-          selectedEndDate
-        );
-        onSubmitFilterState(filterState);
-      }
-    } catch (error) {
-      handleError(error, onError);
-    } finally {
-      setIsSubmitting(false);
+  
+    // Build the payload according to the API's structure (using Date objects)
+    const payload: FilterState = {
+      diseases: selectedDiseases.map((option) => option.value),
+      locations: selectedLocations.map((option) => option.value),
+      portals: selectedNews.map((option) => option.value),
+      level_of_alertness: selectedLevelOfAlertness,
+      start_date: selectedStartDate, // remains Date or null
+      end_date: selectedEndDate,     // remains Date or null
+    };
+  
+    console.log("Payload ready for API call:", payload);
+  
+    if (onSubmitFilterState) {
+      onSubmitFilterState(payload);
     }
+  
+    setIsSubmitting(false);
   };
+  
+  
 
   const handleReset = () => {
     setSelectedDiseases([]);
