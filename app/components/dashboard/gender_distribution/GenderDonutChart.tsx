@@ -1,8 +1,5 @@
 "use client";
-import React, { useLayoutEffect, useRef } from "react";
-import * as am5 from "@amcharts/amcharts5";
-import * as am5percent from "@amcharts/amcharts5/percent";
-import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
+import React, {useRef } from "react";
 import useDonutChart from "./ChartHook";
 import ChartHeader from "./ChartHeader";
 
