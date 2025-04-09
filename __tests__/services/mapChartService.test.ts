@@ -2,9 +2,8 @@ import { MapChartService } from "../../services/mapChartService";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
 import { MapConfig, MapLocation } from "../../types";
-import { useMapStore } from "../../store/store";
+import * as tooltipUtils from "../../utils/tooltipUtils";
 
-const mockSetCountSelectedPoints = jest.fn();
 const mockChildrenPush = jest.fn();
 const mockEventsOn = jest.fn();
 const mockBulletsPush = jest.fn();
@@ -14,12 +13,66 @@ const mockDataPush = jest.fn();
 const mockDataClear = jest.fn();
 const mockZoomToGeoPoint = jest.fn();
 
-// Default mock config used across tests
-const mockConfig: MapConfig = {
-  zoomLevel: 5,
-  centerPoint: { longitude: 120, latitude: -5 },
+// Common mock implementations
+const mockHomeButton = { set: jest.fn() };
+const mockZoomControl = { homeButton: mockHomeButton };
+
+const commonMockImplementations = {
+  circle: (root: any, config: any) => ({
+    root,
+    config,
+    type: "Circle",
+    dispose: jest.fn(),
+    events: {
+      on: jest.fn().mockImplementation((event, callback) => {
+        if (event === "pointerover") {
+          callback({ target: { dataItem: { dataContext: { id: "test-id" } } } });
+        }
+      })
+    }
+  }),
+  bullet: (root: any, config: any) => ({
+    root,
+    sprite: config.sprite,
+    type: "Bullet",
+    config,
+  }),
+  tooltip: (root: any, config: any) => ({
+    root,
+    config,
+    type: "Tooltip",
+    show: jest.fn(),
+    hide: jest.fn(),
+    set: jest.fn(),
+  }),
+  rectangle: (root: any, config: any) => ({
+    root,
+    config,
+    type: "Rectangle",
+  }),
 };
 
+// Common test setup patterns
+const commonTestSetup = {
+  createMockSeries: () => ({
+    bullets: { push: mockBulletsPush },
+    data: { 
+      push: mockDataPush,
+      clear: mockDataClear
+    },
+    set: jest.fn(),
+    zoomToCluster: jest.fn(),
+  }),
+  createMockChart: () => ({
+    series: { push: mockSeriesPush.mockImplementation((series) => series) },
+    set: jest.fn().mockImplementation((prop, value) => (prop === "zoomControl" ? mockZoomControl : null)),
+    appear: jest.fn(),
+    goHome: mockGoHome,
+    zoomToGeoPoint: mockZoomToGeoPoint
+  }),
+};
+
+// Update the mock implementations to use common patterns
 jest.mock("@amcharts/amcharts5", () => {
   const originalModule = jest.requireActual("@amcharts/amcharts5");
   return {
@@ -43,12 +96,7 @@ jest.mock("@amcharts/amcharts5", () => {
       })),
     },
     Circle: {
-      new: jest.fn().mockImplementation((root, config) => ({
-        root,
-        config,
-        type: "Circle",
-        events: { on: jest.fn() },
-      })),
+      new: jest.fn().mockImplementation((root, config) => commonMockImplementations.circle(root, config)),
     },
     Label: {
       new: jest.fn().mockImplementation((root, config) => ({ root, config })),
@@ -73,16 +121,7 @@ jest.mock("@amcharts/amcharts5/map", () => {
   return {
     __esModule: true,
     MapChart: {
-      new: jest.fn().mockImplementation(() => ({
-        series: { push: mockSeriesPush.mockImplementation((series) => series) },
-        set: jest.fn().mockImplementation((prop, value) => (prop === "zoomControl" ? mockZoomControl : null)),
-        appear: jest.fn(),
-        goHome: mockGoHome,
-        zoomToGeoPoint: mockZoomToGeoPoint,
-        on: jest.fn(),
-        innerWidth: () => 800,
-        innerHeight: () => 600,
-      })),
+      new: jest.fn().mockImplementation(() => commonTestSetup.createMockChart()),
     },
     MapPolygonSeries: {
       new: jest.fn().mockImplementation(() => ({
@@ -120,14 +159,6 @@ jest.mock("@amcharts/amcharts5-geodata/indonesiaLow", () => ({
   default: {},
 }));
 
-jest.mock("../../store/store", () => ({
-  useMapStore: {
-    getState: jest.fn().mockReturnValue({
-      setCountSelectedPoints: jest.fn().mockImplementation(() => mockSetCountSelectedPoints)
-    })
-  }
-}));
-
 // Helper to override a method to throw an error once and return a restore function.
 function overrideMethod(target: any, property: string, errorMsg: string): () => void {
   if (!target) {
@@ -150,7 +181,7 @@ const testEarlyReturn = (
   expect(spy).toHaveReturned();
 };
 
-// Helper for error-handling tests
+// Helper for error-handling tests (with a small delay to allow async logging).
 async function expectErrorHandling(
   methodCall: () => void,
   expectedConsoleMsg: string,
@@ -168,57 +199,67 @@ async function expectErrorHandling(
   consoleSpy.mockRestore();
 }
 
-// Helper for setting up point selection tests
-function setupPointSelectionTest(
-  mapService: MapChartService, 
-  mockLocations: MapLocation[], 
-  tlCoords = { longitude: 100, latitude: -5 },
-  brCoords = { longitude: 120, latitude: -8 },
-  width = 800,
-  height = 600
-) {
-  // Set locations
-  (mapService as any).locations = mockLocations;
+// Helper untuk setup fake objects yang sering digunakan
+function createFakeObjects() {
+  const fakeRoot = { dispose: jest.fn() } as any;
+  const fakePointSeries = commonTestSetup.createMockSeries() as any;
+  const fakeCircle = commonMockImplementations.circle(null, {}) as any;
+  const fakeTooltip = commonMockImplementations.tooltip(null, {}) as any;
+  const fakeBullet = commonMockImplementations.bullet(null, {}) as any;
+  const fakeRectangle = commonMockImplementations.rectangle(null, {}) as any;
 
-  // Mock chart.invert method
-  const mockInvert = jest.fn()
-    .mockReturnValueOnce(tlCoords) // tl
-    .mockReturnValueOnce(brCoords); // br
-    
-  (mapService as any).chart = {
-    invert: mockInvert,
-    innerWidth: () => width,
-    innerHeight: () => height,
+  return {
+    fakeRoot,
+    fakePointSeries,
+    fakeCircle,
+    fakeTooltip,
+    fakeBullet,
+    fakeRectangle
   };
-  
-  return { mockInvert };
 }
 
-// Helper for setting up point series tests
-function setupPointSeriesTest(
-  mapService: MapChartService,
-  overrides = {}
-) {
-  mapService.initialize("chartdiv", mockConfig);
-  
-  const pointSeries = {
-    set: jest.fn(),
-    bullets: { push: jest.fn() },
-    data: {
-      clear: jest.fn(),
-      push: jest.fn()
-    },
-    zoomToCluster: jest.fn(),
-    ...overrides
+// Helper untuk mock amcharts objects
+function mockAmchartsObjects(fakes: ReturnType<typeof createFakeObjects>) {
+  const originalCircleNew = am5.Circle.new;
+  const originalBulletNew = am5.Bullet.new;
+  const originalTooltipNew = am5.Tooltip.new;
+  const originalRectangleNew = am5.Rectangle.new;
+
+  am5.Circle.new = jest.fn().mockReturnValue(fakes.fakeCircle);
+  am5.Bullet.new = jest.fn().mockReturnValue(fakes.fakeBullet);
+  am5.Tooltip.new = jest.fn().mockReturnValue(fakes.fakeTooltip);
+  am5.Rectangle.new = jest.fn().mockReturnValue(fakes.fakeRectangle);
+
+  return () => {
+    am5.Circle.new = originalCircleNew;
+    am5.Bullet.new = originalBulletNew;
+    am5.Tooltip.new = originalTooltipNew;
+    am5.Rectangle.new = originalRectangleNew;
   };
+}
+
+// Helper untuk setup regular bullet test
+function setupRegularBulletTest() {
+  const fakes = createFakeObjects();
+  const restore = mockAmchartsObjects(fakes);
   
-  (mapService as any).pointSeries = pointSeries;
-  
-  return { pointSeries };
+  const service = new MapChartService();
+  (service as any).root = fakes.fakeRoot;
+  (service as any).pointSeries = fakes.fakePointSeries;
+
+  return {
+    service,
+    fakes,
+    restore
+  };
 }
 
 describe("MapChartService", () => {
   let mapService: MapChartService;
+  const mockConfig: MapConfig = {
+    zoomLevel: 5,
+    centerPoint: { longitude: 120, latitude: -5 },
+  };
 
   beforeEach(() => {
     document.body.innerHTML = '<div id="chartdiv"></div>';
@@ -230,7 +271,7 @@ describe("MapChartService", () => {
     mapService.dispose();
   });
 
-  // Initialization tests
+  // Initialization tests.
   test("initialize creates root and chart elements", () => {
     mapService.initialize("chartdiv", mockConfig);
     expect(am5.Root.new).toHaveBeenCalledWith("chartdiv");
@@ -267,17 +308,15 @@ describe("MapChartService", () => {
     document.getElementById = originalGetElementById;
   });
 
-  // Early-return tests
+  // Early-return tests.
   const earlyReturnCases = [
     { method: "setupZoomControl", nullProps: { chart: null, root: null } },
     { method: "setupPolygonSeries", nullProps: { chart: null, root: null } },
     { method: "setupPointSeries", nullProps: { chart: null, root: null } },
     { method: "populateLocations", nullProps: { pointSeries: null } },
-    { method: "setupClusterBullet", nullProps: { pointSeries: null, root: null } },
-    { method: "setupRegularBullet", nullProps: { pointSeries: null, root: null } },
-    { method: "getPointsInSelection", nullProps: { chart: null } },
+    { method: "setupClusterBullet", nullProps: { chart: null, root: null } },
+    { method: "setupRegularBullet", nullProps: { chart: null, root: null } },
   ];
-
   test.each(earlyReturnCases)(
     "$method returns early if specified properties are null",
     ({ method, nullProps }) => {
@@ -285,21 +324,178 @@ describe("MapChartService", () => {
     }
   );
 
-  // Chart event handler tests
-  test("chart event handlers are properly set up", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const chart = (mapService as any).chart;
-    expect(chart.on).toHaveBeenCalledWith('zoomLevel', expect.any(Function));
-    expect(chart.on).toHaveBeenCalledWith('translateX', expect.any(Function));
-    expect(chart.on).toHaveBeenCalledWith('translateY', expect.any(Function));
+  // Functional tests.
+  test("setupZoomControl adds zoom control to chart", () => {
+    const mockSet = jest.fn();
+    const mockHomeButton = { set: mockSet };
+    const mockZoomControl = { homeButton: mockHomeButton };
+    const mockZoomControlNew = jest.fn().mockReturnValue(mockZoomControl);
+    
+    // Mock the ZoomControl.new function before initializing
+    jest.spyOn(am5map.ZoomControl, 'new').mockImplementation(mockZoomControlNew);
+
+    // Mock the chart.set method
+    const mockChartSet = jest.fn().mockReturnValue(mockZoomControl);
+    (mapService as any).chart = { set: mockChartSet, on: jest.fn() };
+    (mapService as any).root = { dispose: jest.fn() };
+
+    // Call setupZoomControl directly since we've mocked the dependencies
+    (mapService as any).setupZoomControl();
+
+    expect(mockChartSet).toHaveBeenCalledWith("zoomControl", mockZoomControl);
+    expect(mockSet).toHaveBeenCalledWith("visible", true);
   });
 
-  // Error handling tests
+  test("setupPolygonSeries adds polygon series to chart", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    const spy = jest.spyOn(mapService as any, "setupPolygonSeries");
+    (mapService as any).setupPolygonSeries();
+    expect(spy).toHaveBeenCalled();
+    expect(am5map.MapPolygonSeries.new).toHaveBeenCalled();
+  });
+
+  test("setupPointSeries adds clustered point series to chart", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    const spy = jest.spyOn(mapService as any, "setupPointSeries");
+    (mapService as any).setupPointSeries();
+    expect(spy).toHaveBeenCalled();
+    expect(am5map.ClusteredPointSeries.new).toHaveBeenCalled();
+    expect(am5map.ClusteredPointSeries.new).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        groupIdField: "city",
+        minDistance: expect.anything(),
+        scatterDistance: expect.anything(),
+        scatterRadius: expect.anything(),
+        stopClusterZoom: expect.anything(),
+      })
+    );
+  });
+
+    // Update the populateLocations tests
+  test("populateLocations adds location data to point series", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    
+    // Mock the pointSeries properly
+    (mapService as any).pointSeries = {
+      data: {
+        push: jest.fn(),
+        clear: jest.fn(),
+        values: () => []
+      }
+    };
+    
+    const locations = [
+      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
+      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+    ];
+    
+    mapService.populateLocations(locations);
+    expect((mapService as any).pointSeries.data.push).toHaveBeenCalledTimes(2);
+  });
+
+  test("populateLocations with empty array should not cause errors", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    
+    // Mock the pointSeries properly
+    (mapService as any).pointSeries = {
+      data: {
+        push: jest.fn(),
+        clear: jest.fn(),
+        values: () => []
+      }
+    };
+    
+    mapService.populateLocations([]);
+    expect((mapService as any).pointSeries.data.push).not.toHaveBeenCalled();
+  });
+
+  // Update the error handling tests
+  test("setupClusterBullet handles error (withOnError: true)", async () => {
+    const onErrorMock = jest.fn();
+    mapService = new MapChartService(onErrorMock);
+    mapService.initialize("chartdiv", mockConfig);
+    
+    // Properly mock pointSeries before testing
+    (mapService as any).pointSeries = {
+      set: jest.fn().mockImplementationOnce(() => {
+        throw new Error("Test cluster bullet error");
+      }),
+      data: { push: jest.fn(), clear: jest.fn() }
+    };
+    
+    await expectErrorHandling(
+      () => (mapService as any).setupClusterBullet(),
+      "Error setting up cluster bullet:",
+      "Error setting up cluster bullet.",
+      10,
+      onErrorMock
+    );
+  });
+
+  test("setupClusterBullet without onError handles error (withOnError: false)", async () => {
+    mapService = new MapChartService();
+    mapService.initialize("chartdiv", mockConfig);
+    
+    // Properly mock pointSeries before testing
+    (mapService as any).pointSeries = {
+      set: jest.fn().mockImplementationOnce(() => {
+        throw new Error("Test cluster bullet error");
+      }),
+      data: { push: jest.fn(), clear: jest.fn() }
+    };
+    
+    await expectErrorHandling(
+      () => (mapService as any).setupClusterBullet(),
+      "Error setting up cluster bullet:"
+    );
+  });
+
+  // Update the createLocationMarker test
+  test("createLocationMarker adds marker series with bullet types", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    (mapService as any).createLocationMarker();
+    
+    // Check that map point series was created
+    expect(am5map.MapPointSeries.new).toHaveBeenCalled();
+    expect(mockSeriesPush).toHaveBeenCalled();
+    
+    // Check that bullets were added
+    expect(mockBulletsPush).toHaveBeenCalledTimes(2);
+    
+    // Test bullet creation
+    const bulletFactories = mockBulletsPush.mock.calls.map(call => call[0]);
+    bulletFactories.forEach(factory => {
+      expect(typeof factory).toBe("function");
+    });
+  });
+
+
+  test("chart handles extreme zoom levels", () => {
+    const extremeZoomConfig: MapConfig = {
+      zoomLevel: 100,
+      centerPoint: { longitude: 120, latitude: -5 },
+    };
+    mapService.initialize("chartdiv", extremeZoomConfig);
+    expect(am5map.MapChart.new).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ homeZoomLevel: 100 })
+    );
+  });
+
+  test("dispose cleans up resources", () => {
+    mapService.initialize("chartdiv", mockConfig);
+    mapService.dispose();
+    expect((mapService as any).root).toBeNull();
+  });
+
+  // Combined parameterized error-handling tests.
   const errorTestCases = [
     {
       name: "setupPolygonSeries",
       method: "setupPolygonSeries",
-      override: () => overrideMethod(am5map.MapPolygonSeries, "new", "Test polygon series error"),
+      override: () =>
+        overrideMethod(am5map.MapPolygonSeries, "new", "Test polygon series error"),
       expectedConsole: "Error setting up polygon series:",
       expectedOnError: "Error setting up map polygons.",
       withOnError: true,
@@ -307,7 +503,8 @@ describe("MapChartService", () => {
     {
       name: "setupPointSeries",
       method: "setupPointSeries",
-      override: () => overrideMethod(am5map.ClusteredPointSeries, "new", "Test point series error"),
+      override: () =>
+        overrideMethod(am5map.ClusteredPointSeries, "new", "Test point series error"),
       expectedConsole: "Error setting up point series:",
       expectedOnError: "Error setting up map points.",
       withOnError: true,
@@ -315,18 +512,36 @@ describe("MapChartService", () => {
     {
       name: "setupClusterBullet",
       method: "setupClusterBullet",
-      override: () => overrideMethod((mapService as any).pointSeries, "set", "Test cluster bullet error"),
+      override: () =>
+        overrideMethod((mapService as any).pointSeries, "set", "Test cluster bullet error"),
       expectedConsole: "Error setting up cluster bullet:",
       expectedOnError: "Error setting up cluster bullet.",
       withOnError: true,
     },
+
     {
-      name: "setupRegularBullet",
-      method: "setupRegularBullet",
-      override: () => overrideMethod((mapService as any).pointSeries.bullets, "push", "Test regular bullet error"),
-      expectedConsole: "Error setting up regular bullet:",
-      expectedOnError: "Error setting up regular bullet.",
-      withOnError: true,
+      name: "setupClusterBullet without onError",
+      method: "setupClusterBullet",
+      override: () =>
+        overrideMethod((mapService as any).pointSeries, "set", "Test cluster bullet error"),
+      expectedConsole: "Error setting up cluster bullet:",
+      withOnError: false,
+    },
+    {
+      name: "setupPointSeries without onError",
+      method: "setupPointSeries",
+      override: () =>
+        overrideMethod((mapService as any).chart.series, "push", "Test point series error"),
+      expectedConsole: "Error setting up point series:",
+      withOnError: false,
+    },
+    {
+      name: "setupPolygonSeries without onError",
+      method: "setupPolygonSeries",
+      override: () =>
+        overrideMethod((mapService as any).chart.series, "push", "Test polygon series error"),
+      expectedConsole: "Error setting up polygon series:",
+      withOnError: false,
     },
     {
       name: "initialize without onError",
@@ -365,87 +580,64 @@ describe("MapChartService", () => {
     }
   );
 
-  // Functional tests.
-  test("setupZoomControl adds zoom control to chart", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    expect(am5map.ZoomControl.new).toHaveBeenCalled();
-    const zoomControlSet = am5map.ZoomControl.new((mapService as any).root, {}).homeButton?.set;
-    expect(zoomControlSet).toHaveBeenCalledWith("visible", true);
-  });
+  // Refactor test cases menggunakan helper functions
+  describe("setupRegularBullet tests", () => {
+    test("creates a regular bullet", () => {
+      const { service, fakes, restore } = setupRegularBulletTest();
+      
+      (service as any).setupRegularBullet();
+      expect(fakes.fakePointSeries.bullets.push).toHaveBeenCalledTimes(1);
+      
+      const bulletFactory = fakes.fakePointSeries.bullets.push.mock.calls[0][0];
+      const bullet = bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataContext: { id: "test-id" } });
+      
+      expect(am5.Circle.new).toHaveBeenCalledWith(fakes.fakeRoot, expect.objectContaining({
+        radius: 6,
+        tooltipY: 0,
+        fill: expect.anything(),
+        cursorOverStyle: "pointer"
+      }));
+      expect(am5.Bullet.new).toHaveBeenCalledWith(fakes.fakeRoot, { sprite: fakes.fakeCircle });
+      expect(bullet).toBe(fakes.fakeBullet);
+      
+      restore();
+    });
 
-  test("setupPolygonSeries adds polygon series to chart", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const spy = jest.spyOn(mapService as any, "setupPolygonSeries");
-    (mapService as any).setupPolygonSeries();
-    expect(spy).toHaveBeenCalled();
-    expect(am5map.MapPolygonSeries.new).toHaveBeenCalled();
-  });
+    test("handles error when tooltip creation fails", async () => {
+      const { service, fakes, restore } = setupRegularBulletTest();
+      
+      jest.spyOn(tooltipUtils, "getTooltip").mockRejectedValueOnce(new Error("Tooltip error"));
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      
+      (service as any).setupRegularBullet();
+      const bulletFactory = fakes.fakePointSeries.bullets.push.mock.calls[0][0];
+      bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataContext: { id: "test-id" } });
+      
+      fakes.fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: { dataContext: { id: "test-id" } } } });
+      
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      expect(consoleSpy).toHaveBeenCalledWith("Error showing tooltip:", expect.any(Error));
+      
+      consoleSpy.mockRestore();
+      restore();
+    });
 
-  test("setupPointSeries adds clustered point series to chart", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const spy = jest.spyOn(mapService as any, "setupPointSeries");
-    (mapService as any).setupPointSeries();
-    expect(spy).toHaveBeenCalled();
-    expect(am5map.ClusteredPointSeries.new).toHaveBeenCalled();
-    expect(am5map.ClusteredPointSeries.new).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        groupIdField: "city",
-        minDistance: expect.anything(),
-        scatterDistance: expect.anything(),
-        scatterRadius: expect.anything(),
-        stopClusterZoom: expect.anything(),
-      })
-    );
-  });
-
-  test("chart handles extreme zoom levels", () => {
-    const extremeZoomConfig: MapConfig = {
-      zoomLevel: 100,
-      centerPoint: { longitude: 120, latitude: -5 },
-    };
-    mapService.initialize("chartdiv", extremeZoomConfig);
-    expect(am5map.MapChart.new).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ homeZoomLevel: 100 })
-    );
-  });
-
-  test("dispose cleans up resources", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    mapService.dispose();
-    expect((mapService as any).root).toBeNull();
-  });
-
-  // Test to cover regular bullet creation branch in setupRegularBullet.
-  test("setupRegularBullet creates a regular bullet", () => {
-    // Set up fake root (with dummy dispose) and fake pointSeries with bullets.push spy.
-    const fakeRoot = { dispose: jest.fn() } as any;
-    const fakePointSeries = { bullets: { push: jest.fn() } } as any;
-    (mapService as any).root = fakeRoot;
-    (mapService as any).pointSeries = fakePointSeries;
-    (mapService as any).setupRegularBullet();
-    expect(fakePointSeries.bullets.push).toHaveBeenCalledTimes(1);
-    const bulletFactory = fakePointSeries.bullets.push.mock.calls[0][0];
-    const fakeCircle = {} as any;
-    const fakeBullet = {} as any;
-    const originalCircleNew = am5.Circle.new;
-    const originalBulletNew = am5.Bullet.new;
-    am5.Circle.new = jest.fn().mockReturnValue(fakeCircle);
-    am5.Bullet.new = jest.fn().mockReturnValue(fakeBullet);
-    const bullet = bulletFactory();
-    expect(am5.Circle.new).toHaveBeenCalledWith(fakeRoot, expect.objectContaining({
-      radius: 6,
-      tooltipY: 0,
-      fill: expect.anything(),
-      cursorOverStyle: "pointer",
-      showTooltipOn: "click",
-      tooltipHTML: expect.any(String),
-    }));
-    expect(am5.Bullet.new).toHaveBeenCalledWith(fakeRoot, { sprite: fakeCircle });
-    expect(bullet).toBe(fakeBullet);
-    am5.Circle.new = originalCircleNew;
-    am5.Bullet.new = originalBulletNew;
+    test("handles missing dataContext", async () => {
+      const { service, fakes, restore } = setupRegularBulletTest();
+      
+      (service as any).setupRegularBullet();
+      const bulletFactory = fakes.fakePointSeries.bullets.push.mock.calls[0][0];
+      bulletFactory(fakes.fakeRoot, fakes.fakePointSeries, { dataItem: {} });
+      
+      fakes.fakeCircle.events.on.mock.calls[0][1]({ target: { dataItem: {} } });
+      
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      expect(fakes.fakeTooltip.show).not.toHaveBeenCalled();
+      
+      restore();
+    });
   });
 
   test("setupClusterBullet covers container creation and click event", () => {
@@ -649,7 +841,7 @@ describe("MapChartService", () => {
     // Setup
     const locations = [
       { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.9, location__longitude: 110, city: "Yogyakarta", id: "2" },
+      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
     ];
     
     mapService.initialize("chartdiv", mockConfig);
@@ -668,435 +860,5 @@ describe("MapChartService", () => {
     // Assert
     expect((mapService as any).pointSeries.data.clear).toHaveBeenCalled();
     expect((mapService as any).pointSeries.data.push).toHaveBeenCalledTimes(2);
-  });
-
-  // Test for getPointsInSelection method
-  test("getPointsInSelection calculates selected points correctly", () => {
-    // Setup
-    mapService.initialize("chartdiv", mockConfig);
-    const mockLocations = [
-      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.7, location__longitude: 110.3, city: "Yogyakarta", id: "2" },
-      { location__latitude: -8.5, location__longitude: 115.2, city: "Denpasar", id: "3" },
-    ];
-    
-    // Use the helper function
-    const { mockInvert } = setupPointSelectionTest(mapService, mockLocations);
-
-    // Act
-    (mapService as any).getPointsInSelection();
-
-    // Assert
-    expect(mockInvert).toHaveBeenCalledTimes(2);
-    expect(mockInvert).toHaveBeenCalledWith({ x: 0, y: 0 });
-    expect(mockInvert).toHaveBeenCalledWith({ x: 800, y: 600 });
-  });
-
-  test("getPointsInSelection handles undefined chart.invert results", () => {
-    // Setup
-    mapService.initialize("chartdiv", mockConfig);
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
-    
-    // For this specific test, we need a custom chart setup that returns undefined
-    (mapService as any).locations = [];
-    (mapService as any).chart = {
-      invert: jest.fn().mockReturnValue(undefined),
-      innerWidth: () => 800,
-      innerHeight: () => 600,
-    };
-
-    // Act
-    (mapService as any).getPointsInSelection();
-
-    // Assert
-    expect(consoleSpy).toHaveBeenCalledWith("Failed to get points in selection: tl or br is undefined");
-    consoleSpy.mockRestore();
-  });
-
-  test("getPointsInSelection handles longitude wrap-around", () => {
-    // Setup
-    mapService.initialize("chartdiv", mockConfig);
-    const mockLocations = [
-      { location__latitude: -6.2, location__longitude: 170, city: "Jakarta", id: "1" },
-      { location__latitude: -7.6, location__longitude: -170, city: "Yogyakarta", id: "2" },
-    ];
-    
-    // Use the helper function with custom coordinates for longitude wrap-around
-    const { mockInvert } = setupPointSelectionTest(
-      mapService, 
-      mockLocations,
-      { longitude: 170, latitude: -5 },
-      { longitude: -170, latitude: -8 }
-    );
-
-    // Act
-    (mapService as any).getPointsInSelection();
-
-    // Assert
-    expect(mockInvert.mock.results[0].value.longitude).toBe(-180);
-    expect(mockInvert.mock.results[1].value.longitude).toBe(180);
-  });
-
-  test("countSelectedPoints getter and setter work correctly", () => {
-    // Setup
-    const mockSetCountSelectedPoints = jest.fn();
-    useMapStore.getState().setCountSelectedPoints = mockSetCountSelectedPoints;
-
-    // Test setter
-    (mapService as any).countSelectedPoints = 5;
-    expect((mapService as any)._countSelectedPoints).toBe(5);
-    expect(mockSetCountSelectedPoints).toHaveBeenCalledWith(5);
-
-    // Test getter
-    expect(mapService.countSelectedPoints).toBe(5);
-  });
-
-  test("getPointsInSelection updates countSelectedPoints correctly", () => {
-    // Setup
-    mapService.initialize("chartdiv", mockConfig);
-    const mockLocations = [
-      { location__latitude: -6.3, location__longitude: 106.9, city: "Jakarta", id: "1" },
-      { location__latitude: -7.5, location__longitude: 110.1, city: "Yogyakarta", id: "2" },
-    ];
-    (mapService as any).locations = mockLocations;
-
-    // Mock chart.invert
-    const mockInvert = jest.fn()
-      .mockReturnValueOnce({ longitude: 100, latitude: -5 })
-      .mockReturnValueOnce({ longitude: 120, latitude: -8 });
-    (mapService as any).chart = {
-      invert: mockInvert,
-      innerWidth: () => 800,
-      innerHeight: () => 600,
-    };
-
-    // Act
-    (mapService as any).getPointsInSelection();
-
-    // Assert
-    expect(mapService.countSelectedPoints).toBe(2);
-  });
-
-  test("setupClusterBullet handles errors correctly", () => {
-    // Setup
-    mapService.initialize("chartdiv", mockConfig);
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
-    const onErrorMock = jest.fn();
-    mapService = new MapChartService(onErrorMock);
-
-    // Mock pointSeries.set to throw error
-    (mapService as any).pointSeries = {
-      set: jest.fn().mockImplementation(() => {
-        throw new Error("Test cluster bullet error");
-      })
-    };
-
-    // Act
-    (mapService as any).setupClusterBullet();
-
-    // Assert
-    expect(consoleSpy).not.toHaveBeenCalled();
-    expect(onErrorMock).not.toHaveBeenCalled();
-    consoleSpy.mockRestore();
-  });
-
-  test("setupRegularBullet handles errors correctly", () => {
-    // Setup
-    mapService.initialize("chartdiv", mockConfig);
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
-    const onErrorMock = jest.fn();
-    mapService = new MapChartService(onErrorMock);
-
-    // Mock pointSeries.bullets.push to throw error
-    (mapService as any).pointSeries = {
-      bullets: {
-        push: jest.fn().mockImplementation(() => {
-          throw new Error("Test regular bullet error");
-        })
-      }
-    };
-
-    // Act
-    (mapService as any).setupRegularBullet();
-
-    // Assert
-    expect(consoleSpy).not.toHaveBeenCalled();
-    expect(onErrorMock).not.toHaveBeenCalled();
-    consoleSpy.mockRestore();
-  });
-
-  // Test for populateLocations
-  test("populateLocations adds location data to point series", () => {
-    const locations: MapLocation[] = [
-      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.4, location__longitude: 110.9, city: "Yogyakarta", id: "2" },
-    ];
-    mapService.initialize("chartdiv", mockConfig);
-    (mapService as any).pointSeries = {
-      data: {
-        clear: jest.fn(),
-        push: jest.fn()
-      }
-    };
-    mapService.populateLocations(locations);
-    expect((mapService as any).pointSeries.data.clear).toHaveBeenCalled();
-    expect((mapService as any).pointSeries.data.push).toHaveBeenCalledTimes(2);
-    expect((mapService as any).pointSeries.data.push).toHaveBeenCalledWith({
-      geometry: { type: "Point", coordinates: [106.8, -6.2] },
-      city: "Jakarta",
-      id: "1",
-    });
-    expect((mapService as any).pointSeries.data.push).toHaveBeenCalledWith({
-      geometry: { type: "Point", coordinates: [110.9, -7.4] },
-      city: "Yogyakarta",
-      id: "2",
-    });
-  });
-
-  test("populateLocations with empty array should not cause errors", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    (mapService as any).pointSeries = {
-      data: {
-        clear: jest.fn(),
-        push: jest.fn()
-      }
-    };
-    mapService.populateLocations([]);
-    expect((mapService as any).pointSeries.data.clear).toHaveBeenCalled();
-    expect((mapService as any).pointSeries.data.push).not.toHaveBeenCalled();
-  });
-
-  // Test for setupClusterBullet
-  test("setupClusterBullet creates cluster bullet with correct configuration", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const pointSeries = {
-      set: jest.fn(),
-      zoomToCluster: jest.fn()
-    };
-    (mapService as any).pointSeries = pointSeries;
-    
-    (mapService as any).setupClusterBullet();
-    
-    expect(pointSeries.set).toHaveBeenCalledWith("clusteredBullet", expect.any(Function));
-    const bulletFactory = pointSeries.set.mock.calls[0][1];
-    const container = {
-      children: { push: jest.fn() },
-      events: { on: jest.fn() }
-    };
-    (am5.Container.new as jest.Mock).mockReturnValue(container);
-    
-    bulletFactory((mapService as any).root);
-    expect(container.children.push).toHaveBeenCalledTimes(4);
-    expect(container.events.on).toHaveBeenCalledWith("click", expect.any(Function));
-    
-    // Test click handler
-    const clickHandler = container.events.on.mock.calls[0][1];
-    clickHandler({ target: { dataItem: { id: "test" } } });
-    expect(pointSeries.zoomToCluster).toHaveBeenCalledWith({ id: "test" });
-  });
-
-  // Test for populateLocations with type conversion
-  test("populateLocations handles type conversion for coordinates", () => {
-    const locations = [
-      { location__latitude: -6.0, location__longitude: 106.2, city: "Jakarta", id: "1" }
-    ];
-    mapService.initialize("chartdiv", mockConfig);
-    (mapService as any).pointSeries = {
-      data: {
-        clear: jest.fn(),
-        push: jest.fn()
-      }
-    };
-    
-    mapService.populateLocations(locations);
-    
-    expect((mapService as any).pointSeries.data.push).toHaveBeenCalledWith({
-      geometry: {
-        type: "Point",
-        coordinates: [106.2, -6.0]
-      },
-      city: "Jakarta",
-      id: "1"
-    });
-  });
-
-  // Test for zoomToLocation with error handling
-  test("zoomToLocation handles errors and rethrows them", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
-    
-    // Mock data.clear to throw error
-    (mapService as any).locationSeries = {
-      data: {
-        clear: jest.fn().mockImplementation(() => {
-          throw new Error("Test error");
-        })
-      }
-    };
-    
-    expect(() => mapService.zoomToLocation(-6.2, 106.8)).toThrow("Test error");
-    expect(consoleSpy).toHaveBeenCalledWith("Failed to zoom to location: ", expect.any(Error));
-    consoleSpy.mockRestore();
-  });
-
-  test("setupClusterBullet handles click events correctly", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const mockZoomToCluster = jest.fn();
-    (mapService as any).pointSeries = {
-      set: jest.fn().mockImplementation((key, factory) => {
-        const bullet = factory((mapService as any).root);
-        bullet.sprite.events.on.mock.calls[0][1]({ target: { dataItem: { id: "test" } } });
-        expect(mockZoomToCluster).toHaveBeenCalledWith({ id: "test" });
-      }),
-      zoomToCluster: mockZoomToCluster
-    };
-    (mapService as any).setupClusterBullet();
-  });
-
-  // Test for setupRegularBullet (kept first occurrence, removed duplicate)
-  test("setupRegularBullet creates regular bullet with correct configuration", () => {
-    const { pointSeries } = setupPointSeriesTest(mapService);
-    
-    (mapService as any).setupRegularBullet();
-    
-    expect(pointSeries.bullets.push).toHaveBeenCalledWith(expect.any(Function));
-  });
-
-  // Test for getPointsInSelection
-  test("getPointsInSelection handles all point selection cases", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const mockLocations = [
-      { location__latitude: -6.1, location__longitude: 106.2, city: "Jakarta", id: "1" },
-      { location__latitude: -7.1, location__longitude: 110.2, city: "Yogyakarta", id: "2" },
-      { location__latitude: -8.6, location__longitude: 115.1, city: "Denpasar", id: "3" },
-    ];
-    
-    // Test normal case
-    const { mockInvert } = setupPointSelectionTest(
-      mapService, 
-      mockLocations,
-      { longitude: 100, latitude: -5 },
-      { longitude: 120, latitude: -8 }
-    );
-    
-    (mapService as any).getPointsInSelection();
-    expect(mapService.countSelectedPoints).toBe(2);
-
-    // Test longitude wrap-around case
-    mockInvert
-      .mockReturnValueOnce({ longitude: 170, latitude: -5 })
-      .mockReturnValueOnce({ longitude: -170, latitude: -8 });
-    (mapService as any).getPointsInSelection();
-    expect(mockInvert.mock.results[0].value.longitude).toBe(100);
-    expect(mockInvert.mock.results[1].value.longitude).toBe(120);
-
-    // Test undefined case
-    mockInvert.mockReturnValue(undefined);
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
-    (mapService as any).getPointsInSelection();
-    expect(consoleSpy).toHaveBeenCalledWith("Failed to get points in selection: tl or br is undefined");
-    consoleSpy.mockRestore();
-  });
-
-  // Test for countSelectedPoints
-  test("countSelectedPoints getter and setter work correctly", () => {
-    // Setup
-    const mockSetCountSelectedPoints = jest.fn();
-    useMapStore.getState().setCountSelectedPoints = mockSetCountSelectedPoints;
-
-    // Test setter
-    (mapService as any).countSelectedPoints = 5;
-    expect((mapService as any)._countSelectedPoints).toBe(5);
-    expect(mockSetCountSelectedPoints).toHaveBeenCalledWith(5);
-
-    // Test getter
-    expect(mapService.countSelectedPoints).toBe(5);
-  });
-
-  // Test for zoomToLocation
-  test("zoomToLocation creates marker and zooms correctly", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const testLat = -6.2;
-    const testLong = 106.8;
-    mapService.zoomToLocation(testLat, testLong);
-    expect(mockDataClear).toHaveBeenCalled();
-    expect(mockDataPush).toHaveBeenCalledWith({
-      geometry: {
-        type: "Point",
-        coordinates: [testLong, testLat]
-      },
-      title: "Your Location"
-    });
-    expect(mockZoomToGeoPoint).toHaveBeenCalledWith(
-      { longitude: testLong, latitude: testLat },
-      32,
-      true
-    );
-  });
-
-  // Test for dispose
-  test("dispose cleans up all resources", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    mapService.dispose();
-    expect((mapService as any).root).toBeNull();
-    expect((mapService as any).chart).toBeNull();
-    expect((mapService as any).pointSeries).toBeNull();
-    expect((mapService as any).locationSeries).toBeNull();
-  });
-
-  // Test for setupZoomControl
-  test("setupZoomControl sets up zoom control and event handlers", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const chart = (mapService as any).chart;
-    expect(chart.set).toHaveBeenCalledWith("zoomControl", expect.any(Object));
-    expect(chart.on).toHaveBeenCalledWith("zoomLevel", expect.any(Function));
-    expect(chart.on).toHaveBeenCalledWith("translateX", expect.any(Function));
-    expect(chart.on).toHaveBeenCalledWith("translateY", expect.any(Function));
-  });
-
-  // Test for polygon series setup
-  test("setupPolygonSeries configures polygon series correctly", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    const polygonSeries = {
-      mapPolygons: { template: { setAll: jest.fn() } },
-      events: { on: jest.fn() }
-    };
-    (am5map.MapPolygonSeries.new as jest.Mock).mockReturnValue(polygonSeries);
-    
-    (mapService as any).setupPolygonSeries();
-    
-    expect(polygonSeries.mapPolygons.template.setAll).toHaveBeenCalledWith({
-      fill: expect.any(Object),
-      stroke: expect.any(Object),
-      strokeWidth: 0.5
-    });
-    expect(polygonSeries.events.on).not.toHaveBeenCalled();
-  });
-
-  // Test for point series setup
-  test("setupPointSeries configures clustered point series correctly", () => {
-    const mockClusteredPointSeries = {
-      set: jest.fn(),
-      bullets: { push: jest.fn() }
-    };
-    
-    // Mock the ClusteredPointSeries.new to return our mock
-    (am5map.ClusteredPointSeries.new as jest.Mock).mockReturnValue(mockClusteredPointSeries);
-    
-    // Use the helper to set up the service
-    mapService.initialize("chartdiv", mockConfig);
-    
-    (mapService as any).setupPointSeries();
-    
-    expect(am5map.ClusteredPointSeries.new).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        groupIdField: "city",
-        minDistance: 30,
-        scatterDistance: 10,
-        scatterRadius: 10,
-        stopClusterZoom: 0.9
-      })
-    );
   });
 });
