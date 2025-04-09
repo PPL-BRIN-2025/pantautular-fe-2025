@@ -172,7 +172,7 @@ describe('mapApi', () => {
             
             expect(result).toEqual(dashboardMockData);
             expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/disease-case-info/`,
+                `${process.env.NEXT_PUBLIC_API_URL}/api/statistics/`,
                 {
                     method: 'GET',
                     headers: {
