@@ -49,182 +49,70 @@ describe('severityApi', () => {
         jest.clearAllMocks();
     });
 
-    describe('getDiseaseSeverityStats', () => {
-        it('should fetch disease severity stats without filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockResponse)
-            });
+    const testSeverityStats = (apiFunction: (filter?: any) => Promise<any>, endpoint: string) => {
+        describe(`${apiFunction.name}`, () => {
+            it('should fetch stats without filter', async () => {
+                (global.fetch as jest.Mock).mockResolvedValueOnce({
+                    ok: true,
+                    json: () => Promise.resolve(mockResponse)
+                });
 
-            const result = await severityApi.getDiseaseSeverityStats();
+                const result = await apiFunction();
 
-            expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('/api/diseases/severity-stats/'),
-                expect.objectContaining({
-                    method: 'GET',
-                    headers: expect.any(Object)
-                })
-            );
-
-            expect(result).toEqual([
-                {
-                    name: 'Test Disease',
-                    hospitalisasi: 10,
-                    insiden: 20,
-                    mortalitas: 5,
-                    total_cases: 35
-                }
-            ]);
-        });
-
-        it('should fetch disease severity stats with filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
-            });
-
-            const result = await severityApi.getDiseaseSeverityStats(mockFilter);
-
-            expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('/api/severity-stats/filter/'),
-                expect.objectContaining({
-                    method: 'POST',
-                    headers: expect.any(Object),
-                    body: JSON.stringify({
-                        diseases: mockFilter.diseases,
-                        locations: mockFilter.locations,
-                        portals: mockFilter.portals,
-                        level_of_alertness: mockFilter.level_of_alertness,
-                        start_date: mockFilter.start_date,
-                        end_date: mockFilter.end_date
+                expect(global.fetch).toHaveBeenCalledWith(
+                    expect.stringContaining(endpoint),
+                    expect.objectContaining({
+                        method: 'GET',
+                        headers: expect.any(Object)
                     })
-                })
-            );
+                );
 
-            expect(result).toEqual(mockFilterResponse);
-        });
-
-        it('should handle API errors', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: false,
-                status: 500
+                expect(result).toEqual([
+                    {
+                        name: 'Test Disease',
+                        hospitalisasi: 10,
+                        insiden: 20,
+                        mortalitas: 5,
+                        total_cases: 35
+                    }
+                ]);
             });
 
-            await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('HTTP error! status: 500');
-        });
-    });
+            it('should fetch stats with filter', async () => {
+                (global.fetch as jest.Mock).mockResolvedValueOnce({
+                    ok: true,
+                    json: () => Promise.resolve(mockFilterResponse)
+                });
 
-    describe('getProvinceSeverityStats', () => {
-        it('should fetch province severity stats without filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockResponse)
-            });
+                const result = await apiFunction(mockFilter);
 
-            const result = await severityApi.getProvinceSeverityStats();
-
-            expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('/api/locations/province/severity-stats/'),
-                expect.objectContaining({
-                    method: 'GET',
-                    headers: expect.any(Object)
-                })
-            );
-
-            expect(result).toEqual([
-                {
-                    name: 'Test Disease',
-                    hospitalisasi: 10,
-                    insiden: 20,
-                    mortalitas: 5,
-                    total_cases: 35
-                }
-            ]);
-        });
-
-        it('should fetch province severity stats with filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
-            });
-
-            const result = await severityApi.getProvinceSeverityStats(mockFilter);
-
-            expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('/api/severity-stats/filter/'),
-                expect.objectContaining({
-                    method: 'POST',
-                    headers: expect.any(Object),
-                    body: JSON.stringify({
-                        diseases: mockFilter.diseases,
-                        locations: mockFilter.locations,
-                        portals: mockFilter.portals,
-                        level_of_alertness: mockFilter.level_of_alertness,
-                        start_date: mockFilter.start_date,
-                        end_date: mockFilter.end_date
+                expect(global.fetch).toHaveBeenCalledWith(
+                    expect.stringContaining('/api/severity-stats/filter/'),
+                    expect.objectContaining({
+                        method: 'POST',
+                        headers: expect.any(Object),
+                        body: JSON.stringify(mockFilter)
                     })
-                })
-            );
+                );
 
-            expect(result).toEqual(mockFilterResponse);
-        });
-    });
-
-    describe('getCitySeverityStats', () => {
-        it('should fetch city severity stats without filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockResponse)
+                expect(result).toEqual(mockFilterResponse);
             });
 
-            const result = await severityApi.getCitySeverityStats();
+            it('should handle API errors', async () => {
+                (global.fetch as jest.Mock).mockResolvedValueOnce({
+                    ok: false,
+                    status: 500
+                });
 
-            expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('/api/locations/city/severity-stats/'),
-                expect.objectContaining({
-                    method: 'GET',
-                    headers: expect.any(Object)
-                })
-            );
-
-            expect(result).toEqual([
-                {
-                    name: 'Test Disease',
-                    hospitalisasi: 10,
-                    insiden: 20,
-                    mortalitas: 5,
-                    total_cases: 35
-                }
-            ]);
-        });
-
-        it('should fetch city severity stats with filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
+                await expect(apiFunction()).rejects.toThrow('HTTP error! status: 500');
             });
 
-            const result = await severityApi.getCitySeverityStats(mockFilter);
-
-            expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('/api/severity-stats/filter/'),
-                expect.objectContaining({
-                    method: 'POST',
-                    headers: expect.any(Object),
-                    body: JSON.stringify({
-                        diseases: mockFilter.diseases,
-                        locations: mockFilter.locations,
-                        portals: mockFilter.portals,
-                        level_of_alertness: mockFilter.level_of_alertness,
-                        start_date: mockFilter.start_date,
-                        end_date: mockFilter.end_date
-                    })
-                })
-            );
-
-            expect(result).toEqual(mockFilterResponse);
         });
-    });
+    };
+
+    testSeverityStats(severityApi.getDiseaseSeverityStats, '/api/diseases/severity-stats/');
+    testSeverityStats(severityApi.getProvinceSeverityStats, '/api/locations/province/severity-stats/');
+    testSeverityStats(severityApi.getCitySeverityStats, '/api/locations/city/severity-stats/');
 
     describe('getFilteredSeverityStats', () => {
         it('should fetch filtered severity stats', async () => {
@@ -240,14 +128,7 @@ describe('severityApi', () => {
                 expect.objectContaining({
                     method: 'POST',
                     headers: expect.any(Object),
-                    body: JSON.stringify({
-                        diseases: mockFilter.diseases,
-                        locations: mockFilter.locations,
-                        portals: mockFilter.portals,
-                        level_of_alertness: mockFilter.level_of_alertness,
-                        start_date: mockFilter.start_date,
-                        end_date: mockFilter.end_date
-                    })
+                    body: JSON.stringify(mockFilter)
                 })
             );
 
@@ -262,5 +143,6 @@ describe('severityApi', () => {
 
             await expect(severityApi.getFilteredSeverityStats(mockFilter)).rejects.toThrow('HTTP error! status: 500');
         });
+
     });
 }); 
