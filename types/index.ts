@@ -18,3 +18,9 @@ export interface FilterState {
   start_date: null | Date;
   end_date: null | Date;
 }
+
+export interface DistributionData {
+    portal: string;
+    news_count: number;
+    disease_count: number;
+}
