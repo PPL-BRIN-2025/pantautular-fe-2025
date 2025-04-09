@@ -51,29 +51,6 @@ export const mapApi = {
     }
   },
 
-  async getDashboardData(): Promise<any> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/statistics/`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'x-api-key': String(API_KEY),
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      throw error;
-    }
-  },
-
   async getDashboardData(filters?: FilterState): Promise<any> {
     // Use POST if filters are provided; otherwise, GET.
     const method = filters ? "POST" : "GET";
