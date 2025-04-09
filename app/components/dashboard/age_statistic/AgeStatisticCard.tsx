@@ -4,25 +4,36 @@ import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 
 interface AgeData {
-  age: string;
-  value: number;
+  under_12: number;
+  "12_25": number;
+  "26_45": number;
+  above_45: number;
 }
 
 interface AgeStatisticCardProps {
-  data?: AgeData[];
+  data?: AgeData;
 }
 
-export default function AgeStatisticCard({ data = [
-  { age: "<12 Tahun", value: 1900 },
-  { age: "12-25 Tahun", value: 1882 },
-  { age: "26-45 Tahun", value: 1809 },
-  { age: ">45 Tahun", value: 1322 }
-]}: AgeStatisticCardProps) {
+const AGE_LABELS: Record<keyof AgeData, string> = {
+  under_12: "< 12 tahun",
+  "12_25": "12-25 tahun",
+  "26_45": "26-45 tahun",
+  above_45: "> 45 tahun"
+};
+
+export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProps>) {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const totalCases = data.reduce((sum, item) => sum + item.value, 0);
+  const totalCases = data ? Object.values(data).reduce((sum, value) => sum + value, 0) : 0;
 
   useLayoutEffect(() => {
+    if (!data) return;
+    // Transform data into format expected by AmCharts
+    const chartData = Object.entries(data).map(([key, value]) => ({
+      age: AGE_LABELS[key as keyof AgeData],
+      value: value
+    }));
+
     // Create root element
     const root = am5.Root.new(chartRef.current!);
 
@@ -56,6 +67,7 @@ export default function AgeStatisticCard({ data = [
       paddingTop: 10,
       fontSize: 10,
       textAlign: "center",
+      maxWidth: 100
     });
 
     xRenderer.grid.template.set("visible", false);
@@ -69,7 +81,7 @@ export default function AgeStatisticCard({ data = [
     );
 
     const yRenderer = am5xy.AxisRendererY.new(root, {
-      strokeOpacity: 0.1,
+      strokeOpacity: 0.1
     });
 
     yRenderer.labels.template.setAll({
@@ -86,14 +98,14 @@ export default function AgeStatisticCard({ data = [
     // Create series
     const series = chart.series.push(
       am5xy.ColumnSeries.new(root, {
-        name: "Series 1", 
+        name: "Kasus berdasarkan Usia",
         xAxis: xAxis,
         yAxis: yAxis,
         valueYField: "value",
         sequencedInterpolation: true,
         categoryXField: "age",
         tooltip: am5.Tooltip.new(root, {
-          labelText: "{valueY}"
+          labelText: "{valueY} kasus"
         })
       })
     );
@@ -102,12 +114,14 @@ export default function AgeStatisticCard({ data = [
       cornerRadiusTL: 5,
       cornerRadiusTR: 5,
       strokeOpacity: 0,
-      fill: am5.color("#f0848c")
+      fill: am5.color("#f0848c"),
+      width: am5.percent(70),
+      tooltipY: 0
     });
 
     // Set data
-    xAxis.data.setAll(data);
-    series.data.setAll(data);
+    xAxis.data.setAll(chartData);
+    series.data.setAll(chartData);
 
     // Make stuff animate on load
     series.appear(1000);
@@ -117,7 +131,7 @@ export default function AgeStatisticCard({ data = [
     return () => {
       root.dispose();
     };
-  }, [data]); // Re-run if data changes
+  }, [data]);
 
   return (
     <div className="w-full h-96 bg-white rounded-lg shadow p-4">
@@ -136,7 +150,7 @@ export default function AgeStatisticCard({ data = [
               </clipPath>
             </defs>
           </svg>
-          <span className="text-[#0069CF] font-medium text-lg">{new Intl.NumberFormat('de-DE').format(totalCases)}</span>
+          <span className="text-[#0069CF] font-medium text-lg">{totalCases ? new Intl.NumberFormat('de-DE').format(totalCases) : 0}</span>
         </div>
       </div>
       <div ref={chartRef} data-testid="chart-container" className="w-full h-[85%]" />

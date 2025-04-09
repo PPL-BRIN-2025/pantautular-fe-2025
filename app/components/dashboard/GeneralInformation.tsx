@@ -31,7 +31,9 @@ const GeneralInformation = ({ data }: { data: any }) => {
             populationCount={data.prevalence_statistics.population}
             />
             {/* Age distribution card */}
-            <AgeStatisticCard />
+            <AgeStatisticCard 
+            data={data.age_statistics}
+            />
             {/* Gender card */}
             <GenderDonutChart
             total={data.gender_statistics.male + data.gender_statistics.female}
