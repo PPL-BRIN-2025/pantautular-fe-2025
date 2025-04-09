@@ -3,6 +3,7 @@ import PrevalenceCard from "./PrevalenceCard";
 import GenderDonutChart from "./gender_distribution/GenderDonutChart";
 import CaseNumberCard from "./cases_number/CaseNumberCard";
 import AmChartTingkatanKasus from "./CasesLevel"
+import AgeStatisticCard from "./age_statistic/AgeStatisticCard";
 
 const GeneralInformation = () => {
     // Sample data structure for CasesLevel component
@@ -48,6 +49,8 @@ const GeneralInformation = () => {
                         populationYear={2024} 
                         populationCount={279390258} 
                     />
+                    {/* Age distribution card */}
+                    <AgeStatisticCard />
                     {/* Gender card */}
                     <GenderDonutChart
                         total={100}
@@ -61,5 +64,4 @@ const GeneralInformation = () => {
         </div>
     );
 };
-
 export default GeneralInformation
