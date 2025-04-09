@@ -594,7 +594,7 @@ describe("MapChartService", () => {
     // Setup
     const locations = [
       { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+      { location__latitude: -7.9, location__longitude: 110, city: "Yogyakarta", id: "2" },
     ];
     
     mapService.initialize("chartdiv", mockConfig);
@@ -621,7 +621,7 @@ describe("MapChartService", () => {
     mapService.initialize("chartdiv", mockConfig);
     const mockLocations = [
       { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+      { location__latitude: -7.7, location__longitude: 110.3, city: "Yogyakarta", id: "2" },
       { location__latitude: -8.5, location__longitude: 115.2, city: "Denpasar", id: "3" },
     ];
     (mapService as any).locations = mockLocations;
@@ -670,7 +670,7 @@ describe("MapChartService", () => {
     mapService.initialize("chartdiv", mockConfig);
     const mockLocations = [
       { location__latitude: -6.2, location__longitude: 170, city: "Jakarta", id: "1" },
-      { location__latitude: -7.8, location__longitude: -170, city: "Yogyakarta", id: "2" },
+      { location__latitude: -7.6, location__longitude: -170, city: "Yogyakarta", id: "2" },
     ];
     (mapService as any).locations = mockLocations;
 
@@ -710,8 +710,8 @@ describe("MapChartService", () => {
     // Setup
     mapService.initialize("chartdiv", mockConfig);
     const mockLocations = [
-      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+      { location__latitude: -6.3, location__longitude: 106.9, city: "Jakarta", id: "1" },
+      { location__latitude: -7.5, location__longitude: 110.1, city: "Yogyakarta", id: "2" },
     ];
     (mapService as any).locations = mockLocations;
 
@@ -784,7 +784,7 @@ describe("MapChartService", () => {
   test("populateLocations adds location data to point series", () => {
     const locations: MapLocation[] = [
       { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+      { location__latitude: -7.4, location__longitude: 110.9, city: "Yogyakarta", id: "2" },
     ];
     mapService.initialize("chartdiv", mockConfig);
     (mapService as any).pointSeries = {
@@ -861,8 +861,8 @@ describe("MapChartService", () => {
   test("getPointsInSelection handles all point selection cases", () => {
     mapService.initialize("chartdiv", mockConfig);
     const mockLocations = [
-      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+      { location__latitude: -6.1, location__longitude: 106.2, city: "Jakarta", id: "1" },
+      { location__latitude: -7.1, location__longitude: 110.2, city: "Yogyakarta", id: "2" },
       { location__latitude: -8.5, location__longitude: 115.2, city: "Denpasar", id: "3" },
     ];
     (mapService as any).locations = mockLocations;
@@ -1049,7 +1049,7 @@ describe("MapChartService", () => {
   // Test for populateLocations with type conversion
   test("populateLocations handles type conversion for coordinates", () => {
     const locations = [
-      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" }
+      { location__latitude: -6.0, location__longitude: 106.2, city: "Jakarta", id: "1" }
     ];
     mapService.initialize("chartdiv", mockConfig);
     (mapService as any).pointSeries = {
