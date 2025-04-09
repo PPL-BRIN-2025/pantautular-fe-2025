@@ -49,5 +49,28 @@ export const mapApi = {
       console.error('Error fetching filtered locations:', error);
       throw error;
     }
-  }
+  },
+
+  async getDashboardData(): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/disease-case-info/`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      throw error;
+    }
+  },
 };
