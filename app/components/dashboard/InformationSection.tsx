@@ -13,6 +13,7 @@ interface InformationSectionProps {
 }
 
 const InformationSection = ({ filterState }: InformationSectionProps) => {
+  console.log('InformationSection received filter:', filterState);
   const [activeSection, setActiveSection] = useState("section1");
   // Pass the filterState to the hook so it refetches when filters change.
   const { data, isLoading, error } = useDashboardData(filterState);
@@ -25,7 +26,7 @@ const InformationSection = ({ filterState }: InformationSectionProps) => {
   } else if (activeSection === "section1") {
     content = <GeneralInformation data={data} />;
   } else {
-    content = <CasesOrder />;
+    content = <CasesOrder filter={filterState} />;
   }
 
   return (

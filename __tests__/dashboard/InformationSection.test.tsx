@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import InformationSection from "../../app/components/dashboard/InformationSection";
 import { useDashboardData } from "../../hooks/useDashboardData";
+import { FilterState } from "../../types";
 
 // Mock child components
 jest.mock("../../app/components/dashboard/GeneralInformation", () => () => (
@@ -24,6 +25,15 @@ jest.mock("../../app/components/floating_buttons/MapButton", () => ({
 jest.mock("../../hooks/useDashboardData");
 
 describe("InformationSection", () => {
+  const mockFilterState: FilterState = {
+    diseases: [],
+    locations: [],
+    portals: [],
+    level_of_alertness: 0,
+    start_date: null,
+    end_date: null,
+  };
+
   beforeEach(() => {
     // Set the default mock implementation for useDashboardData
     (useDashboardData as jest.Mock).mockReturnValue({
@@ -40,11 +50,15 @@ describe("InformationSection", () => {
   });
 
   it("switches to CasesOrder when 'Urutan Kasus' is clicked", () => {
-    render(<InformationSection />);
+    render(<InformationSection filterState={mockFilterState} />);
+    
     const urutanKasusButton = screen.getByText("Urutan Kasus");
     fireEvent.click(urutanKasusButton);
-    expect(screen.getByTestId("cases-order")).toBeInTheDocument();
-    expect(screen.queryByTestId("general-information")).not.toBeInTheDocument();
+    
+    // Verify that CasesOrder content is rendered
+    expect(screen.getByText("Cases Order Content")).toBeInTheDocument();
+    // Verify that GeneralInformation is not visible
+    expect(screen.queryByText("General Information Content")).not.toBeInTheDocument();
   });
 
   it("switches back to GeneralInformation when 'Informasi Umum' is clicked", () => {
