@@ -2,10 +2,8 @@ import React, { useRef } from "react";
 import { render, cleanup} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import useDonutChart from '../../../app/components/dashboard/gender_distribution/ChartHook';
-import { Root } from "@amcharts/amcharts5";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5percent from "@amcharts/amcharts5/percent";
-import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 
 // Mock the main amCharts module.
 jest.mock("@amcharts/amcharts5", () => ({

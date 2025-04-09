@@ -21,7 +21,6 @@ const setupMocks = () => {
   const mockLegendEventOn = jest.fn();
 
   // Common mock objects
-  const mockLabelsTemplate = createTemplatedMock();
   const mockGridTemplate = { set: jest.fn() };
   
   const mockXRenderer = {
@@ -255,7 +254,7 @@ describe('AgeStatisticCard Component', () => {
     render(<AgeStatisticCard data={testData.large} />);
     
     // Check for total with a regex to handle formatting differences
-    const totalRegex = new RegExp('60[,.]000');
+    const totalRegex = /60[,.]000/;
     const totalElements = screen.getAllByText(totalRegex);
     expect(totalElements.length).toBeGreaterThan(0);
   });
@@ -280,7 +279,7 @@ describe('AgeStatisticCard Component', () => {
     expect(am5.Root.new).toHaveBeenCalled();
     
     // Check for total with a regex to handle formatting differences
-    const totalRegex = new RegExp('300');
+    const totalRegex = /300/;
     const totalElements = screen.getAllByText(totalRegex);
     expect(totalElements.length).toBeGreaterThan(0);
   });

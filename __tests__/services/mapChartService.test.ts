@@ -1006,7 +1006,7 @@ describe("MapChartService", () => {
     };
     (am5.Container.new as jest.Mock).mockReturnValue(container);
     
-    const bullet = bulletFactory((mapService as any).root);
+    bulletFactory((mapService as any).root);
     expect(container.children.push).toHaveBeenCalledTimes(4);
     expect(container.events.on).toHaveBeenCalledWith("click", expect.any(Function));
     
@@ -1031,7 +1031,7 @@ describe("MapChartService", () => {
     const circle = {};
     (am5.Circle.new as jest.Mock).mockReturnValue(circle);
     
-    const bullet = bulletFactory();
+    bulletFactory();
     expect(am5.Circle.new).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
