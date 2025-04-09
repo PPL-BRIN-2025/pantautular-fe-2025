@@ -162,7 +162,7 @@ const createSeries = (config: SeriesConfig) => {
     })
   }));
 
-  series.get("tooltip").label.setAll({
+  series.get("tooltip")?.label.setAll({
     fontSize: 10,
     fill: am5.color("#4b5563"),
     paddingTop: 5,

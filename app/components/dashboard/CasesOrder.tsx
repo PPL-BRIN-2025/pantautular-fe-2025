@@ -3,7 +3,7 @@ import { DiseaseSeverityChart, ProvinceSeverityChart, CitySeverityChart } from "
 const CasesOrder = () => {
     return (
         <div className="grid grid-cols-1 gap-4">
-            <div className="bg-[#ebf3f5] px-4 py-3 rounded-md">
+            <div className="bg-[#ebf3f5] px-4 py-3 rounded-md mt-20">
                 <span className="text-[#11234B] text-2xl font-semibold">
                     Rangkuman yang diberikan mencakup data per <span className="text-green-600">tahun 2025</span>.
                 </span>
