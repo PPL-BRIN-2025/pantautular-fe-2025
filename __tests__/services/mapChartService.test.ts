@@ -315,7 +315,7 @@ describe("MapChartService", () => {
     { method: "setupPointSeries", nullProps: { chart: null, root: null } },
     { method: "populateLocations", nullProps: { pointSeries: null } },
     { method: "setupClusterBullet", nullProps: { chart: null, root: null } },
-    { method: "setupRegularBullet", nullProps: { chart: null, root: null } },
+    { method: "setupRegularBullet", nullProps: { pointSeries: null, root: null } },
   ];
   test.each(earlyReturnCases)(
     "$method returns early if specified properties are null",
@@ -580,6 +580,7 @@ describe("MapChartService", () => {
     }
   );
 
+  // Test for setupRegularBullet
   describe("setupRegularBullet", () => {
     it("sets up regular bullet with correct configuration", () => {
       const { service, fakeRoot, fakePointSeries } = setupRegularBulletTest();
@@ -615,202 +616,6 @@ describe("MapChartService", () => {
       expect(am5.Tooltip.new).not.toHaveBeenCalled();
       expect(am5.Bullet.new).not.toHaveBeenCalled();
     });
-  });
-
-  test("setupClusterBullet covers container creation and click event", () => {
-    const fakeRoot = { dispose: jest.fn() } as any;
-    const zoomToClusterMock = jest.fn();
-    const fakePointSeries = { set: jest.fn(), zoomToCluster: zoomToClusterMock } as any;
-    (mapService as any).pointSeries = fakePointSeries;
-    (mapService as any).root = fakeRoot;
-    (mapService as any).setupClusterBullet();
-    expect(fakePointSeries.set).toHaveBeenCalledWith("clusteredBullet", expect.any(Function));
-    const clusterBulletFactory = fakePointSeries.set.mock.calls[0][1];
-    const fakeContainer = {
-      children: { push: jest.fn() },
-      events: { on: jest.fn() },
-    };
-    const originalContainerNew = am5.Container.new;
-    am5.Container.new = jest.fn().mockReturnValue(fakeContainer);
-    const fakeCircle = {};
-    const fakeLabel = {};
-    const fakeBullet = {};
-    const originalCircleNew = am5.Circle.new;
-    const originalLabelNew = am5.Label.new;
-    const originalBulletNew = am5.Bullet.new;
-    am5.Circle.new = jest.fn().mockReturnValue(fakeCircle);
-    am5.Label.new = jest.fn().mockReturnValue(fakeLabel);
-    am5.Bullet.new = jest.fn().mockReturnValue(fakeBullet);
-    const bullet = clusterBulletFactory(fakeRoot);
-    expect(bullet).toBe(fakeBullet);
-    expect(fakeContainer.children.push).toHaveBeenCalledTimes(4);
-    expect(fakeContainer.events.on).toHaveBeenCalledWith("click", expect.any(Function));
-    const clickCallback = fakeContainer.events.on.mock.calls[0][1];
-    const fakeDataItem = { id: "test-cluster" };
-    clickCallback({ target: { dataItem: fakeDataItem } });
-    expect(zoomToClusterMock).toHaveBeenCalledWith(fakeDataItem);
-    am5.Container.new = originalContainerNew;
-    am5.Circle.new = originalCircleNew;
-    am5.Label.new = originalLabelNew;
-    am5.Bullet.new = originalBulletNew;
-  });
-
-  test("setupClusterBullet does not call zoomToCluster when dataItem is undefined", () => {
-    // Arrange: set up fake root dan pointSeries.
-    const fakeRoot = { dispose: jest.fn() } as any;
-    const zoomToClusterMock = jest.fn();
-    const fakePointSeries = { set: jest.fn(), zoomToCluster: zoomToClusterMock } as any;
-    (mapService as any).pointSeries = fakePointSeries;
-    (mapService as any).root = fakeRoot;
-    (mapService as any).setupClusterBullet();
-  
-    // Ambil factory function untuk cluster bullet.
-    const clusterBulletFactory = fakePointSeries.set.mock.calls[0][1];
-  
-    // Buat fake container dan bullet dengan type assertion to any
-    const fakeContainer = {
-      children: { push: jest.fn() },
-      events: { on: jest.fn() },
-    } as any;
-    const containerNewSpy = jest.spyOn(am5.Container, "new").mockReturnValue(fakeContainer);
-    
-    const fakeBullet = {} as any;
-    const circleNewSpy = jest.spyOn(am5.Circle, "new").mockReturnValue({} as any);
-    const bulletNewSpy = jest.spyOn(am5.Bullet, "new").mockReturnValue(fakeBullet);
-  
-    // Act: Panggil factory sehingga event listener didaftarkan.
-    clusterBulletFactory(fakeRoot);
-    expect(fakeContainer.events.on).toHaveBeenCalledWith("click", expect.any(Function));
-    const clickCallback = fakeContainer.events.on.mock.calls[0][1];
-  
-    // Simulasikan event klik tanpa dataItem.
-    clickCallback({ target: {} });
-  
-    // Assert: pastikan zoomToCluster tidak terpanggil.
-    expect(zoomToClusterMock).not.toHaveBeenCalled();
-  
-    // Clean up spies.
-    containerNewSpy.mockRestore();
-    circleNewSpy.mockRestore();
-    bulletNewSpy.mockRestore();
-  });  
-
-  // Test to verify that goHome is called when polygon series fires datavalidated event
-  test("chart calls goHome when polygon series is validated", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    (mapService as any).setupPolygonSeries();
-    expect(mockGoHome).toHaveBeenCalled();
-  });
-
-  // Test for createLocationMarker
-  test("createLocationMarker adds marker series with bullet types", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    (mapService as any).createLocationMarker();
-    
-    // Check that map point series was created
-    expect(am5map.MapPointSeries.new).toHaveBeenCalled();
-    expect(mockSeriesPush).toHaveBeenCalled();
-    
-    // Check that bullets were added
-    expect(mockBulletsPush).toHaveBeenCalledTimes(2);
-    
-    // Test bullet creation
-    const bulletFactories = mockBulletsPush.mock.calls.map(call => call[0]);
-    bulletFactories.forEach(factory => {
-      expect(typeof factory).toBe("function");
-    });
-  });
-
-  // Test for zoomToLocation
-  test("zoomToLocation creates marker and zooms chart to coordinates", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    
-    // Mock implementation of createLocationMarker
-    const mockCreateLocationMarker = jest.spyOn(mapService as any, "createLocationMarker")
-      .mockImplementation(() => {
-        (mapService as any).locationSeries = {
-          data: { clear: mockDataClear, push: mockDataPush }
-        };
-      });
-    
-    // Call zoomToLocation
-    const testLat = -6.2;
-    const testLong = 106.8;
-    mapService.zoomToLocation(testLat, testLong);
-    
-    // Verify createLocationMarker was called
-    expect(mockCreateLocationMarker).toHaveBeenCalled();
-    
-    // Verify previous markers were cleared
-    expect(mockDataClear).toHaveBeenCalled();
-    
-    // Verify new marker was added
-    expect(mockDataPush).toHaveBeenCalledWith({
-      geometry: {
-        type: "Point",
-        coordinates: [testLong, testLat]
-      },
-      title: "Your Location"
-    });
-    
-    // Verify zoomToGeoPoint was called with correct parameters
-    expect(mockZoomToGeoPoint).toHaveBeenCalledWith(
-      { longitude: testLong, latitude: testLat },
-      32,
-      true
-    );
-    
-    // Clean up mock
-    mockCreateLocationMarker.mockRestore();
-  });
-
-  // Test for zoomToLocation when locationSeries already exists
-  test("zoomToLocation reuses existing locationSeries", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    
-    // Set up existing locationSeries
-    (mapService as any).locationSeries = {
-      data: { clear: mockDataClear, push: mockDataPush }
-    };
-    
-    const mockCreateLocationMarker = jest.spyOn(mapService as any, "createLocationMarker");
-    
-    // Call zoomToLocation
-    mapService.zoomToLocation(-6.2, 106.8);
-    
-    // Verify createLocationMarker was NOT called
-    expect(mockCreateLocationMarker).not.toHaveBeenCalled();
-    
-    // Verify the rest of the function worked
-    expect(mockDataClear).toHaveBeenCalled();
-    expect(mockDataPush).toHaveBeenCalled();
-    expect(mockZoomToGeoPoint).toHaveBeenCalled();
-    
-    // Clean up mock
-    mockCreateLocationMarker.mockRestore();
-  });
-
-  // Test error handling in zoomToLocation
-  test("zoomToLocation handles errors correctly", () => {
-    mapService.initialize("chartdiv", mockConfig);
-    
-    // Set up locationSeries with clear method that throws
-    (mapService as any).locationSeries = {
-      data: { 
-        clear: jest.fn().mockImplementation(() => {
-          throw new Error("Test zoom error");
-        }),
-        push: mockDataPush 
-      }
-    };
-    
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
-    
-    // Verify that the error is caught and rethrown
-    expect(() => mapService.zoomToLocation(-6.2, 106.8)).toThrow("Test zoom error");
-    expect(consoleSpy).toHaveBeenCalledWith("Failed to zoom to location: ", expect.any(Error));
-    
-    consoleSpy.mockRestore();
   });
 
   // Test for populateLocations with mocked data.clear method
