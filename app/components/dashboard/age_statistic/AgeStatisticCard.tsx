@@ -18,7 +18,106 @@ export default function AgeStatisticCard({ data = [
   { age: "26-45 Tahun", value: 1809 },
   { age: ">45 Tahun", value: 1322 }
 ]}: AgeStatisticCardProps) {
-  
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const totalCases = data.reduce((sum, item) => sum + item.value, 0);
+
+  useLayoutEffect(() => {
+    // Create root element
+    const root = am5.Root.new(chartRef.current!);
+
+    // Set themes
+    root.setThemes([am5themes_Animated.new(root)]);
+
+    // Create chart
+    const chart = root.container.children.push(
+      am5xy.XYChart.new(root, {
+        panX: true,
+        panY: true,
+        pinchZoomX: true,
+        paddingLeft: 0,
+        paddingRight: 1
+      })
+    );
+
+    // Add cursor
+    const cursor = chart.set("cursor", am5xy.XYCursor.new(root, {}));
+    cursor.lineY.set("visible", false);
+
+    // Create axes
+    const xRenderer = am5xy.AxisRendererX.new(root, {
+      minGridDistance: 30,
+      minorGridEnabled: true
+    });
+
+    xRenderer.labels.template.setAll({
+      centerY: am5.p50,
+      centerX: am5.p50,
+      paddingTop: 10,
+      fontSize: 10,
+      textAlign: "center",
+    });
+
+    xRenderer.grid.template.set("visible", false);
+
+    const xAxis = chart.xAxes.push(
+      am5xy.CategoryAxis.new(root, {
+        maxDeviation: 0.3,
+        categoryField: "age",
+        renderer: xRenderer
+      })
+    );
+
+    const yRenderer = am5xy.AxisRendererY.new(root, {
+      strokeOpacity: 0.1,
+    });
+
+    yRenderer.labels.template.setAll({
+      fontSize: 11
+    });
+
+    const yAxis = chart.yAxes.push(
+      am5xy.ValueAxis.new(root, {
+        maxDeviation: 0.3,
+        renderer: yRenderer
+      })
+    );
+
+    // Create series
+    const series = chart.series.push(
+      am5xy.ColumnSeries.new(root, {
+        name: "Series 1",
+        xAxis: xAxis,
+        yAxis: yAxis,
+        valueYField: "value",
+        sequencedInterpolation: true,
+        categoryXField: "age",
+        tooltip: am5.Tooltip.new(root, {
+          labelText: "{valueY}"
+        })
+      })
+    );
+
+    series.columns.template.setAll({
+      cornerRadiusTL: 5,
+      cornerRadiusTR: 5,
+      strokeOpacity: 0,
+      fill: am5.color("#f0848c")
+    });
+
+    // Set data
+    xAxis.data.setAll(data);
+    series.data.setAll(data);
+
+    // Make stuff animate on load
+    series.appear(1000);
+    chart.appear(1000, 100);
+
+    // Cleanup function
+    return () => {
+      root.dispose();
+    };
+  }, [data]); // Re-run if data changes
 
   return (
     <div className="w-full h-96 bg-white rounded-lg shadow p-4">
@@ -37,10 +136,10 @@ export default function AgeStatisticCard({ data = [
               </clipPath>
             </defs>
           </svg>
-          <span className="text-[#0069CF] font-medium text-lg"></span>
+          <span className="text-[#0069CF] font-medium text-lg">{totalCases.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}</span>
         </div>
       </div>
-      <div data-testid="chart-container" className="w-full h-[85%]" />
+      <div ref={chartRef} data-testid="chart-container" className="w-full h-[85%]" />
     </div>
   );
 }
