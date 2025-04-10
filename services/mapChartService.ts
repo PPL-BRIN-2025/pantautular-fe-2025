@@ -218,7 +218,7 @@ export class MapChartService {
       getFillFromSprite: false,
       background: am5.Rectangle.new(this.root, {
         fill: am5.color(0xffffff),
-        fillOpacity: 1,
+        fillOpacity: 0,
       }),
       labelText: "",
       autoTextColor: false,
