@@ -2,6 +2,7 @@ export interface MapLocation {
   id: string;
   location__longitude: number;
   location__latitude: number;
+  location__province: string,
   city: string;
 }
 

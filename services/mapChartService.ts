@@ -146,11 +146,8 @@ export class MapChartService {
       const root = this.root;
       this.pointSeries = this.chart.series.push(
         am5map.ClusteredPointSeries.new(root, {
-          groupIdField: "city",
-          minDistance: 30,
-          scatterDistance: 10,
-          scatterRadius: 10,
-          stopClusterZoom: 0.9,
+          groupIdField: "province",
+          
         })
       );
 
@@ -295,8 +292,10 @@ export class MapChartService {
         },
         city: location.city,
         id: location.id,
+        province: location.location__province,
       });
     });
+    console.log(locations)
   }
 
   createLocationMarker(): void {

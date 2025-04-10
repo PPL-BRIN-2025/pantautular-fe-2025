@@ -363,7 +363,7 @@ describe("MapChartService", () => {
     expect(am5map.ClusteredPointSeries.new).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        groupIdField: "city",
+        groupIdField: "province",
         minDistance: expect.anything(),
         scatterDistance: expect.anything(),
         scatterRadius: expect.anything(),
