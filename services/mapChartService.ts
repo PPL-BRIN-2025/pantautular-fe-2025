@@ -35,6 +35,7 @@ export class MapChartService {
           projection: am5map.geoMercator(),
           homeGeoPoint: config.centerPoint,
           minZoomLevel: config.zoomLevel,
+          maxZoomLevel: 100
         })
       );
 
@@ -147,6 +148,7 @@ export class MapChartService {
       this.pointSeries = this.chart.series.push(
         am5map.ClusteredPointSeries.new(root, {
           groupIdField: "province",
+          scatterDistance: 20
           
         })
       );
