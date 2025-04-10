@@ -281,7 +281,7 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
   return (
     <div className="w-full bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-bold">{title}</h2>
+      <h3 className="text-xl font-semibold text-[#0069CF]">{title}</h3>
         <button 
           className="bg-[#0069CF] text-white text-sm py-2 px-4 rounded-[10px] flex items-center font-medium"
           onClick={() => onViewDetails ? onViewDetails(title, detailData) : console.log(`View details for ${title}`)}
