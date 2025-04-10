@@ -1,7 +1,7 @@
 import React from "react";
 
 interface PrevalenceCardProps {
-  prevalenceRate: number;
+  prevalenceRate: number | string;
   populationYear: number;
   populationCount: number | string;
 }
@@ -34,7 +34,7 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
           </div>
           <span className="text-5xl font-bold">
             {prevalenceRate}
-            <span className="text-blue-600">%</span>
+            {typeof prevalenceRate !== 'string' && <span className="text-blue-600">%</span>}
           </span>
         </div>
       </div>
