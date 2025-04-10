@@ -2,6 +2,7 @@ export interface MapLocation {
   id: string;
   location__longitude: number;
   location__latitude: number;
+  location__province: string,
   city: string;
 }
 
@@ -17,4 +18,10 @@ export interface FilterState {
   portals: string[];
   start_date: null | Date;
   end_date: null | Date;
+}
+
+export interface DistributionData {
+    portal: string;
+    news_count: number;
+    disease_count: number;
 }

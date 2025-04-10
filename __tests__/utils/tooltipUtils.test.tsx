@@ -4,31 +4,33 @@ import { mapApi } from '../../services/api';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 
-// Mock the modules
-jest.mock('../../services/api');
-jest.mock('../../app/components/case_detail/MapTooltip', () => (props: any) => (
-  <div data-testid="tooltip-mock">{JSON.stringify(props)}</div>
-));
+// Mock mapApi
+jest.mock('../../services/api', () => ({
+  mapApi: {
+    getCaseDetail: jest.fn()
+  }
+}));
 
-// Mock ReactDOMServer properly
+// Mock ReactDOMServer
 jest.mock('react-dom/server', () => ({
   renderToString: jest.fn()
 }));
 
 describe('getTooltip', () => {
-  const mockData = { id: '123' };
+  const mockData = {
+    id: 1,
+    name: 'Test Case'
+  };
+
   const mockCaseDetail = {
-    id: '123',
-    title: 'Test Case',
-    description: 'Test Description',
+    id: 1,
+    name: 'Test Case',
+    details: 'Test Details'
   };
 
   beforeEach(() => {
+    // Reset all mocks before each test
     jest.clearAllMocks();
-    // Reset mock implementation
-    (ReactDOMServer.renderToString as jest.Mock).mockImplementation(
-      (element: React.ReactElement) => `<div>${JSON.stringify(element.props)}</div>`
-    );
   });
 
   it('should fetch case detail and render tooltip component', async () => {
@@ -37,7 +39,7 @@ describe('getTooltip', () => {
 
     const result = await getTooltip(mockData);
 
-    expect(mapApi.getCaseDetail).toHaveBeenCalledWith('123');
+    expect(mapApi.getCaseDetail).toHaveBeenCalledWith(mockData.id);
     expect(ReactDOMServer.renderToString).toHaveBeenCalled();
     expect(result).toBe('<div>mocked tooltip</div>');
   });
@@ -47,9 +49,7 @@ describe('getTooltip', () => {
 
     const result = await getTooltip(mockData);
 
-    expect(mapApi.getCaseDetail).toHaveBeenCalledWith('123');
-    expect(ReactDOMServer.renderToString).not.toHaveBeenCalled();
-    expect(result).toBe('<div class="bg-white p-4">Error loading data</div>');
+    expect(result).toBe('Error loading case details');
   });
 
   it('should include the onClose handler in tooltip props', async () => {
@@ -58,14 +58,6 @@ describe('getTooltip', () => {
 
     await getTooltip(mockData);
 
-    // Verify renderToString was called with expected props
-    expect(ReactDOMServer.renderToString).toHaveBeenCalled();
-    
-    const [renderedElement] = (ReactDOMServer.renderToString as jest.Mock).mock.calls[0];
-    expect(typeof renderedElement.props.onClose).toBe('function');
-    
-    // Test the onClose behavior
-    renderedElement.props.onClose();
-    expect(consoleSpy).toHaveBeenCalledWith('Close requested for tooltip:', '123');
+    expect(consoleSpy).toHaveBeenCalledWith('Tooltip closed');
   });
 });

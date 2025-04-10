@@ -4,7 +4,11 @@ import { mapApi } from '../../services/api';
 import { MapLocation, FilterState } from '../../types';
 
 // Mock the API module
-jest.mock('../../services/api');
+jest.mock('../../services/api', () => ({
+  mapApi: {
+    getFilteredLocations: jest.fn()
+  }
+}));
 
 describe('useLocations', () => {
   const defaultFilterState: FilterState = {
@@ -17,6 +21,14 @@ describe('useLocations', () => {
   };
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+    // Reset the specific mock we're using
+    (mapApi.getFilteredLocations as jest.Mock).mockReset();
+  });
+
+  afterEach(() => {
+    // Ensure cleanup after each test
     jest.clearAllMocks();
   });
 

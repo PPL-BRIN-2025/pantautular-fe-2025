@@ -1,5 +1,9 @@
 import { mapApi } from "../../services/api";
 
+// Mock global fetch and console.error
+global.fetch = jest.fn();
+console.error = jest.fn();
+
 describe('mapApi', () => {
     const mockResponse = [
         { id: 1, latitude: -6.200000, longitude: 106.816666 },
@@ -7,12 +11,7 @@ describe('mapApi', () => {
     ];
 
     beforeEach(() => {
-        global.fetch = jest.fn();
-        console.error = jest.fn();
-    });
-
-    afterEach(() => {
-        jest.resetAllMocks();
+        jest.clearAllMocks();
     });
 
     describe('getLocations', () => {
@@ -130,6 +129,80 @@ describe('mapApi', () => {
             expect(result).toEqual([]);
         });
     });
+
+    describe('getDashboardData', () => {
+        const dashboardMockData = {
+            severity_statistics: {
+                total_cases: 100,
+                severity_counts: {
+                    Mortalitas: 10,
+                    Insiden: 80,
+                    Hospitalisasi: 10,
+                }
+            },
+            prevalence_statistics: {
+                prevalence: 0.07315,
+                year: 2024,
+                population: 279390258,
+            },
+            gender_statistics: {
+                male: 50,
+                female: 50,
+            },
+            severity_dates_count_statistics: {
+                "Tingkat 1": [
+                    { date: "2024-01", count: 10 },
+                    { date: "2024-02", count: 15 },
+                ],
+                "Tingkat 2": [
+                    { date: "2024-01", count: 5 },
+                    { date: "2024-02", count: 8 },
+                ],
+            }
+        };
+
+        it('should fetch dashboard data successfully', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(dashboardMockData)
+            });
+
+            const result = await mapApi.getDashboardData();
+            
+            expect(result).toEqual(dashboardMockData);
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/statistics/`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    },
+                    credentials: 'include',
+                }
+            );
+        });
+
+        it('should throw an error when API returns non-ok response', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 404,
+                statusText: 'Not Found'
+            });
+            
+            await expect(mapApi.getDashboardData()).rejects.toThrow('HTTP error! status: 404');
+            expect(console.error).toHaveBeenCalled();
+        });
+
+        it('should throw an error when fetch fails', async () => {
+            const networkError = new Error('Network error');
+            (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+            
+            await expect(mapApi.getDashboardData()).rejects.toThrow(networkError);
+            expect(console.error).toHaveBeenCalledWith('Error fetching dashboard data:', networkError);
+        });
+    });
     
     describe('getCaseDetail', () => {
         const mockCaseId = '123';
@@ -192,4 +265,4 @@ describe('mapApi', () => {
             expect(result).toEqual({});
         });
     });
-});
+}); 

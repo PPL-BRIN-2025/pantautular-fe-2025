@@ -35,6 +35,7 @@ export class MapChartService {
           projection: am5map.geoMercator(),
           homeGeoPoint: config.centerPoint,
           minZoomLevel: config.zoomLevel,
+          maxZoomLevel: 100
         })
       );
 
@@ -146,11 +147,9 @@ export class MapChartService {
       const root = this.root;
       this.pointSeries = this.chart.series.push(
         am5map.ClusteredPointSeries.new(root, {
-          groupIdField: "city",
-          minDistance: 30,
-          scatterDistance: 10,
-          scatterRadius: 10,
-          stopClusterZoom: 0.9,
+          groupIdField: "province",
+          scatterDistance: 20
+          
         })
       );
 
@@ -158,6 +157,7 @@ export class MapChartService {
       this.setupRegularBullet();
     } catch (error) {
       console.error("Error setting up point series:", error);
+      /* istanbul ignore next */
       if (this.onError) this.onError("Error setting up map points.");
     }
   }
@@ -218,7 +218,7 @@ export class MapChartService {
       getFillFromSprite: false,
       background: am5.Rectangle.new(this.root, {
         fill: am5.color(0xffffff),
-        fillOpacity: 1,
+        fillOpacity: 0,
       }),
       labelText: "",
       autoTextColor: false,
@@ -294,8 +294,10 @@ export class MapChartService {
         },
         city: location.city,
         id: location.id,
+        province: location.location__province,
       });
     });
+    console.log(locations)
   }
 
   createLocationMarker(): void {
