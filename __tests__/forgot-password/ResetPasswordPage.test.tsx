@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ForgotPasswordPage from '../../app/forgot-password/page';
+import ResetPasswordPage from '../../app/forgot-password/reset/page';
 
 // Gunakan hoisting untuk meng-import React di dalam mock
 jest.mock('../../app/components/forgot_password/ForgotPasswordForm', () => {
@@ -45,10 +45,10 @@ jest.mock('../../utils/PasswordValidator', () => {
     };
 });
   
-describe('ForgotPasswordPage', () => {
+describe('ResetPasswordPage', () => {
     // Existing happy path tests...
     it('renders page with correct structure', () => {
-        render(<ForgotPasswordPage />);
+        render(<ResetPasswordPage />);
         
         // Check heading
         expect(screen.getByRole('heading', { name: /lupa kata sandi/i })).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('ForgotPasswordPage', () => {
     });
 
   it('renders with correct layout classes', () => {
-    render(<ForgotPasswordPage />);
+    render(<ResetPasswordPage />);
 
     // Check main container
     const mainContainer = screen.getByRole('heading').parentElement?.parentElement;
@@ -75,7 +75,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('renders left and right sections with correct widths', () => {
-    const { container } = render(<ForgotPasswordPage />);
+    const { container } = render(<ResetPasswordPage />);
     
     // Find left and right sections
     const sections = container.querySelectorAll('.w-full.md\\:w-1\\/2');
@@ -91,7 +91,7 @@ describe('ForgotPasswordPage', () => {
 
   // Unhappy path tests
   it('handles server error gracefully', async () => {
-    render(<ForgotPasswordPage />);
+    render(<ResetPasswordPage />);
     
     // Trigger a server error
     fireEvent.click(screen.getByTestId('trigger-error'));
@@ -104,7 +104,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('handles successful form submission', async () => {
-    render(<ForgotPasswordPage />);
+    render(<ResetPasswordPage />);
     
     // Submit form successfully
     fireEvent.click(screen.getByTestId('trigger-success'));
@@ -117,7 +117,7 @@ describe('ForgotPasswordPage', () => {
 
   // Tes untuk validasi image loading - gunakan pendekatan yang lebih sederhana
   it('displays image with proper attributes', () => {
-    render(<ForgotPasswordPage />);
+    render(<ResetPasswordPage />);
     
     const image = screen.getByAltText(/forgot password illustration/i);
     expect(image).toBeInTheDocument();

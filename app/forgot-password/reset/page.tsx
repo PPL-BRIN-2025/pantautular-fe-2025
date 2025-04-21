@@ -1,9 +1,9 @@
 "use client";
 
-import PasswordForm from '../components/forgot_password/ForgotPasswordForm';
-import PasswordValidator from '../../utils/PasswordValidator';
+import PasswordForm from '../../components/forgot_password/ForgotPasswordForm';
+import PasswordValidator from '../../../utils/PasswordValidator';
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="flex flex-col md:flex-row w-full max-w-6xl items-center justify-center p-4">
