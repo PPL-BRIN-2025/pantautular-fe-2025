@@ -1,4 +1,6 @@
-import { useState } from "react"
+"use client"
+
+import { useMapStore } from "../../../store/store"
 
 const sizeClasses = {
   sm: "h-10 w-10",
@@ -23,10 +25,12 @@ export default function TemperatureButton({
   className = "", 
   size = "md" 
 }: Readonly<TemperatureButtonProps>) {
-  const [isActive, setIsActive] = useState(false)
+  const { activeButton, setActiveButton } = useMapStore()
+  const isActive = activeButton === 'temperature'
 
   const handleClick = () => {
-    setIsActive(!isActive)
+    const newActiveState = !isActive
+    setActiveButton(newActiveState ? 'temperature' : null)
     if (onClick) onClick()
   }
 

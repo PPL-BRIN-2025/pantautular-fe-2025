@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMapStore } from "../../../store/store"
 
 interface HumidityButtonProps {
   onClick?: () => void
@@ -23,10 +23,12 @@ const sizeClasses = {
 export default function HumidityButton({ 
   onClick, className = "", size = "md" }
   : Readonly<HumidityButtonProps>) {
-  const [isActive, setIsActive] = useState(false)
+  const { activeButton, setActiveButton } = useMapStore()
+  const isActive = activeButton === 'humidity'
 
   const handleClick = () => {
-    setIsActive(!isActive)
+    const newActiveState = !isActive
+    setActiveButton(newActiveState ? 'humidity' : null)
     if (onClick) onClick()
   }
 

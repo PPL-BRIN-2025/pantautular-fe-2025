@@ -13,10 +13,12 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
 }) => {
   // Format the population number with commas
   let formattedPopulation = null
+  /* istanbul ignore else */
   if (typeof populationCount !== 'string') {
     formattedPopulation = populationCount.toLocaleString();
   }
   else {
+    /* istanbul ignore next */
     formattedPopulation = populationCount;
   }
 

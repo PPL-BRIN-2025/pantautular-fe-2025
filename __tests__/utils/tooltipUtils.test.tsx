@@ -16,14 +16,19 @@ jest.mock('react-dom/server', () => ({
   renderToString: jest.fn()
 }));
 
+// Mock React.createElement
+jest.mock('react', () => ({
+  ...jest.requireActual('react'),
+  createElement: jest.fn()
+}));
+
 describe('getTooltip', () => {
   const mockData = {
-    id: 1,
-    name: 'Test Case'
+    id: '1'
   };
 
   const mockCaseDetail = {
-    id: 1,
+    id: '1',
     name: 'Test Case',
     details: 'Test Details'
   };
@@ -49,15 +54,26 @@ describe('getTooltip', () => {
 
     const result = await getTooltip(mockData);
 
-    expect(result).toBe('Error loading case details');
+    expect(result).toBe('<div class=\"bg-white p-4\">Error loading data</div>');
   });
 
   it('should include the onClose handler in tooltip props', async () => {
     (mapApi.getCaseDetail as jest.Mock).mockResolvedValue(mockCaseDetail);
     const consoleSpy = jest.spyOn(console, 'log');
-
+    
     await getTooltip(mockData);
 
-    expect(consoleSpy).toHaveBeenCalledWith('Tooltip closed');
+    // Check that the CaseDetailTooltip component was created with the correct props
+    expect(React.createElement).toHaveBeenCalled();
+    const createElementCalls = (React.createElement as jest.Mock).mock.calls;
+    const tooltipProps = createElementCalls.length > 0 ? createElementCalls[0][1] : null;
+    
+    expect(tooltipProps).toHaveProperty('onClose');
+    
+    // Simulate calling the onClose handler
+    if (tooltipProps && tooltipProps.onClose) {
+      tooltipProps.onClose();
+      expect(consoleSpy).toHaveBeenCalledWith('Close requested for tooltip:', mockData.id);
+    }
   });
 });

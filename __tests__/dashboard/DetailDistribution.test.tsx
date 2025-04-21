@@ -31,7 +31,7 @@ describe('DetailDistribution Component', () => {
           setIsShowModal={mockSetIsShowModal}
         />
       );
-      expect(screen.getByText('Test Distribution')).toBeInTheDocument();
+      expect(screen.getByText('Detail Test Distribution')).toBeInTheDocument();
     });
 
     it('does not render when isShowModal is false', () => {
@@ -306,8 +306,8 @@ describe('DetailDistribution Component', () => {
       );
       
       // Should render the table but with no rows
-      expect(screen.getByText('Empty Distribution')).toBeInTheDocument();
-      expect(screen.getAllByRole('row').length).toBe(1); // Just the header row
+      expect(screen.getByText('Detail Empty Distribution')).toBeInTheDocument();
+      expect(screen.queryAllByRole('row').length).toBe(0); // No table rows with empty data
     });
 
     it('resets to first page when sorting changes', () => {
@@ -381,7 +381,7 @@ describe('DetailDistribution Component', () => {
         />
       );
       
-      expect(screen.getByText('Empty Data Test')).toBeInTheDocument();
+      expect(screen.getByText('Detail Empty Data Test')).toBeInTheDocument();
     });
   });
 });

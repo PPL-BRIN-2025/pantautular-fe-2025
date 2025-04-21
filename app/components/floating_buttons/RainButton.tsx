@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useMapStore } from "../../../store/store"
 
 const sizeClasses = {
   sm: "h-10 w-10",
@@ -25,12 +26,18 @@ export default function RainButton({
   className = "", 
   size = "md" 
 }: Readonly<RainButtonProps>) {
-  const [isActive, setIsActive] = useState(false)
+  const { mapService, activeButton, setActiveButton } = useMapStore()
+  const isActive = activeButton === 'rain'
 
   const handleClick = () => {
-    setIsActive(!isActive)
+    const newActiveState = !isActive
+    setActiveButton(newActiveState ? 'rain' : null)
     if (onClick) onClick()
   }
+
+  useEffect(() => {
+    
+  }, [isActive, mapService])
 
   return (
     <button

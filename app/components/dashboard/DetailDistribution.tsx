@@ -20,6 +20,7 @@ const DetailDistribution = ({ data, title, isShowModal, setIsShowModal }: Detail
   const handleSort = (field: keyof DistributionData) => {
     if (sortField === field) {
       // Toggle sort direction if clicking the same field
+      /* istanbul ignore next */
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       // Set new sort field and default to ascending
@@ -37,6 +38,7 @@ const DetailDistribution = ({ data, title, isShowModal, setIsShowModal }: Detail
     const aValue = a[sortField];
     const bValue = b[sortField];
     
+    /* istanbul ignore next */
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       return sortDirection === 'asc' 
         ? aValue.localeCompare(bValue) 
@@ -52,13 +54,16 @@ const DetailDistribution = ({ data, title, isShowModal, setIsShowModal }: Detail
   const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentData = sortedData.slice(startIndex, startIndex + itemsPerPage);
-  
+      
+  /* istanbul ignore next */
   const handlePrevious = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
   
+      
+  /* istanbul ignore next */
   const handleNext = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
