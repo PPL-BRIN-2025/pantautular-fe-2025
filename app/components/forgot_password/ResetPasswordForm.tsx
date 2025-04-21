@@ -7,7 +7,7 @@ interface PasswordFormProps {
   passwordValidator: IPasswordValidator;
 }
 
-export default function PasswordForm({ passwordValidator }: PasswordFormProps) {
+export default function PasswordForm({ passwordValidator }: Readonly<PasswordFormProps>) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
