@@ -8,7 +8,7 @@ interface PasswordSettingsProps {
   onClose: () => void
 }
 
-export default function PasswordSettings({ onClose }: PasswordSettingsProps) {
+export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsProps>) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-3xl rounded-lg bg-white p-6 shadow-lg">

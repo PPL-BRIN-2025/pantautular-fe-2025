@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 
-// Menghapus referensi ke mockReactForwardRef dalam jest.mock
+// Update the mock to make it accessible
 jest.mock('@radix-ui/react-dropdown-menu', () => ({
   Root: ({ children }: { children: React.ReactNode }) => <div data-testid="dropdown-root">{children}</div>,
   Trigger: ({ children, ...props }: any) => (
@@ -15,9 +15,21 @@ jest.mock('@radix-ui/react-dropdown-menu', () => ({
     </div>
   ),
   Item: ({ children, onClick, ...props }: any) => (
-    <div data-testid="dropdown-item" onClick={onClick} {...props}>
+    // Change div to button for accessibility
+    <button 
+      data-testid="dropdown-item" 
+      onClick={onClick} 
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick?.(e);
+        }
+      }}
+      role="menuitem"
+      tabIndex={0}
+      {...props}
+    >
       {children}
-    </div>
+    </button>
   ),
   Portal: ({ children }: { children: React.ReactNode }) => <div data-testid="dropdown-portal">{children}</div>,
 }));
