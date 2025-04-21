@@ -16,7 +16,7 @@ export default class PasswordValidator implements IPasswordValidator {
     if (!/\d/.test(password)) {
       return "Password harus memiliki minimal 1 angka";
     }
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
       return "Password harus memiliki minimal 1 simbol khusus";
     }
     return "";
