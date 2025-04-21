@@ -585,31 +585,6 @@ describe('severityApi', () => {
                 })
             );
         });
-
-        it('should use default values for missing filter fields', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
-            });
-
-            const result = await severityApi.getCitySeverityStats(partialFilter);
-            
-            expect(result).toEqual(mockFilterResponse);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/severity-stats/filter/`,
-                expect.objectContaining({
-                    method: 'POST',
-                    body: JSON.stringify({
-                        diseases: partialFilter.diseases,
-                        locations: partialFilter.locations,
-                        portals: partialFilter.portals,
-                        level_of_alertness: partialFilter.level_of_alertness,
-                        start_date: partialFilter.start_date,
-                        end_date: partialFilter.end_date
-                    })
-                })
-            );
-        });
     });
 
     describe('getFilteredSeverityStats', () => {

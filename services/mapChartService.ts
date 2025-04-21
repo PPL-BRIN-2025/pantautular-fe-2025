@@ -244,33 +244,15 @@ export class MapChartService {
           strokeWidth: 1,
       });
 
-      // Add hover effect
+      // Add hover effect using the helper function
       /* istanbul ignore next */
       this.basePolygonSeries.mapPolygons.template.events.on("pointerover", (ev) => {
-        const polygon = ev.target;
-        if (polygon && this.highlightSeries?.mapPolygons) {
-          const index = this.basePolygonSeries?.mapPolygons.indexOf(polygon);
-          if (index !== undefined) {
-            const highlightPolygon = this.highlightSeries.mapPolygons.getIndex(index);
-            if (highlightPolygon) {
-              highlightPolygon.set("fill", am5.color("#FF0000"));
-            }
-          }
-        }
+        this.handlePolygonEvent(ev, "#FF0000");
       });
 
       /* istanbul ignore next */
       this.basePolygonSeries.mapPolygons.template.events.on("pointerout", (ev) => {
-        const polygon = ev.target;
-        if (polygon && this.highlightSeries?.mapPolygons) {
-          const index = this.basePolygonSeries?.mapPolygons.indexOf(polygon);
-          if (index !== undefined) {
-            const highlightPolygon = this.highlightSeries.mapPolygons.getIndex(index);
-            if (highlightPolygon) {
-              highlightPolygon.set("fill", am5.color("#E0E0E0"));
-            }
-          }
-        }
+        this.handlePolygonEvent(ev, "#E0E0E0");
       });
 
       /* istanbul ignore next */
@@ -286,6 +268,20 @@ export class MapChartService {
     } catch (error) {
       console.error("Error setting up polygon series:", error);
       if (this.onError) this.onError("Error setting up map polygons.");
+    }
+  }
+
+  /* istanbul ignore next */
+  private handlePolygonEvent(ev: any, fillColor: string): void {
+    const polygon = ev.target;
+    if (polygon && this.highlightSeries?.mapPolygons) {
+      const index = this.basePolygonSeries?.mapPolygons.indexOf(polygon);
+      if (index !== undefined) {
+        const highlightPolygon = this.highlightSeries.mapPolygons.getIndex(index);
+        if (highlightPolygon) {
+          highlightPolygon.set("fill", am5.color(fillColor));
+        }
+      }
     }
   }
 
