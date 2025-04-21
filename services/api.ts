@@ -53,7 +53,7 @@ export const mapApi = {
 
   async getDashboardData(): Promise<any> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboard/disease-case-info/`, {
+      const response = await fetch(`${API_BASE_URL}/api/statistics/`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

@@ -9,6 +9,19 @@ import { useDashboardData } from "../../../hooks/useDashboardData";
 const InformationSection = () => {
     const [activeSection, setActiveSection] = useState("section1");
     const { data, isLoading, error } = useDashboardData();
+    
+    // Extract nested ternary into a function
+    const renderContent = () => {
+        if (isLoading) {
+            return <p className="text-black">Loading...</p>;
+        }
+        
+        if (error) {
+            return <p className="text-red-500">{error}</p>;
+        }
+        
+        return activeSection === "section1" ? <GeneralInformation data={data} /> : <CasesOrder />;
+    };
 
     return (
         <div className="flex flex-col h-full bg-transparent text-white text-xl p-4 pt-8 pl-8">
@@ -43,15 +56,7 @@ const InformationSection = () => {
 
             {/* Dynamic Section */}
             <div className="flex-grow mt-4">
-                {isLoading ? (
-                    <p className="text-black">Loading...</p>
-                ) : error ? (
-                    <p className="text-red-500">{error}</p>
-                ) : activeSection === "section1" ? (
-                    <GeneralInformation data={data} />
-                ) : (
-                    <CasesOrder />
-                )}
+                {renderContent()}
             </div>
         </div>
     );
