@@ -1212,17 +1212,15 @@ describe("MapChartService - Regular Bullet with Tooltip", () => {
     expect(bullet).toBeDefined();
     
     // Manually create and call the pointerover handler
-    const pointeroverHandler = (ev: any) => {
+    const pointeroverHandler = async (ev: any) => {
       if (ev?.target?.dataItem?.dataContext) {
         try {
           const dataContext = ev.target.dataItem.dataContext as { id: string };
           if (dataContext.id) {
             // Mock getting tooltip data and setting it
-            getTooltip({ id: dataContext.id })
-              .then((tooltipHtml: string) => {
-                mockTooltip.set("html", tooltipHtml);
-                mockTooltip.show();
-              });
+            const tooltipHtml = await getTooltip({ id: dataContext.id });
+            mockTooltip.set("html", tooltipHtml);
+            mockTooltip.show();
           }
         } catch (error) {
           console.error('Error showing tooltip:', error);
