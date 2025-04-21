@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { cn } from "../../../utils/tmg"
 import { useMapStore } from "../../../store/store"
 

@@ -54,7 +54,7 @@ describe('getTooltip', () => {
 
     const result = await getTooltip(mockData);
 
-    expect(result).toBe('<div class=\"bg-white p-4\">Error loading data</div>');
+    expect(result).toBe('<div class="bg-white p-4">Error loading data</div>');
   });
 
   it('should include the onClose handler in tooltip props', async () => {
@@ -71,9 +71,7 @@ describe('getTooltip', () => {
     expect(tooltipProps).toHaveProperty('onClose');
     
     // Simulate calling the onClose handler
-    if (tooltipProps && tooltipProps.onClose) {
-      tooltipProps.onClose();
-      expect(consoleSpy).toHaveBeenCalledWith('Close requested for tooltip:', mockData.id);
-    }
+    tooltipProps?.onClose?.();
+    expect(consoleSpy).toHaveBeenCalledWith('Close requested for tooltip:', mockData.id);
   });
 });

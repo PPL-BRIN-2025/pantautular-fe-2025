@@ -3,8 +3,6 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import PortalBarChart, { 
   gridStrokeAdapter,
-  labelVisibilityAdapter,
-  gridVisibilityAdapter
 } from '../../app/components/dashboard/sumberBerita/PortalBarChart';
 import { DistributionData } from '@/types';
 

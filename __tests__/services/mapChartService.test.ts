@@ -1063,10 +1063,6 @@ describe("MapChartService - Point Selection", () => {
 
 describe("MapChartService - Polygon Series and Heat Map", () => {
   let mapService: MapChartService;
-  const mockConfig: MapConfig = {
-    zoomLevel: 5,
-    centerPoint: { longitude: 120, latitude: -5 },
-  };
 
   beforeEach(() => {
     document.body.innerHTML = '<div id="chartdiv"></div>';
@@ -1159,10 +1155,6 @@ describe("MapChartService - Polygon Series and Heat Map", () => {
 
 describe("MapChartService - Regular Bullet with Tooltip", () => {
   let mapService: MapChartService;
-  const mockConfig: MapConfig = {
-    zoomLevel: 5,
-    centerPoint: { longitude: 120, latitude: -5 },
-  };
 
   beforeEach(() => {
     document.body.innerHTML = '<div id="chartdiv"></div>';
@@ -1681,7 +1673,6 @@ describe("MapChartService - Tooltip Event Handlers", () => {
     expect(mockPointSeries.set).toHaveBeenCalledWith("tooltip", mockTooltip);
     
     // Get the bullet factory
-    const bulletFactory = mockPointSeries.bullets.push.mock.calls[0][0];
     
     // Get the event handlers
     const pointeroverHandler = mockCircle.events.on.mock.calls.find(

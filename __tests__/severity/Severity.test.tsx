@@ -6,17 +6,17 @@ import { severityApi } from "../../services/api";
 
 // Define mock types
 declare global {
-  var mockRoot: any;
-  var mockChart: any;
-  var mockAxis: any;
-  var mockSeries: any;
-  var mockTooltip: any;
-  var mockColumn: any;
-  var mockRoundedRectangle: any;
-  var mockColor: any;
-  var mockDataItem: any;
-  var tooltipCreated: boolean;
-  var mockSeriesCreated: boolean;
+  const mockRoot: any;
+  const mockChart: any;
+  const mockAxis: any;
+  const mockSeries: any;
+  const mockTooltip: any;
+  const mockColumn: any;
+  const mockRoundedRectangle: any;
+  const mockColor: any;
+  const mockDataItem: any;
+  const tooltipCreated: boolean;
+  const mockSeriesCreated: boolean;
 }
 
 // Create mock data
@@ -108,7 +108,7 @@ jest.mock("@amcharts/amcharts5", () => {
             dataItem: global.mockDataItem 
           });
           // Return a non-empty result to test the adapter function
-          return result || "test";
+          return result ?? "test";
         }
       })
     },
@@ -408,15 +408,18 @@ describe("Severity Charts", () => {
   
   // Test LegendItem component separately
   describe("LegendItem component", () => {
-    it("renders with correct color and label", () => {
+    // Helper function to check if an element has background color
+    const hasBackgroundColor = (_content: string, element: Element | null): boolean => {
+      return (element as HTMLElement)?.style?.backgroundColor !== undefined;
+    };
+
+    it("renders with correct color and label", async () => {
       // We're using the component indirectly through the chart renders
       render(<DiseaseSeverityChart />);
       
       // Wait for rendering
-      waitFor(() => {
-        const legendItems = screen.getAllByText((_content, element) => {
-          return element?.style?.backgroundColor !== undefined;
-        });
+      await waitFor(() => {
+        const legendItems = screen.getAllByText(hasBackgroundColor);
         expect(legendItems.length).toBeGreaterThan(0);
       });
     });
