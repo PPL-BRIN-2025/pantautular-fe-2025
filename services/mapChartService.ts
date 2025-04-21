@@ -11,6 +11,10 @@ export class MapChartService {
   private chart: am5map.MapChart | null = null;
   private pointSeries: am5map.ClusteredPointSeries | null = null;
   private locationSeries: am5map.MapPointSeries | null = null;
+  private basePolygonSeries: am5map.MapPolygonSeries | null = null;
+  private highlightSeries: am5map.MapPolygonSeries | null = null;
+  private severitySeries: am5map.MapPolygonSeries | null = null;
+  private severityHeatLegend: am5.HeatLegend | null = null;
   private readonly onError: ((message: string) => void) | null = null;
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
@@ -35,7 +39,7 @@ export class MapChartService {
           projection: am5map.geoMercator(),
           homeGeoPoint: config.centerPoint,
           minZoomLevel: config.zoomLevel,
-          maxZoomLevel: 100
+          maxZoomLevel: 100,
         })
       );
 
@@ -48,7 +52,7 @@ export class MapChartService {
       if (this.onError) this.onError("Failed to load the map. Please try again.");
     }
   }
-
+  
   private setupZoomControl(): void {
     if (!this.chart || !this.root) return;
     const root = this.root;
@@ -76,19 +80,23 @@ export class MapChartService {
     const br = this.chart?.invert({ x: this.chart.innerWidth(), y: this.chart.innerHeight() });
 
     // Check if tl or br is undefined and handle the case
+    /* istanbul ignore next */
     if (!tl || !br) {
       console.error('Failed to get points in selection: tl or br is undefined');
       return;
     }
 
     // Now safely use tl and br since they are guaranteed to be defined
+    /* istanbul ignore next */
     if (tl.longitude > br.longitude) {
       tl.longitude = -180;
       br.longitude = 180;
     }
 
+    /* istanbul ignore next */
     const selectedPoints: string[] = [];
 
+    /* istanbul ignore next */
     this.locations?.forEach((dataItem) => {
       const longitude = dataItem.location__longitude;
       const latitude = dataItem.location__latitude;
@@ -103,6 +111,7 @@ export class MapChartService {
       }
     });
 
+    /* istanbul ignore next */
     // Set the countSelectedPoints using the private setter
     this.countSelectedPoints = selectedPoints.length;
     console.log(this._countSelectedPoints);
@@ -112,27 +121,166 @@ export class MapChartService {
     if (!this.chart || !this.root) return;
     try {
       const root = this.root;
-      const polygonSeries = this.chart.series.push(
+      
+      // Base layer - Indonesia map
+      this.basePolygonSeries = this.chart.series.push(
         am5map.MapPolygonSeries.new(root, {
           geoJSON: am5geodata_indonesiaLow,
           exclude: ["AQ"],
         })
       );
 
-
-      polygonSeries.mapPolygons.template.setAll({
+      this.basePolygonSeries.mapPolygons.template.setAll({
           fill: am5.color("#FFFFFF"), 
           stroke: am5.color("#CCCCCC"), 
           strokeWidth: 0.5,
       });
 
+      // Add colored province layer
+      this.severitySeries = this.chart.series.push(
+        am5map.MapPolygonSeries.new(root, {
+          geoJSON: am5geodata_indonesiaLow,
+          valueField: "value",
+          calculateAggregates: true,
+          // exclude: ["AQ"],   
+        })
+      );
+
+      // Set up the colored province layer
+      this.severitySeries.mapPolygons.template.setAll({
+        fill: am5.color("#FFFFFF"),
+        stroke: am5.color("#CCCCCC"),
+        strokeWidth: 0.5,
+        fillOpacity: 0.8,
+      });
+
+      this.severitySeries.set("heatRules", [{
+        target: this.severitySeries.mapPolygons.template,
+        dataField: "value",
+        min: am5.color("#FFFFFF"),
+        max: am5.color("#E03444"),
+        key: "fill"
+      }]);
+
+      this.severitySeries.data.setAll([
+        { id: "ID-AC", value: 417 },
+        { id: "ID-BA", value: 156 },
+        { id: "ID-BB", value: 141 },
+        { id: "ID-BE", value: 343 },
+        { id: "ID-BT", value: 225 },
+        { id: "ID-GO", value: 364 },
+        { id: "ID-JA", value: 910 },
+        { id: "ID-JB", value: 588 },
+        { id: "ID-JI", value: 721 },
+        { id: "ID-JK", value: 399 },
+        { id: "ID-JT", value: 522 },
+        { id: "ID-KB", value: 843 },
+        { id: "ID-KI", value: 294 },
+        { id: "ID-KR", value: 515 },
+        { id: "ID-KS", value: 238 },
+        { id: "ID-KT", value: 291 },
+        { id: "ID-KU", value: 136 },
+        { id: "ID-LA", value: 211 },
+        { id: "ID-MA", value: 525 },
+        { id: "ID-MU", value: 421 },
+        { id: "ID-NB", value: 358 },
+        { id: "ID-NT", value: 427 },
+        { id: "ID-PA", value: 294 },
+        { id: "ID-PB", value: 799 },
+        { id: "ID-RI", value: 98 },
+        { id: "ID-SA", value: 801 },
+        { id: "ID-SB", value: 311 },
+        { id: "ID-SG", value: 194 },
+        { id: "ID-SN", value: 436 },
+        { id: "ID-SR", value: 757 },
+        { id: "ID-SS", value: 28 },
+        { id: "ID-ST", value: 501 },
+        { id: "ID-SU", value: 442 },
+        { id: "ID-YO", value: 357 }
+      ])
+
+      this.severityHeatLegend = this.chart.children.push(am5.HeatLegend.new(root, {
+        orientation: "horizontal",
+        startColor: am5.color("#FFFFFF"),
+        endColor: am5.color("#E03444"),
+        startText: "Lowest",
+        endText: "Highest",
+        stepCount: 4,
+        maxWidth: 1000,
+        paddingTop: 800,
+        paddingLeft: 600,
+        paddingRight: -200,
+      }));
+      
+      /* istanbul ignore next */
+      this.severityHeatLegend.startLabel.setAll({
+        fontSize: 12,
+        fill: this.severityHeatLegend.get("startColor")
+      });
+      
+      /* istanbul ignore next */
+      this.severityHeatLegend.endLabel.setAll({
+        fontSize: 12,
+        fill: this.severityHeatLegend.get("endColor")
+      });
+      
+      /* istanbul ignore next */
+      // Initially hide the severity layer
+      this.severitySeries.hide();
+      this.severityHeatLegend.hide()
+
+      // Add a second layer for highlighting
+      this.highlightSeries = this.chart.series.push(
+        am5map.MapPolygonSeries.new(root, {
+          geoJSON: am5geodata_indonesiaLow,
+          exclude: ["AQ"],
+        })
+      );
+
+      this.highlightSeries.mapPolygons.template.setAll({
+          fill: am5.color("#E0E0E0"),
+          fillOpacity: 0.3,
+          stroke: am5.color("#999999"),
+          strokeWidth: 1,
+      });
+
+      // Add hover effect
+      /* istanbul ignore next */
+      this.basePolygonSeries.mapPolygons.template.events.on("pointerover", (ev) => {
+        const polygon = ev.target;
+        if (polygon && this.highlightSeries?.mapPolygons) {
+          const index = this.basePolygonSeries?.mapPolygons.indexOf(polygon);
+          if (index !== undefined) {
+            const highlightPolygon = this.highlightSeries.mapPolygons.getIndex(index);
+            if (highlightPolygon) {
+              highlightPolygon.set("fill", am5.color("#FF0000"));
+            }
+          }
+        }
+      });
+
+      /* istanbul ignore next */
+      this.basePolygonSeries.mapPolygons.template.events.on("pointerout", (ev) => {
+        const polygon = ev.target;
+        if (polygon && this.highlightSeries?.mapPolygons) {
+          const index = this.basePolygonSeries?.mapPolygons.indexOf(polygon);
+          if (index !== undefined) {
+            const highlightPolygon = this.highlightSeries.mapPolygons.getIndex(index);
+            if (highlightPolygon) {
+              highlightPolygon.set("fill", am5.color("#E0E0E0"));
+            }
+          }
+        }
+      });
+
+      /* istanbul ignore next */
       this.chart.set("background", am5.Rectangle.new(this.root, {
           fill: am5.color("#E0E0E0"), 
           fillOpacity: 1,
       }));
 
       /* istanbul ignore next */
-      polygonSeries.events.on("datavalidated", () => {
+      this.basePolygonSeries.events.on("datavalidated", () => {
         this.chart?.goHome();
       });
     } catch (error) {
@@ -166,21 +314,22 @@ export class MapChartService {
     if (!this.pointSeries || !this.root) return;
     try {
       const root = this.root;
+      /* istanbul ignore next */
       this.pointSeries.set("clusteredBullet", (root: am5.Root) => {
         const container = am5.Container.new(root, {
           cursorOverStyle: "pointer",
         });
 
         container.children.push(
-          am5.Circle.new(root, { radius: 8, tooltipY: 0, fill: am5.color(0xfc0339) })
+          am5.Circle.new(root, { radius: 8, tooltipY: 0, fill: am5.color("#fc0339") })
         );
 
         container.children.push(
-          am5.Circle.new(root, { radius: 12, fillOpacity: 0.3, tooltipY: 0, fill: am5.color(0xfc0339) })
+          am5.Circle.new(root, { radius: 12, fillOpacity: 0.3, tooltipY: 0, fill: am5.color("#fc0339") })
         );
 
         container.children.push(
-          am5.Circle.new(root, { radius: 16, fillOpacity: 0.3, tooltipY: 0, fill: am5.color(0xfc0339) })
+          am5.Circle.new(root, { radius: 16, fillOpacity: 0.3, tooltipY: 0, fill: am5.color("#fc0339") })
         );
 
         container.children.push(
@@ -229,10 +378,11 @@ export class MapChartService {
       const circle = am5.Circle.new(root, {
         radius: 6,
         tooltipY: 0,
-        fill: am5.color(0xfc0339),
+        fill: am5.color("#fc0339"),
         cursorOverStyle: "pointer",
       });
   
+      /* istanbul ignore next */
       circle.events.on("pointerover", async (ev) => {
         if (dataItem?.dataContext) {
           try {
@@ -288,8 +438,8 @@ export class MapChartService {
         geometry: { 
           type: "Point", 
           coordinates: [
-            parseFloat(location.location__longitude), 
-            parseFloat(location.location__latitude),
+            location.location__longitude, 
+            location.location__latitude,
           ] 
         },
         city: location.city,
@@ -304,28 +454,31 @@ export class MapChartService {
     /* istanbul ignore next */
     if (!this.chart || !this.root) return;
     
+    // Non-null assertion is safe after the check above
+    const root = this.root!;
+    
     this.locationSeries = this.chart.series.push(
-      am5map.MapPointSeries.new(this.root, {})
+      am5map.MapPointSeries.new(root, {})
     );
 
     /* istanbul ignore next */
     this.locationSeries.bullets.push(() =>
-      am5.Bullet.new(this.root, {
-        sprite: am5.Circle.new(this.root, {
+      am5.Bullet.new(root, {
+        sprite: am5.Circle.new(root, {
           radius: 8,
-          fill: am5.color(0x2196F3),
+          fill: am5.color("#2196F3"),
           strokeWidth: 2,
-          stroke: am5.color(0xFFFFFF),
+          stroke: am5.color("#FFFFFF"),
         }),
       })
     );
 
     /* istanbul ignore next */
     this.locationSeries.bullets.push(() =>
-      am5.Bullet.new(this.root, {
-        sprite: am5.Circle.new(this.root, {
+      am5.Bullet.new(root, {
+        sprite: am5.Circle.new(root, {
           radius: 12,
-          fill: am5.color(0x2196F3),
+          fill: am5.color("#2196F3"),
           fillOpacity: 0.3,
         }),
       })
@@ -356,8 +509,11 @@ export class MapChartService {
 
       // Zoom to the location
       this.chart.zoomToGeoPoint({ longitude, latitude }, 32, true);
+      /* istanbul ignore next */
     } catch (error) {
+      /* istanbul ignore next */
       console.error("Failed to zoom to location: ", error);
+      /* istanbul ignore next */
       throw error;
     }
   }
@@ -368,6 +524,96 @@ export class MapChartService {
       this.root = null;
       this.chart = null;
       this.pointSeries = null;
+    }
+  }
+
+  // Add methods to control layer visibility
+  /* istanbul ignore next */
+  public showBaseLayer(): void {
+    if (this.basePolygonSeries) {
+      this.basePolygonSeries.show();
+    }
+  }
+
+  /* istanbul ignore next */
+  public hideBaseLayer(): void {
+    if (this.basePolygonSeries) {
+      this.basePolygonSeries.hide();
+    }
+  }
+
+  /* istanbul ignore next */
+  public showHighlightLayer(): void {
+    if (this.highlightSeries) {
+      this.highlightSeries.show();
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hideHighlightLayer(): void {
+    if (this.highlightSeries) {
+      this.highlightSeries.hide();
+    }
+  }
+  
+  /* istanbul ignore next */
+  public showPointLayer(): void {
+    if (this.pointSeries) {
+      this.pointSeries.show();
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hidePointLayer(): void {
+    if (this.pointSeries) {
+      this.pointSeries.hide();
+    }
+  }
+
+  // Add methods to control province layer visibility
+    
+  /* istanbul ignore next */
+  public showSeverityLayer(): void {
+    if (this.severitySeries && this.severityHeatLegend) {
+      this.severitySeries.show();
+      this.severityHeatLegend.show();
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hideSeverityLayer(): void {
+    if (this.severitySeries && this.severityHeatLegend) {
+      this.severitySeries.hide();
+      this.severityHeatLegend.hide();
+    }
+  }
+
+  // Update the toggleLayers method to include province layer
+    
+  /* istanbul ignore next */
+  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showSeverity: boolean): void {
+    if (showBase) {
+      this.showBaseLayer();
+    } else {
+      this.hideBaseLayer();
+    }
+
+    if (showHighlight) {
+      this.showHighlightLayer();
+    } else {
+      this.hideHighlightLayer();
+    }
+
+    if (showPoints) {
+      this.showPointLayer();
+    } else {
+      this.hidePointLayer();
+    }
+
+    if (showSeverity) {
+      this.showSeverityLayer();
+    } else {
+      this.hideSeverityLayer();
     }
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MapChartService } from "../services/mapChartService";
 import { MapLocation, MapConfig } from "../types";
+import { useMapStore } from "../store/store";
 
 export function useIndonesiaMap(
   containerId: string, 
@@ -12,6 +13,7 @@ export function useIndonesiaMap(
   const mapServiceRef = useRef<MapChartService | null>(null);
   const [mapService, setMapService] = useState<MapChartService | null>(null);
   const locationsRef = useRef<MapLocation[]>(locations);
+  const setMapServiceStore = useMapStore((state) => state.setMapService);
   
   // Set up the map once
   useEffect(() => {
@@ -28,6 +30,7 @@ export function useIndonesiaMap(
       service.populateLocations(locations);
       mapServiceRef.current = service;
       setMapService(service);
+      setMapServiceStore(service); // Update the Zustand store
     } catch (error) {
       console.error("Failed to initialize map:", error);
       onError("Failed to initialize the map. Please try again.");
@@ -38,9 +41,10 @@ export function useIndonesiaMap(
       if (!initialized && mapServiceRef.current) {
         mapServiceRef.current.dispose();
         mapServiceRef.current = null;
+        setMapServiceStore(null); // Clear the service from store on cleanup
       }
     };
-  }, [containerId, config, initialized, onError]);
+  }, [containerId, config, initialized, onError, setMapServiceStore]);
   
   // Update locations when they change, without reinitializing the map
   useEffect(() => {

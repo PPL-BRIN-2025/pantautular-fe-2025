@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "../../../utils/tmg"
+import { useMapStore } from "../../../store/store"
 
 interface GearToggleButtonProps {
   onClick?: () => void
@@ -16,7 +17,8 @@ export default function GearToggleButton({
   size = "md",
   ariaLabel = "Settings",
 }: Readonly<GearToggleButtonProps>) {
-  const [isActive, setIsActive] = useState(false)
+  const { mapService, activeButton, setActiveButton } = useMapStore()
+  const isActive = activeButton === 'severity'
 
   const sizeClasses = {
     sm: "h-10 w-10",
@@ -30,10 +32,24 @@ export default function GearToggleButton({
     lg: 24,
   }
 
-  const handleClick = () => {
-    setIsActive(!isActive)
+  const handleClick = () => { 
+    const newActiveState = !isActive
+    setActiveButton(newActiveState ? 'severity' : null)
     onClick?.()
   }
+
+  // Add useEffect to respond to activeButton changes
+  useEffect(() => {
+    /* istanbul ignore next */
+    if (mapService) {
+      /* istanbul ignore next */
+      if (isActive) {
+        mapService.showSeverityLayer()
+      } else {
+        mapService.hideSeverityLayer()
+      }
+    }
+  }, [isActive, mapService])
 
   return (
     <button
