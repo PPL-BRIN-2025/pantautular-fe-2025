@@ -2,47 +2,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import GeneralInformation from "../../app/components/dashboard/GeneralInformation";
 import React from "react";
-
-// Define the StatisticsData interface for testing
-interface StatisticsData {
-  severity_statistics: {
-    total_cases: number;
-    severity_counts: {
-      Mortalitas?: number;
-      Insiden?: number;
-      Hospitalisasi?: number;
-      [key: string]: number | undefined;
-    };
-  };
-  prevalence_statistics: {
-    prevalence: number;
-    year: number;
-    population: number;
-  };
-  age_statistics: {
-    under_12: number;
-    "12_25": number;
-    "26_45": number;
-    above_45: number;
-  };
-  gender_statistics: {
-    male: number;
-    female: number;
-  };
-  severity_dates_count_statistics: any;
-  national_news_statistics: {
-    top_national: Array<{ portal: string; count: number }>;
-    all_national: Array<{ portal: string; news_count: number; disease_count: number }>;
-  };
-  local_portal_statistics: {
-    top_local: Array<{ portal: string; count: number }>;
-    all_local: Array<{ portal: string; news_count: number; disease_count: number }>;
-  };
-  healthcare_news_statistics: {
-    top_healthcare: Array<{ portal: string; count: number }>;
-    all_healthcare: Array<{ portal: string; news_count: number; disease_count: number }>;
-  };
-}
+import { StatisticsData } from "../../types";
 
 // Mock console.log to prevent output during tests
 jest.spyOn(console, 'log').mockImplementation(() => {});
