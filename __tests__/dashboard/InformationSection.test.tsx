@@ -6,7 +6,7 @@ import { FilterState } from "../../types";
 
 // Mock child components
 jest.mock("../../app/components/dashboard/GeneralInformation", () => () => (
-  <div>General Information Content</div>
+  <div data-testid="general-information">General Information Content</div>
 ));
 
 jest.mock("../../app/components/dashboard/CasesOrder", () => () => (
@@ -14,11 +14,11 @@ jest.mock("../../app/components/dashboard/CasesOrder", () => () => (
 ));
 
 jest.mock("../../app/components/floating_buttons/DashboardButton", () => () => (
-  <button>Dashboard</button>
+  <button data-testid="dashboard-button">Dashboard</button>
 ));
 
 jest.mock("../../app/components/floating_buttons/MapButton", () => ({
-  MapButton: () => <button>Map</button>,
+  MapButton: () => <button data-testid="map-button">Map</button>,
 }));
 
 // Mock the useDashboardData hook

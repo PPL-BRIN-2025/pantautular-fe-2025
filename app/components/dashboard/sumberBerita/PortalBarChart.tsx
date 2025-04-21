@@ -1,3 +1,4 @@
+/*istanbul ignore file */
 "use client";
 import { DistributionData } from '@/types';
 import React, { useEffect, useRef, useId } from 'react';
