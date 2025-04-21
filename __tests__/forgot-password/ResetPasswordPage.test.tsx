@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import ResetPasswordPage from '../../app/forgot-password/reset/page';
 
 // Gunakan hoisting untuk meng-import React di dalam mock
-jest.mock('../../app/components/forgot_password/ForgotPasswordForm', () => {
+jest.mock('../../app/components/forgot_password/ResetPasswordForm', () => {
     // Perhatikan - kita perlu mendeklarasikan React di dalam scope mock function
     const React = require('react');
     

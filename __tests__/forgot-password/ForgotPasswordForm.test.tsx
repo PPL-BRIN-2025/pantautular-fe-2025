@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import PasswordForm from '../../app/components/forgot_password/ForgotPasswordForm';
+import PasswordForm from '../../app/components/forgot_password/ResetPasswordForm';
 import { IPasswordValidator } from '../../utils/PasswordValidator';
 
 // Mock PasswordValidator

@@ -1,6 +1,6 @@
 "use client";
 
-import PasswordForm from '../../components/forgot_password/ForgotPasswordForm';
+import PasswordForm from '../../components/forgot_password/ResetPasswordForm';
 import PasswordValidator from '../../../utils/PasswordValidator';
 
 export default function ResetPasswordPage() {
