@@ -64,7 +64,7 @@ describe("ForgotPasswordPage Component", () => {
       const emailInput = screen.getByLabelText(/email/i);
       fireEvent.change(emailInput, { target: { value: "user@example.com" } });
       
-      const form = emailInput.closest("form");
+      emailInput.closest("form");
       const submitButton = screen.getByRole("button", { name: /kirim/i });
 
       expect(() => fireEvent.click(submitButton)).not.toThrow();
