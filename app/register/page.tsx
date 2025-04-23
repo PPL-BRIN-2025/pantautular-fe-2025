@@ -10,16 +10,18 @@ export default function RegisterPage() {
           <form className="space-y-4">
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block mb-1 font-medium">Nama Depan</label>
+                <label htmlFor="firstName" className="block mb-1 font-medium">Nama Depan</label>
                 <input
+                  id="firstName"
                   type="text"
                   placeholder="Isi nama depan"
                   className="w-full border border-gray-300 rounded-md px-4 py-2"
                 />
               </div>
               <div className="flex-1">
-                <label className="block mb-1 font-medium">Nama Belakang</label>
+                <label htmlFor="lastName" className="block mb-1 font-medium">Nama Belakang</label>
                 <input
+                  id="lastName"
                   type="text"
                   placeholder="Isi nama belakang"
                   className="w-full border border-gray-300 rounded-md px-4 py-2"
@@ -27,24 +29,27 @@ export default function RegisterPage() {
               </div>
             </div>
             <div>
-              <label className="block mb-1 font-medium">Email</label>
+              <label htmlFor="email" className="block mb-1 font-medium">Email</label>
               <input
+                id="email"
                 type="email"
                 placeholder="Isi menggunakan domain institusi"
                 className="w-full border border-gray-300 rounded-md px-4 py-2"
               />
             </div>
             <div>
-              <label className="block mb-1 font-medium">Kata Sandi</label>
+              <label htmlFor="password" className="block mb-1 font-medium">Kata Sandi</label>
               <input
+                id="password"
                 type="password"
                 placeholder="Minimal 8 karakter"
                 className="w-full border border-gray-300 rounded-md px-4 py-2"
               />
             </div>
             <div>
-              <label className="block mb-1 font-medium">Konfirmasi Kata Sandi</label>
+              <label htmlFor="confirmPassword" className="block mb-1 font-medium">Konfirmasi Kata Sandi</label>
               <input
+                id="confirmPassword"
                 type="password"
                 placeholder="Pastikan konfirmasi kata sandi sesuai"
                 className="w-full border border-gray-300 rounded-md px-4 py-2"
