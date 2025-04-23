@@ -132,9 +132,16 @@ jest.mock("@amcharts/amcharts5/map", () => {
       new: jest.fn().mockImplementation(() => commonTestSetup.createMockSeries()),
     },
     ClusteredPointSeries: {
-      new: jest.fn().mockImplementation(() => ({
+      new: jest.fn().mockImplementation((root, config) => ({
         ...commonTestSetup.createMockSeries(),
         zoomToCluster: jest.fn(),
+        config: {
+          groupIdField: "province",
+          minDistance: 20,
+          scatterDistance: 20,
+          scatterRadius: 20,
+          stopClusterZoom: 10
+        }
       })),
     },
     ZoomControl: {
@@ -364,10 +371,7 @@ describe("MapChartService", () => {
       expect.anything(),
       expect.objectContaining({
         groupIdField: "province",
-        minDistance: expect.anything(),
-        scatterDistance: expect.anything(),
-        scatterRadius: expect.anything(),
-        stopClusterZoom: expect.anything(),
+        scatterDistance: 20
       })
     );
   });
@@ -386,8 +390,20 @@ describe("MapChartService", () => {
     };
     
     const locations = [
-      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+      { 
+        location__latitude: -6.2, 
+        location__longitude: 106.8, 
+        city: "Jakarta", 
+        id: "1",
+        location__province: "DKI Jakarta" 
+      },
+      { 
+        location__latitude: -7.8, 
+        location__longitude: 110.4, 
+        city: "Yogyakarta", 
+        id: "2",
+        location__province: "DI Yogyakarta" 
+      },
     ];
     
     mapService.populateLocations(locations);
@@ -622,8 +638,20 @@ describe("MapChartService", () => {
   test("populateLocations clears previous data before adding new locations", () => {
     // Setup
     const locations = [
-      { location__latitude: -6.2, location__longitude: 106.8, city: "Jakarta", id: "1" },
-      { location__latitude: -7.8, location__longitude: 110.4, city: "Yogyakarta", id: "2" },
+      { 
+        location__latitude: -6.2, 
+        location__longitude: 106.8, 
+        city: "Jakarta", 
+        id: "1",
+        location__province: "DKI Jakarta" 
+      },
+      { 
+        location__latitude: -7.8, 
+        location__longitude: 110.4, 
+        city: "Yogyakarta", 
+        id: "2",
+        location__province: "DI Yogyakarta" 
+      },
     ];
     
     mapService.initialize("chartdiv", mockConfig);
