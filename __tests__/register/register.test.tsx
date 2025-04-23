@@ -1,6 +1,6 @@
 // __tests__/register/register.test.tsx
-import { render, screen} from '@testing-library/react';
-import RegisterPage from '@/app/register/page';
+import { render, screen } from '@testing-library/react';
+import RegisterPage from '../../app/register/page';
 import '@testing-library/jest-dom';
 
 describe('RegisterPage', () => {
@@ -24,5 +24,4 @@ describe('RegisterPage', () => {
     expect(screen.getByText('Sudah memiliki akun?')).toBeInTheDocument();
     expect(screen.getByText('Masuk')).toBeInTheDocument();
   });
-
 });

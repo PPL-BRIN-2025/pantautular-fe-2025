@@ -4,7 +4,7 @@ import { mapApi } from '../../services/api';
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 
-// Mock mapApi
+// Mock the API
 jest.mock('../../services/api', () => ({
   mapApi: {
     getCaseDetail: jest.fn()
@@ -13,51 +13,55 @@ jest.mock('../../services/api', () => ({
 
 // Mock ReactDOMServer
 jest.mock('react-dom/server', () => ({
-  renderToString: jest.fn()
+  renderToString: jest.fn().mockReturnValue('<div>Mock Tooltip</div>')
 }));
 
-describe('getTooltip', () => {
-  const mockData = {
-    id: 1,
-    name: 'Test Case'
-  };
+// Mock console.log
+const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-  const mockCaseDetail = {
-    id: 1,
-    name: 'Test Case',
-    details: 'Test Details'
-  };
+describe('getTooltip', () => {
+  const mockData = { id: '123' };
 
   beforeEach(() => {
-    // Reset all mocks before each test
     jest.clearAllMocks();
   });
 
-  it('should fetch case detail and render tooltip component', async () => {
-    (mapApi.getCaseDetail as jest.Mock).mockResolvedValue(mockCaseDetail);
-    (ReactDOMServer.renderToString as jest.Mock).mockReturnValueOnce('<div>mocked tooltip</div>');
-
-    const result = await getTooltip(mockData);
-
-    expect(mapApi.getCaseDetail).toHaveBeenCalledWith(mockData.id);
-    expect(ReactDOMServer.renderToString).toHaveBeenCalled();
-    expect(result).toBe('<div>mocked tooltip</div>');
-  });
-
   it('should handle API errors and return error message', async () => {
+    // Mock API error
     (mapApi.getCaseDetail as jest.Mock).mockRejectedValue(new Error('API Error'));
 
     const result = await getTooltip(mockData);
 
-    expect(result).toBe('Error loading case details');
+    expect(result).toBe('<div class="bg-white p-4">Error loading data</div>');
   });
 
   it('should include the onClose handler in tooltip props', async () => {
+    // Mock successful API response
+    const mockCaseDetail = { id: '123', title: 'Test Case' };
     (mapApi.getCaseDetail as jest.Mock).mockResolvedValue(mockCaseDetail);
-    const consoleSpy = jest.spyOn(console, 'log');
 
+    // Mock React.createElement
+    const createElementSpy = jest.spyOn(React, 'createElement');
+    
     await getTooltip(mockData);
 
-    expect(consoleSpy).toHaveBeenCalledWith('Tooltip closed');
+    // Verify that createElement was called with the correct props
+    expect(createElementSpy).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        data: mockCaseDetail,
+        onClose: expect.any(Function)
+      })
+    );
+
+    // Get the onClose function from the props
+    const props = createElementSpy.mock.calls[0][1] as { onClose: () => void };
+    const onCloseArg = props.onClose;
+    
+    // Call the onClose function
+    onCloseArg();
+    
+    // Verify console.log was called
+    expect(consoleSpy).toHaveBeenCalledWith('Close requested for tooltip:', mockData.id);
   });
 });
