@@ -10,10 +10,14 @@ const PASSWORD_REQUIREMENTS = {
   requireSpecialChars: true,
 };
 
+// Simple and efficient email validation pattern
+const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 // Validation messages
 const VALIDATION_MESSAGES = {
   PASSWORD_REQUIRED: 'Kata sandi wajib diisi',
-  PASSWORD_MISMATCH: 'Kata sandi tidak sesuai'
+  PASSWORD_MISMATCH: 'Kata sandi tidak sesuai',
+  EMAIL_INVALID: 'Format email tidak valid'
 } as const;
 
 export const useRegistrationFormValidation = () => {
@@ -84,8 +88,8 @@ export const useRegistrationFormValidation = () => {
 
     if (!sanitizedEmail) {
       newErrors.email = 'Email wajib diisi';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
-      newErrors.email = 'Format email tidak valid';
+    } else if (!EMAIL_PATTERN.test(sanitizedEmail)) {
+      newErrors.email = VALIDATION_MESSAGES.EMAIL_INVALID;
     }
 
     if (!formData.password) {

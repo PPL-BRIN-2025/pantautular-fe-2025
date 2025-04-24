@@ -30,6 +30,9 @@ const TEST_ERROR_MESSAGES = {
   TOO_MANY_ATTEMPTS: 'Terlalu banyak percobaan. Silakan coba lagi dalam 5 menit.'
 } as const;
 
+// Simple and efficient email validation pattern
+const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 // Mock the authService
 jest.mock('../../services/authService', () => ({
   authService: {
@@ -82,7 +85,7 @@ jest.mock('../../hooks/useRegistrationFormValidation', () => {
         // Validate email
         if (!formData.email) {
           mockErrors.email = TEST_ERROR_MESSAGES.EMAIL_REQUIRED;
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        } else if (!EMAIL_PATTERN.test(formData.email)) {
           mockErrors.email = TEST_ERROR_MESSAGES.EMAIL_INVALID;
         }
         
