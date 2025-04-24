@@ -53,7 +53,7 @@ export const useRegistrationFormValidation = () => {
     if (PASSWORD_REQUIREMENTS.requireLowercase && /[a-z]/.test(password)) score++;
     else feedback.push('Password harus mengandung huruf kecil');
 
-    if (PASSWORD_REQUIREMENTS.requireNumbers && /[0-9]/.test(password)) score++;
+    if (PASSWORD_REQUIREMENTS.requireNumbers && /\d/.test(password)) score++;
     else feedback.push('Password harus mengandung angka');
 
     if (PASSWORD_REQUIREMENTS.requireSpecialChars && /[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
@@ -81,10 +81,10 @@ export const useRegistrationFormValidation = () => {
     const sanitizedEmail = sanitizeInput(formData.email);
 
     if (!sanitizedFirstName) newErrors.firstName = 'Nama depan wajib diisi';
-    else if (/[0-9]/.test(sanitizedFirstName)) newErrors.firstName = 'Nama depan tidak boleh mengandung angka';
+    else if (/\d/.test(sanitizedFirstName)) newErrors.firstName = 'Nama depan tidak boleh mengandung angka';
     
     if (!sanitizedLastName) newErrors.lastName = 'Nama belakang wajib diisi';
-    else if (/[0-9]/.test(sanitizedLastName)) newErrors.lastName = 'Nama belakang tidak boleh mengandung angka';
+    else if (/\d/.test(sanitizedLastName)) newErrors.lastName = 'Nama belakang tidak boleh mengandung angka';
 
     if (!sanitizedEmail) {
       newErrors.email = 'Email wajib diisi';
