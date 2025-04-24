@@ -16,10 +16,10 @@ const TEST_CONSTANTS = {
 } as const;
 
 /**
- * Error message constants
- * These messages are used for validation and error handling in tests
+ * Error message constants for tests
+ * These messages are only used in test environment
  */
-const ERROR_MESSAGES = {
+const TEST_ERROR_MESSAGES = {
   FIRST_NAME_REQUIRED: 'Nama depan wajib diisi',
   LAST_NAME_REQUIRED: 'Nama belakang wajib diisi',
   EMAIL_REQUIRED: 'Email wajib diisi',
@@ -37,7 +37,7 @@ jest.mock('../../services/authService', () => ({
       return new Promise((resolve, reject) => {
         // Simulate network delay
         setTimeout(() => {
-          reject(new Error(ERROR_MESSAGES.EMAIL_ALREADY_EXISTS));
+          reject(new Error(TEST_ERROR_MESSAGES.EMAIL_ALREADY_EXISTS));
         }, 100);
       });
     }),
@@ -71,24 +71,24 @@ jest.mock('../../hooks/useRegistrationFormValidation', () => {
         
         // Validate first name
         if (!formData.firstName) {
-          mockErrors.firstName = ERROR_MESSAGES.FIRST_NAME_REQUIRED;
+          mockErrors.firstName = TEST_ERROR_MESSAGES.FIRST_NAME_REQUIRED;
         }
         
         // Validate last name
         if (!formData.lastName) {
-          mockErrors.lastName = ERROR_MESSAGES.LAST_NAME_REQUIRED;
+          mockErrors.lastName = TEST_ERROR_MESSAGES.LAST_NAME_REQUIRED;
         }
         
         // Validate email
         if (!formData.email) {
-          mockErrors.email = ERROR_MESSAGES.EMAIL_REQUIRED;
+          mockErrors.email = TEST_ERROR_MESSAGES.EMAIL_REQUIRED;
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-          mockErrors.email = ERROR_MESSAGES.EMAIL_INVALID;
+          mockErrors.email = TEST_ERROR_MESSAGES.EMAIL_INVALID;
         }
         
         // Validate password
         if (!formData.password) {
-          mockErrors.password = ERROR_MESSAGES.PASSWORD_REQUIRED;
+          mockErrors.password = TEST_ERROR_MESSAGES.PASSWORD_REQUIRED;
         }
         
         return Object.values(mockErrors).every(error => !error);
@@ -100,7 +100,7 @@ jest.mock('../../hooks/useRegistrationFormValidation', () => {
         sanitizeInput: jest.fn((value: string) => value),
         getPasswordValidationResult: jest.fn(() => ({ 
           score: 0, 
-          feedback: [ERROR_MESSAGES.PASSWORD_MIN_LENGTH] 
+          feedback: [TEST_ERROR_MESSAGES.PASSWORD_MIN_LENGTH] 
         })),
       };
     },
@@ -121,7 +121,7 @@ describe('RegisterPage', () => {
     (authService.register as jest.Mock).mockImplementation(() => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          reject(new Error(ERROR_MESSAGES.EMAIL_ALREADY_EXISTS));
+          reject(new Error(TEST_ERROR_MESSAGES.EMAIL_ALREADY_EXISTS));
         }, 100);
       });
     });
@@ -239,7 +239,7 @@ describe('RegisterPage', () => {
   });
 
   it('handles registration error', async () => {
-    const errorMessage = ERROR_MESSAGES.EMAIL_ALREADY_EXISTS;
+    const errorMessage = TEST_ERROR_MESSAGES.EMAIL_ALREADY_EXISTS;
     (authService.register as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
     
     render(<RegisterPage />);
@@ -277,7 +277,7 @@ describe('RegisterPage', () => {
     
     // Check for rate limit error message
     await waitFor(() => {
-      expect(screen.getByTestId('error-message')).toHaveTextContent(ERROR_MESSAGES.TOO_MANY_ATTEMPTS);
+      expect(screen.getByTestId('error-message')).toHaveTextContent(TEST_ERROR_MESSAGES.TOO_MANY_ATTEMPTS);
     });
   });
     
@@ -341,10 +341,10 @@ describe('RegisterPage', () => {
     // Mock validation to return errors
     jest.spyOn(require('../../hooks/useRegistrationFormValidation'), 'useRegistrationFormValidation').mockImplementation(() => ({
       errors: {
-        firstName: 'Nama depan wajib diisi',
-        lastName: 'Nama belakang wajib diisi',
-        email: 'Email wajib diisi',
-        password: 'Kata sandi wajib diisi'
+        firstName: TEST_ERROR_MESSAGES.FIRST_NAME_REQUIRED,
+        lastName: TEST_ERROR_MESSAGES.LAST_NAME_REQUIRED,
+        email: TEST_ERROR_MESSAGES.EMAIL_REQUIRED,
+        password: TEST_ERROR_MESSAGES.PASSWORD_REQUIRED
       },
       validateForm: jest.fn().mockReturnValue(false),
       sanitizeInput: jest.fn().mockImplementation(value => value),
@@ -513,7 +513,7 @@ describe('RegisterPage', () => {
     }));
 
     // Mock registration to throw an error
-    const errorMessage = ERROR_MESSAGES.EMAIL_ALREADY_EXISTS;
+    const errorMessage = TEST_ERROR_MESSAGES.EMAIL_ALREADY_EXISTS;
     (authService.register as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
 
     render(<RegisterPage />);
