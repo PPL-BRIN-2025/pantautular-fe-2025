@@ -133,10 +133,10 @@ const mockValidationHook = (options: {
   sanitizeInput?: jest.Mock;
 }) => {
   jest.spyOn(require('../../hooks/useRegistrationFormValidation'), 'useRegistrationFormValidation').mockImplementation(() => ({
-    errors: options.errors || {},
-    validateForm: options.validateForm || jest.fn().mockReturnValue(true),
-    sanitizeInput: options.sanitizeInput || jest.fn().mockImplementation(value => value),
-    getPasswordValidationResult: options.getPasswordValidationResult || jest.fn().mockReturnValue({ score: 4, feedback: [] })
+    errors: options.errors ?? {},
+    validateForm: options.validateForm ?? jest.fn().mockReturnValue(true),
+    sanitizeInput: options.sanitizeInput ?? jest.fn().mockImplementation(value => value),
+    getPasswordValidationResult: options.getPasswordValidationResult ?? jest.fn().mockReturnValue({ score: 4, feedback: [] })
   }));
 };
 
@@ -147,16 +147,18 @@ const mockRateLimitHook = (isAllowed: boolean = true, timeLeft: number = 0) => {
   }));
 };
 
+const mockAuthServiceRegister = () => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error(TEST_ERROR_MESSAGES.EMAIL_ALREADY_EXISTS));
+    }, 100);
+  });
+};
+
 describe('RegisterPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (authService.register as jest.Mock).mockImplementation(() => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          reject(new Error(TEST_ERROR_MESSAGES.EMAIL_ALREADY_EXISTS));
-        }, 100);
-      });
-    });
+    (authService.register as jest.Mock).mockImplementation(mockAuthServiceRegister);
   });
 
   it('renders the register page correctly', () => {
