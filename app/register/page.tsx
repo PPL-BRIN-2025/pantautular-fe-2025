@@ -41,14 +41,19 @@ export default function RegisterPage() {
     return () => clearTimeout(handler);
   }, [formData.password, getPasswordValidationResult]);
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>, id: 'firstName' | 'lastName') => {
+    const value = e.target.value;
+    // Remove numbers using concise character class syntax
+    const sanitizedValue = value.replace(/\d/g, '');
+    setFormData(prev => ({ ...prev, [id]: sanitizedValue }));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     
     // For name fields, preserve spaces and prevent numbers
     if (id === 'firstName' || id === 'lastName') {
-      // Remove any numbers from the input
-      const sanitizedValue = value.replace(/[0-9]/g, '');
-      setFormData(prev => ({ ...prev, [id]: sanitizedValue }));
+      handleNameChange(e, id);
     } else {
       const sanitizedValue = sanitizeInput(value);
       setFormData(prev => ({ ...prev, [id]: sanitizedValue }));
