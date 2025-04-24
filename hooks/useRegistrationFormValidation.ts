@@ -10,6 +10,12 @@ const PASSWORD_REQUIREMENTS = {
   requireSpecialChars: true,
 };
 
+// Validation messages
+const VALIDATION_MESSAGES = {
+  PASSWORD_REQUIRED: 'Kata sandi wajib diisi',
+  PASSWORD_MISMATCH: 'Kata sandi tidak sesuai'
+} as const;
+
 export const useRegistrationFormValidation = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -83,7 +89,7 @@ export const useRegistrationFormValidation = () => {
     }
 
     if (!formData.password) {
-      newErrors.password = 'Kata sandi wajib diisi';
+      newErrors.password = VALIDATION_MESSAGES.PASSWORD_REQUIRED;
     } else {
       const result = getPasswordValidationResult(formData.password);
       if (!result.isValid) {
@@ -92,7 +98,7 @@ export const useRegistrationFormValidation = () => {
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Kata sandi tidak sesuai';
+      newErrors.confirmPassword = VALIDATION_MESSAGES.PASSWORD_MISMATCH;
     }
 
     setErrors(newErrors);
