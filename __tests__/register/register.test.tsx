@@ -15,6 +15,21 @@ const TEST_CONSTANTS = {
   LAST_NAME: 'User'
 } as const;
 
+/**
+ * Error message constants
+ * These messages are used for validation and error handling in tests
+ */
+const ERROR_MESSAGES = {
+  FIRST_NAME_REQUIRED: 'Nama depan wajib diisi',
+  LAST_NAME_REQUIRED: 'Nama belakang wajib diisi',
+  EMAIL_REQUIRED: 'Email wajib diisi',
+  EMAIL_INVALID: 'Format email tidak valid',
+  PASSWORD_REQUIRED: 'Kata sandi wajib diisi',
+  PASSWORD_MIN_LENGTH: 'Password minimal 8 karakter',
+  EMAIL_ALREADY_EXISTS: 'Email sudah terdaftar',
+  TOO_MANY_ATTEMPTS: 'Terlalu banyak percobaan. Silakan coba lagi dalam 5 menit.'
+} as const;
+
 // Mock the authService
 jest.mock('../../services/authService', () => ({
   authService: {
@@ -22,7 +37,7 @@ jest.mock('../../services/authService', () => ({
       return new Promise((resolve, reject) => {
         // Simulate network delay
         setTimeout(() => {
-          reject(new Error('Email sudah terdaftar'));
+          reject(new Error(ERROR_MESSAGES.EMAIL_ALREADY_EXISTS));
         }, 100);
       });
     }),
@@ -56,24 +71,24 @@ jest.mock('../../hooks/useRegistrationFormValidation', () => {
         
         // Validate first name
         if (!formData.firstName) {
-          mockErrors.firstName = 'Nama depan wajib diisi';
+          mockErrors.firstName = ERROR_MESSAGES.FIRST_NAME_REQUIRED;
         }
         
         // Validate last name
         if (!formData.lastName) {
-          mockErrors.lastName = 'Nama belakang wajib diisi';
+          mockErrors.lastName = ERROR_MESSAGES.LAST_NAME_REQUIRED;
         }
         
         // Validate email
         if (!formData.email) {
-          mockErrors.email = 'Email wajib diisi';
+          mockErrors.email = ERROR_MESSAGES.EMAIL_REQUIRED;
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-          mockErrors.email = 'Format email tidak valid';
+          mockErrors.email = ERROR_MESSAGES.EMAIL_INVALID;
         }
         
         // Validate password
         if (!formData.password) {
-          mockErrors.password = 'Kata sandi wajib diisi';
+          mockErrors.password = ERROR_MESSAGES.PASSWORD_REQUIRED;
         }
         
         return Object.values(mockErrors).every(error => !error);
@@ -85,7 +100,7 @@ jest.mock('../../hooks/useRegistrationFormValidation', () => {
         sanitizeInput: jest.fn((value: string) => value),
         getPasswordValidationResult: jest.fn(() => ({ 
           score: 0, 
-          feedback: ['Password minimal 8 karakter'] 
+          feedback: [ERROR_MESSAGES.PASSWORD_MIN_LENGTH] 
         })),
       };
     },
@@ -106,7 +121,7 @@ describe('RegisterPage', () => {
     (authService.register as jest.Mock).mockImplementation(() => {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          reject(new Error('Email sudah terdaftar'));
+          reject(new Error(ERROR_MESSAGES.EMAIL_ALREADY_EXISTS));
         }, 100);
       });
     });
@@ -224,7 +239,7 @@ describe('RegisterPage', () => {
   });
 
   it('handles registration error', async () => {
-    const errorMessage = 'A user with this e-mail already exists';
+    const errorMessage = ERROR_MESSAGES.EMAIL_ALREADY_EXISTS;
     (authService.register as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
     
     render(<RegisterPage />);
@@ -262,8 +277,7 @@ describe('RegisterPage', () => {
     
     // Check for rate limit error message
     await waitFor(() => {
-      expect(screen.getByText(/Terlalu banyak percobaan/)).toBeInTheDocument();
-      expect(screen.getByText(/Silakan coba lagi dalam 5 menit/)).toBeInTheDocument();
+      expect(screen.getByTestId('error-message')).toHaveTextContent(ERROR_MESSAGES.TOO_MANY_ATTEMPTS);
     });
   });
     
@@ -499,7 +513,7 @@ describe('RegisterPage', () => {
     }));
 
     // Mock registration to throw an error
-    const errorMessage = 'Email sudah terdaftar';
+    const errorMessage = ERROR_MESSAGES.EMAIL_ALREADY_EXISTS;
     (authService.register as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
 
     render(<RegisterPage />);
