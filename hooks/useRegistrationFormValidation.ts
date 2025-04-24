@@ -17,8 +17,44 @@ const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const VALIDATION_MESSAGES = {
   PASSWORD_REQUIRED: 'Kata sandi wajib diisi',
   PASSWORD_MISMATCH: 'Kata sandi tidak sesuai',
-  EMAIL_INVALID: 'Format email tidak valid'
+  EMAIL_INVALID: 'Format email tidak valid',
+  NAME_CONTAINS_NUMBER: 'Tidak boleh mengandung angka'
 } as const;
+
+// Password validation helper functions
+const checkPasswordLength = (password: string, feedback: string[]): number => {
+  if (password.length >= PASSWORD_REQUIREMENTS.minLength) return 1;
+  feedback.push(`Password minimal ${PASSWORD_REQUIREMENTS.minLength} karakter`);
+  return 0;
+};
+
+const checkPasswordCase = (password: string, feedback: string[]): number => {
+  let score = 0;
+  if (PASSWORD_REQUIREMENTS.requireUppercase && /[A-Z]/.test(password)) score++;
+  else feedback.push('Password harus mengandung huruf kapital');
+
+  if (PASSWORD_REQUIREMENTS.requireLowercase && /[a-z]/.test(password)) score++;
+  else feedback.push('Password harus mengandung huruf kecil');
+
+  return score;
+};
+
+const checkPasswordSpecialChars = (password: string, feedback: string[]): number => {
+  if (PASSWORD_REQUIREMENTS.requireNumbers && /\d/.test(password)) {
+    if (PASSWORD_REQUIREMENTS.requireSpecialChars && /[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return 2;
+    }
+    feedback.push('Password harus mengandung karakter khusus');
+    return 1;
+  }
+  feedback.push('Password harus mengandung angka');
+  return 0;
+};
+
+const checkPasswordCommonPatterns = (password: string, feedback: string[]): void => {
+  if (/(.)\1{2,}/.test(password)) feedback.push('Password tidak boleh mengandung karakter yang berulang');
+  if (/password|123456|qwerty|admin/i.test(password)) feedback.push('Password terlalu umum atau mudah ditebak');
+};
 
 export const useRegistrationFormValidation = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -42,28 +78,14 @@ export const useRegistrationFormValidation = () => {
   } => {
     const feedback: string[] = [];
     let score = 0;
-    let errorMessage = '';
 
-    if (password.length >= PASSWORD_REQUIREMENTS.minLength) score++;
-    else feedback.push(`Password minimal ${PASSWORD_REQUIREMENTS.minLength} karakter`);
-
-    if (PASSWORD_REQUIREMENTS.requireUppercase && /[A-Z]/.test(password)) score++;
-    else feedback.push('Password harus mengandung huruf kapital');
-
-    if (PASSWORD_REQUIREMENTS.requireLowercase && /[a-z]/.test(password)) score++;
-    else feedback.push('Password harus mengandung huruf kecil');
-
-    if (PASSWORD_REQUIREMENTS.requireNumbers && /\d/.test(password)) score++;
-    else feedback.push('Password harus mengandung angka');
-
-    if (PASSWORD_REQUIREMENTS.requireSpecialChars && /[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
-    else feedback.push('Password harus mengandung karakter khusus');
-
-    if (/(.)\1{2,}/.test(password)) feedback.push('Password tidak boleh mengandung karakter yang berulang');
-    if (/password|123456|qwerty|admin/i.test(password)) feedback.push('Password terlalu umum atau mudah ditebak');
+    score += checkPasswordLength(password, feedback);
+    score += checkPasswordCase(password, feedback);
+    score += checkPasswordSpecialChars(password, feedback);
+    checkPasswordCommonPatterns(password, feedback);
 
     const isValid = feedback.length === 0;
-    if (!isValid) errorMessage = feedback[0];
+    const errorMessage = isValid ? undefined : feedback[0];
 
     return { isValid, score, feedback, errorMessage };
   };
@@ -81,10 +103,10 @@ export const useRegistrationFormValidation = () => {
     const sanitizedEmail = sanitizeInput(formData.email);
 
     if (!sanitizedFirstName) newErrors.firstName = 'Nama depan wajib diisi';
-    else if (/\d/.test(sanitizedFirstName)) newErrors.firstName = 'Nama depan tidak boleh mengandung angka';
+    else if (/\d/.test(sanitizedFirstName)) newErrors.firstName = VALIDATION_MESSAGES.NAME_CONTAINS_NUMBER;
     
     if (!sanitizedLastName) newErrors.lastName = 'Nama belakang wajib diisi';
-    else if (/\d/.test(sanitizedLastName)) newErrors.lastName = 'Nama belakang tidak boleh mengandung angka';
+    else if (/\d/.test(sanitizedLastName)) newErrors.lastName = VALIDATION_MESSAGES.NAME_CONTAINS_NUMBER;
 
     if (!sanitizedEmail) {
       newErrors.email = 'Email wajib diisi';
