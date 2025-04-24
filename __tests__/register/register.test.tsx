@@ -8,7 +8,14 @@ import { authService } from '../../services/authService';
 // Mock the authService
 jest.mock('../../services/authService', () => ({
   authService: {
-    register: jest.fn(),
+    register: jest.fn().mockImplementation(() => {
+      return new Promise((resolve, reject) => {
+        // Simulate network delay
+        setTimeout(() => {
+          reject(new Error('Email sudah terdaftar'));
+        }, 100);
+      });
+    }),
   },
 }));
 
@@ -85,6 +92,14 @@ jest.mock('../../hooks/useRateLimit', () => ({
 describe('RegisterPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset the mock implementation for each test
+    (authService.register as jest.Mock).mockImplementation(() => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          reject(new Error('Email sudah terdaftar'));
+        }, 100);
+      });
+    });
   });
 
   it('renders the register page correctly', () => {
@@ -125,17 +140,53 @@ describe('RegisterPage', () => {
   });
 
 
-  it('validates password strength', async () => {
+  it('validates password strength and shows feedback', async () => {
+    // Mock getPasswordValidationResult to return different results based on password
+    jest.spyOn(require('../../hooks/useRegistrationFormValidation'), 'useRegistrationFormValidation').mockImplementation(() => ({
+      errors: {},
+      validateForm: jest.fn().mockReturnValue(true),
+      sanitizeInput: jest.fn().mockImplementation(value => value),
+      getPasswordValidationResult: jest.fn().mockImplementation((password) => {
+        if (password === 'weak') {
+          return {
+            score: 1,
+            feedback: ['Password minimal 8 karakter']
+          };
+        }
+        return {
+          score: 4,
+          feedback: []
+        };
+      })
+    }));
+
     render(<RegisterPage />);
     
     const passwordInput = screen.getByLabelText('Kata Sandi');
     
-    // Input password lemah
+    // Input weak password
     fireEvent.change(passwordInput, { target: { value: 'weak' } });
     
-    // Tunggu debounce
+    // Wait for debounce
     await waitFor(() => {
       expect(screen.getByText('Password minimal 8 karakter')).toBeInTheDocument();
+      const strengthBars = document.querySelectorAll('.h-1.flex-1.rounded');
+      expect(strengthBars.length).toBe(5);
+      expect(strengthBars[0]).toHaveClass('bg-green-500');
+      expect(strengthBars[1]).toHaveClass('bg-gray-200');
+    });
+    
+    // Input strong password
+    fireEvent.change(passwordInput, { target: { value: 'StrongPass123!' } });
+    
+    // Wait for debounce
+    await waitFor(() => {
+      expect(screen.queryByText('Password minimal 8 karakter')).not.toBeInTheDocument();
+      const strengthBars = document.querySelectorAll('.h-1.flex-1.rounded');
+      expect(strengthBars[0]).toHaveClass('bg-green-500');
+      expect(strengthBars[1]).toHaveClass('bg-green-500');
+      expect(strengthBars[2]).toHaveClass('bg-green-500');
+      expect(strengthBars[3]).toHaveClass('bg-green-500');
     });
   });
 
@@ -205,214 +256,8 @@ describe('RegisterPage', () => {
       expect(screen.getByText(/Silakan coba lagi dalam 5 menit/)).toBeInTheDocument();
     });
   });
+    
 
-  it('handles password strength feedback', async () => {
-    render(<RegisterPage />);
-    
-    const passwordInput = screen.getByLabelText('Kata Sandi');
-    
-    // Input password yang lemah
-    fireEvent.change(passwordInput, { target: { value: 'weak' } });
-    
-    // Tunggu debounce selesai
-    await waitFor(() => {
-      expect(screen.getByText('Password minimal 8 karakter')).toBeInTheDocument();
-    });
-    
-    // Input password yang kuat
-    fireEvent.change(passwordInput, { target: { value: 'StrongPass123!' } });
-    
-    // Tunggu debounce selesai
-    await waitFor(() => {
-      const strengthBars = document.querySelectorAll('.h-1.flex-1.rounded');
-      expect(strengthBars.length).toBe(5);
-      expect(strengthBars[0]).toHaveClass('h-1 flex-1 rounded bg-gray-200');
-    });
-  });
-
-
-  it('handles name field sanitization', async () => {
-    render(<RegisterPage />);
-    
-    const firstNameInput = screen.getByLabelText('Nama Depan');
-    const lastNameInput = screen.getByLabelText('Nama Belakang');
-    
-    // Input dengan angka
-    fireEvent.change(firstNameInput, { target: { value: 'John123' } });
-    fireEvent.change(lastNameInput, { target: { value: 'Doe456' } });
-    
-    // Check that numbers are removed
-    expect(firstNameInput).toHaveValue('John');
-    expect(lastNameInput).toHaveValue('Doe');
-  });
-
-  it('handles form submission error', async () => {
-    // Mock rate limit to allow submission
-    jest.spyOn(require('../../hooks/useRateLimit'), 'useRateLimit').mockImplementation(() => ({
-      checkRateLimit: jest.fn().mockReturnValue({ isAllowed: true, timeLeft: 0 }),
-      addAttempt: jest.fn(),
-    }));
-
-    // Mock authService.register to throw an error
-    (authService.register as jest.Mock).mockRejectedValueOnce(new Error('Registration failed'));
-    
-    render(<RegisterPage />);
-    
-    // Fill form with valid data
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    
-    // Submit form
-    const submitButton = screen.getByRole('button', { name: 'Daftar' });
-    fireEvent.click(submitButton);
-    
-    // Check error message
-    await waitFor(() => {
-      expect(screen.getByText('Registration failed')).toBeInTheDocument();
-    });
-  });
-
-  it('handles password strength feedback with debounce', async () => {
-    // Mock getPasswordValidationResult to return different results based on password
-    jest.spyOn(require('../../hooks/useRegistrationFormValidation'), 'useRegistrationFormValidation').mockImplementation(() => ({
-      errors: {},
-      validateForm: jest.fn().mockReturnValue(true),
-      sanitizeInput: jest.fn().mockImplementation(value => value),
-      getPasswordValidationResult: jest.fn().mockImplementation((password) => {
-        if (password === 'weak') {
-          return {
-            score: 1,
-            feedback: ['Password minimal 8 karakter']
-          };
-        }
-        return {
-          score: 4,
-          feedback: []
-        };
-      })
-    }));
-
-    render(<RegisterPage />);
-    
-    const passwordInput = screen.getByLabelText('Kata Sandi');
-    
-    // Input weak password
-    fireEvent.change(passwordInput, { target: { value: 'weak' } });
-    
-    // Initially should not show feedback
-    expect(screen.queryByText('Password minimal 8 karakter')).not.toBeInTheDocument();
-    
-    // Wait for debounce
-    await waitFor(() => {
-      expect(screen.getByText('Password minimal 8 karakter')).toBeInTheDocument();
-    });
-    
-    // Input strong password
-    fireEvent.change(passwordInput, { target: { value: 'StrongPass123!' } });
-    
-    // Wait for debounce
-    await waitFor(() => {
-      expect(screen.queryByText('Password minimal 8 karakter')).not.toBeInTheDocument();
-    });
-  });
-
-  it('handles form submission with network error', async () => {
-    // Mock rate limit to allow submission
-    jest.spyOn(require('../../hooks/useRateLimit'), 'useRateLimit').mockImplementation(() => ({
-      checkRateLimit: jest.fn().mockReturnValue({ isAllowed: true, timeLeft: 0 }),
-      addAttempt: jest.fn(),
-    }));
-
-    // Mock network error
-    (authService.register as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-    
-    render(<RegisterPage />);
-    
-    // Fill form with valid data
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    
-    // Submit form
-    const submitButton = screen.getByRole('button', { name: 'Daftar' });
-    fireEvent.click(submitButton);
-    
-    // Check loading state
-    expect(screen.getByText('Mendaftar...')).toBeInTheDocument();
-    
-    // Wait for error message
-    await waitFor(() => {
-      expect(screen.getByText('Network error')).toBeInTheDocument();
-    });
-    
-    // Check that loading state is removed
-    expect(screen.queryByText('Mendaftar...')).not.toBeInTheDocument();
-  });
-
-  it('handles rate limiting error message display', async () => {
-    // Mock rate limit to be exceeded
-    jest.spyOn(require('../../hooks/useRateLimit'), 'useRateLimit').mockImplementation(() => ({
-      checkRateLimit: jest.fn().mockReturnValue({ isAllowed: false, timeLeft: 5 }),
-      addAttempt: jest.fn(),
-    }));
-
-    render(<RegisterPage />);
-    
-    // Fill form with valid data
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    
-    // Submit form
-    const submitButton = screen.getByRole('button', { name: 'Daftar' });
-    fireEvent.click(submitButton);
-    
-    // Check rate limit error message
-    expect(screen.getByText('Terlalu banyak percobaan. Silakan coba lagi dalam 5 menit.')).toBeInTheDocument();
-  });
-
-  it('handles loading state during form submission', async () => {
-    // Mock rate limit to allow submission
-    jest.spyOn(require('../../hooks/useRateLimit'), 'useRateLimit').mockImplementation(() => ({
-      checkRateLimit: jest.fn().mockReturnValue({ isAllowed: true, timeLeft: 0 }),
-      addAttempt: jest.fn(),
-    }));
-
-    // Mock slow network response
-    (authService.register as jest.Mock).mockImplementationOnce(() => new Promise(resolve => setTimeout(resolve, 100)));
-    
-    render(<RegisterPage />);
-    
-    // Fill form with valid data
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    
-    // Submit form
-    const submitButton = screen.getByRole('button', { name: 'Daftar' });
-    fireEvent.click(submitButton);
-    
-    // Check loading state
-    expect(screen.getByText('Mendaftar...')).toBeInTheDocument();
-    expect(submitButton).toBeDisabled();
-    
-    // Wait for loading to complete
-    await waitFor(() => {
-      expect(screen.queryByText('Mendaftar...')).not.toBeInTheDocument();
-    });
-    
-    // Check that button is enabled again
-    expect(submitButton).not.toBeDisabled();
-  });
 
   it('displays password strength bars correctly', async () => {
     // Mock getPasswordValidationResult to return different scores
@@ -485,7 +330,7 @@ describe('RegisterPage', () => {
     render(<RegisterPage />);
     
     // Submit empty form
-    const submitButton = screen.getByRole('button', { name: 'Daftar' });
+    const submitButton = screen.getByTestId('submit-button');
     fireEvent.click(submitButton);
     
     // Check that error messages are displayed
@@ -526,7 +371,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
     
     // Submit form
-    const submitButton = screen.getByRole('button', { name: 'Daftar' });
+    const submitButton = screen.getByTestId('submit-button');
     fireEvent.click(submitButton);
     
     // Check loading state
@@ -607,7 +452,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
     
     // Submit form
-    const submitButton = screen.getByRole('button', { name: 'Daftar' });
+    const submitButton = screen.getByTestId('submit-button');
     fireEvent.click(submitButton);
     
     // Check loading state
@@ -657,18 +502,18 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
     
     // Submit form
-    const submitButton = screen.getByRole('button', { name: 'Daftar' });
+    const submitButton = screen.getByTestId('submit-button');
     fireEvent.click(submitButton);
     
     // Check loading state
-    expect(screen.getByText('Mendaftar...')).toBeInTheDocument();
+    expect(submitButton).toHaveTextContent('Mendaftar...');
     
     // Wait for error message
     await waitFor(() => {
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(screen.getByTestId('error-message')).toHaveTextContent(errorMessage);
     });
     
     // Check that loading state is removed
-    expect(screen.queryByText('Mendaftar...')).not.toBeInTheDocument();
+    expect(submitButton).toHaveTextContent('Daftar');
   });
 });

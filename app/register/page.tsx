@@ -93,8 +93,8 @@ export default function RegisterPage() {
           Mari bergabung dengan PantauTular!
         </h1>
         {submitError && (
-          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
-            {submitError.replace(/[\[\]'"]/g, '')}
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md" data-testid="error-message">
+            {submitError}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4" data-testid="register-form">
@@ -204,7 +204,10 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full bg-[#0062E3] text-white font-semibold py-2 rounded-md mt-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full bg-[#0062E3] text-white font-semibold py-2 rounded-md mt-2 ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            data-testid="submit-button"
           >
             {isLoading ? 'Mendaftar...' : 'Daftar'}
           </button>
