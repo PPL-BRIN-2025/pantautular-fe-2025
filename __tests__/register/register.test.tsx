@@ -4,6 +4,16 @@ import RegisterPage from '../../app/register/page';
 import '@testing-library/jest-dom';
 import { authService } from '../../services/authService';
 
+/**
+ * Test-specific constants
+ * These values are only used in test environment and should never be used in production
+ */
+const TEST_CONSTANTS = {
+  PASSWORD: 'testPassword123!',
+  EMAIL: 'test@example.com',
+  FIRST_NAME: 'Test',
+  LAST_NAME: 'User'
+} as const;
 
 // Mock the authService
 jest.mock('../../services/authService', () => ({
@@ -195,20 +205,20 @@ describe('RegisterPage', () => {
     
     render(<RegisterPage />);
     
-    // Isi form dengan data valid
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
+    // Fill form with valid data
+    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: TEST_CONSTANTS.FIRST_NAME } });
+    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: TEST_CONSTANTS.LAST_NAME } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: TEST_CONSTANTS.EMAIL } });
+    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
+    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
     
     fireEvent.click(screen.getByRole('button', { name: 'Daftar' }));
     
     await waitFor(() => {
       expect(authService.register).toHaveBeenCalledWith({
-        name: 'John Doe',
-        email: 'john@example.com',
-        password: 'StrongPass123!'
+        name: `${TEST_CONSTANTS.FIRST_NAME} ${TEST_CONSTANTS.LAST_NAME}`,
+        email: TEST_CONSTANTS.EMAIL,
+        password: TEST_CONSTANTS.PASSWORD
       });
     });
   });
@@ -219,11 +229,11 @@ describe('RegisterPage', () => {
     
     render(<RegisterPage />);
     
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
+    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: TEST_CONSTANTS.FIRST_NAME } });
+    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: TEST_CONSTANTS.LAST_NAME } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: TEST_CONSTANTS.EMAIL } });
+    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
+    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
     
     fireEvent.click(screen.getByRole('button', { name: 'Daftar' }));
     
@@ -240,11 +250,11 @@ describe('RegisterPage', () => {
     render(<RegisterPage />);
     
     // Fill form with valid data
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
+    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: TEST_CONSTANTS.FIRST_NAME } });
+    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: TEST_CONSTANTS.LAST_NAME } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: TEST_CONSTANTS.EMAIL } });
+    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
+    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
     
     // Submit form
     const submitButton = screen.getByRole('button', { name: 'Daftar' });
@@ -299,7 +309,7 @@ describe('RegisterPage', () => {
     });
     
     // Input strong password
-    fireEvent.change(passwordInput, { target: { value: 'StrongPass123!' } });
+    fireEvent.change(passwordInput, { target: { value: TEST_CONSTANTS.PASSWORD } });
     
     // Wait for debounce
     await waitFor(() => {
@@ -364,11 +374,11 @@ describe('RegisterPage', () => {
     render(<RegisterPage />);
     
     // Fill form with valid data
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
+    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: TEST_CONSTANTS.FIRST_NAME } });
+    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: TEST_CONSTANTS.LAST_NAME } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: TEST_CONSTANTS.EMAIL } });
+    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
+    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
     
     // Submit form
     const submitButton = screen.getByTestId('submit-button');
@@ -380,9 +390,9 @@ describe('RegisterPage', () => {
     // Wait for registration to complete
     await waitFor(() => {
       expect(authService.register).toHaveBeenCalledWith({
-        name: 'John Doe',
-        email: 'john@example.com',
-        password: 'StrongPass123!'
+        name: `${TEST_CONSTANTS.FIRST_NAME} ${TEST_CONSTANTS.LAST_NAME}`,
+        email: TEST_CONSTANTS.EMAIL,
+        password: TEST_CONSTANTS.PASSWORD
       });
     });
   });
@@ -437,7 +447,7 @@ describe('RegisterPage', () => {
     });
     
     // Input strong password
-    fireEvent.change(passwordInput, { target: { value: 'StrongPass123!' } });
+    fireEvent.change(passwordInput, { target: { value: TEST_CONSTANTS.PASSWORD } });
     
     // Wait for debounce and check feedback is removed
     await waitFor(() => {
@@ -446,10 +456,10 @@ describe('RegisterPage', () => {
     });
     
     // Fill form with valid data
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
+    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: TEST_CONSTANTS.FIRST_NAME } });
+    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: TEST_CONSTANTS.LAST_NAME } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: TEST_CONSTANTS.EMAIL } });
+    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
     
     // Submit form
     const submitButton = screen.getByTestId('submit-button');
@@ -462,9 +472,9 @@ describe('RegisterPage', () => {
     // Wait for registration to complete
     await waitFor(() => {
       expect(authService.register).toHaveBeenCalledWith({
-        name: 'John Doe',
-        email: 'john@example.com',
-        password: 'StrongPass123!'
+        name: `${TEST_CONSTANTS.FIRST_NAME} ${TEST_CONSTANTS.LAST_NAME}`,
+        email: TEST_CONSTANTS.EMAIL,
+        password: TEST_CONSTANTS.PASSWORD
       });
     });
     
@@ -495,11 +505,11 @@ describe('RegisterPage', () => {
     render(<RegisterPage />);
     
     // Fill form with valid data
-    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: 'John' } });
-    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: 'Doe' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
-    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: 'StrongPass123!' } });
+    fireEvent.change(screen.getByLabelText('Nama Depan'), { target: { value: TEST_CONSTANTS.FIRST_NAME } });
+    fireEvent.change(screen.getByLabelText('Nama Belakang'), { target: { value: TEST_CONSTANTS.LAST_NAME } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: TEST_CONSTANTS.EMAIL } });
+    fireEvent.change(screen.getByLabelText('Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
+    fireEvent.change(screen.getByLabelText('Konfirmasi Kata Sandi'), { target: { value: TEST_CONSTANTS.PASSWORD } });
     
     // Submit form
     const submitButton = screen.getByTestId('submit-button');
