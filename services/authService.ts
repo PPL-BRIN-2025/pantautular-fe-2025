@@ -27,7 +27,7 @@ export const authService = {
           // Get the first error message and clean it
           const rawMessage = errorData.detail[0];
           // Remove all special characters and quotes
-          errorMessage = rawMessage.replace(/[\[\]'"]/g, '');
+          errorMessage = rawMessage.replace(/[[\]'"]/g, '');
         } else if (typeof errorData.detail === 'string') {
           errorMessage = errorData.detail;
         }

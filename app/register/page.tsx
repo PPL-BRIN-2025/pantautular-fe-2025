@@ -176,8 +176,8 @@ export default function RegisterPage() {
                 </div>
                 {passwordStrength.feedback.length > 0 && (
                   <ul className="mt-2 text-sm text-gray-600">
-                    {passwordStrength.feedback.map((msg, index) => (
-                      <li key={index} className="flex items-center">
+                    {passwordStrength.feedback.map((msg) => (
+                      <li key={`feedback-${msg}`} className="flex items-center">
                         <span className="mr-1">•</span>
                         {msg}
                       </li>
