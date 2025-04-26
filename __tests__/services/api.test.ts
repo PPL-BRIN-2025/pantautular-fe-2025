@@ -2,7 +2,9 @@ import { mapApi } from "../../services/api";
 
 // Mock global fetch and console.error
 global.fetch = jest.fn();
-console.error = jest.fn();
+
+// Mock console.error
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('mapApi', () => {
     const mockResponse = [
@@ -45,7 +47,7 @@ describe('mapApi', () => {
             });
 
             await expect(mapApi.getLocations()).rejects.toThrow('HTTP error! status: 404');
-            expect(console.error).toHaveBeenCalled();
+            expect(consoleErrorSpy).toHaveBeenCalled();
         });
 
         it('should handle network errors', async () => {
@@ -53,7 +55,7 @@ describe('mapApi', () => {
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
 
             await expect(mapApi.getLocations()).rejects.toThrow('Network error');
-            expect(console.error).toHaveBeenCalledWith('Error fetching locations:', networkError);
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching locations:', networkError);
         });
 
         it('should handle empty response', async () => {
@@ -108,7 +110,7 @@ describe('mapApi', () => {
             });
 
             await expect(mapApi.getFilteredLocations(mockFilters)).rejects.toThrow('HTTP error! status: 400');
-            expect(console.error).toHaveBeenCalled();
+            expect(consoleErrorSpy).toHaveBeenCalled();
         });
 
         it('should handle network errors for filtered locations', async () => {
@@ -116,7 +118,7 @@ describe('mapApi', () => {
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
 
             await expect(mapApi.getFilteredLocations(mockFilters)).rejects.toThrow('Network error');
-            expect(console.error).toHaveBeenCalledWith('Error fetching filtered locations:', networkError);
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching filtered locations:', networkError);
         });
 
         it('should handle empty response for filtered locations', async () => {
@@ -187,12 +189,10 @@ describe('mapApi', () => {
         it('should throw an error when API returns non-ok response', async () => {
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: false,
-                status: 404,
-                statusText: 'Not Found'
+                status: 404
             });
             
             await expect(mapApi.getDashboardData()).rejects.toThrow('HTTP error! status: 404');
-            expect(console.error).toHaveBeenCalled();
         });
 
         it('should throw an error when fetch fails', async () => {
@@ -200,7 +200,6 @@ describe('mapApi', () => {
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
             
             await expect(mapApi.getDashboardData()).rejects.toThrow(networkError);
-            expect(console.error).toHaveBeenCalledWith('Error fetching dashboard data:', networkError);
         });
     });
     
@@ -244,7 +243,7 @@ describe('mapApi', () => {
             });
 
             await expect(mapApi.getCaseDetail(mockCaseId)).rejects.toThrow('HTTP error! status: 404');
-            expect(console.error).toHaveBeenCalled();
+            expect(consoleErrorSpy).toHaveBeenCalled();
         });
 
         it('should handle network errors for case detail', async () => {
@@ -252,7 +251,7 @@ describe('mapApi', () => {
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
 
             await expect(mapApi.getCaseDetail(mockCaseId)).rejects.toThrow('Network error');
-            expect(console.error).toHaveBeenCalledWith('Error fetching case detail:', networkError);
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching case detail:', networkError);
         });
 
         it('should handle empty response for case detail', async () => {

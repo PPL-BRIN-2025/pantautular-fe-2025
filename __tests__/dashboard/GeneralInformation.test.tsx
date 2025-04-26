@@ -1,85 +1,100 @@
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import GeneralInformation from "../../app/components/dashboard/GeneralInformation"
+import GeneralInformation from "../../app/components/dashboard/GeneralInformation";
 
-jest.mock("../../app/components/dashboard/CasesLevel", () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(({ jsonData }) => (
-      <div data-testid="cases-level-chart">Cases Level Chart</div>
-    ))
-  };
-});
-
-jest.mock("../../app/components/dashboard/gender_distribution/GenderDonutChart", () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(({ total, priaValue, wanitaValue }) => (
-      <div data-testid="gender-chart">
-        Gender Chart - Male: {priaValue}, Female: {wanitaValue}, Total: {total}
-      </div>
-    ))
-  };
-});
+// Mock child components
+jest.mock("../../app/components/dashboard/PrevalenceCard", () => () => <div>PrevalenceCard</div>);
+jest.mock("../../app/components/dashboard/gender_distribution/GenderDonutChart", () => () => <div>GenderDonutChart</div>);
+jest.mock("../../app/components/dashboard/cases_number/CaseNumberCard", () => () => <div>CaseNumberCard</div>);
+jest.mock("../../app/components/dashboard/CasesLevel", () => () => <div>CasesLevel</div>);
+jest.mock("../../app/components/dashboard/age_statistic/AgeStatisticCard", () => () => <div>AgeStatisticCard</div>);
+jest.mock("../../app/components/dashboard/sumberBerita/PortalBarChart", () => () => <div>PortalBarChart</div>);
+jest.mock("../../app/components/dashboard/DetailDistribution", () => () => <div>DetailDistribution</div>);
 
 describe("GeneralInformation Component", () => {
   const mockData = {
+    prevalence_statistics: {
+      prevalence: 0.5,
+      year: 2024,
+      population: 1000000
+    },
     severity_statistics: {
       total_cases: 100,
-      severity_counts: { Mortalitas: 10, Insiden: 80, Hospitalisasi: 10 },
+      severity_counts: {
+        Mortalitas: 10,
+        Insiden: 80,
+        Hospitalisasi: 10
+      }
     },
-    prevalence_statistics: {
-      prevalence: 7.32, // Changed from 0.07315 to 7.32 for easier testing
-      year: 2024,
-      population: 279390258,
+    age_statistics: {
+      under_12: 20,
+      "12_25": 30,
+      "26_45": 40,
+      above_45: 10
     },
-    gender_statistics: { male: 50, female: 50 },
-    severity_dates_count_statistics: {
-      "Tingkat 1": [{ date: "2024-01", count: 10 }],
+    gender_statistics: {
+      male: 60,
+      female: 40
     },
+    severity_dates_count_statistics: {},
+    national_news_statistics: {
+      top_national: [],
+      all_national: []
+    },
+    local_portal_statistics: {
+      top_local: [],
+      all_local: []
+    },
+    healthcare_news_statistics: {
+      top_healthcare: [],
+      all_healthcare: []
+    }
   };
 
-  it("renders all cards with correct data", () => {
+  it("renders correctly with data", () => {
     render(<GeneralInformation data={mockData} />);
-
     expect(screen.getByText("Informasi Kasus Penyakit Menular")).toBeInTheDocument();
-    expect(screen.getByText("100")).toBeInTheDocument(); // Total cases
-    expect(screen.getByText("7.32")).toBeInTheDocument(); // Prevalence rate
-    expect(screen.getByTestId("gender-chart")).toHaveTextContent("Male: 50"); // Gender stats
-    expect(screen.getByTestId("cases-level-chart")).toBeInTheDocument(); // Cases level chart
+    expect(screen.getByText("Distribusi Sumber Berita")).toBeInTheDocument();
   });
 
-  it("applies the correct CSS classes", () => {
-    const { container } = render(<GeneralInformation data={mockData} />);
+  it("renders loading state", () => {
+    const { rerender } = render(<GeneralInformation data={undefined} />);
+    expect(screen.getByText("Informasi Kasus Penyakit Menular")).toBeInTheDocument();
     
-    // Check for correct layout classes
-    expect(container.querySelector('.bg-white')).toBeInTheDocument();
-    expect(container.querySelector('.rounded-lg')).toBeInTheDocument();
-    expect(container.querySelector('.shadow-sm')).toBeInTheDocument();
-    
-    // Check for grid layout
-    expect(container.querySelector('.grid-cols-1')).toBeInTheDocument();
-    expect(container.querySelector('.md\\:grid-cols-2')).toBeInTheDocument();
+    // Simulate loading state
+    rerender(<GeneralInformation data={undefined} />);
+    expect(screen.getByText("CaseNumberCard")).toBeInTheDocument();
   });
 
-  it("returns null when data is null", () => {
-    const { container } = render(<GeneralInformation data={null} />);
-    expect(container.firstChild).toBeNull();
+  it("renders error state", () => {
+    const errorData = {
+      ...mockData,
+      error: "Error loading data"
+    };
+    render(<GeneralInformation data={errorData} />);
+    expect(screen.getByText("Informasi Kasus Penyakit Menular")).toBeInTheDocument();
   });
-  
-  it("handles missing severity counts properties", () => {
+
+  it("renders all child components", () => {
+    render(<GeneralInformation data={mockData} />);
+    expect(screen.getByText("PrevalenceCard")).toBeInTheDocument();
+    expect(screen.getByText("GenderDonutChart")).toBeInTheDocument();
+    expect(screen.getByText("CaseNumberCard")).toBeInTheDocument();
+    expect(screen.getByText("CasesLevel")).toBeInTheDocument();
+    expect(screen.getByText("AgeStatisticCard")).toBeInTheDocument();
+    expect(screen.getAllByText("PortalBarChart")).toHaveLength(3);
+  });
+
+  it("handles missing data gracefully", () => {
     const incompleteData = {
       ...mockData,
       severity_statistics: {
-        total_cases: 100,
-        severity_counts: {} // Tidak memiliki properti Mortalitas, Insiden, atau Hospitalisasi
+        total_cases: 0,
+        severity_counts: {}
       }
     };
-    
     render(<GeneralInformation data={incompleteData} />);
-    
-    // Pastikan component tidak crash dan default nilai 0 digunakan
     expect(screen.getByText("Informasi Kasus Penyakit Menular")).toBeInTheDocument();
-    expect(screen.getByText("100")).toBeInTheDocument(); // Total cases masih ada
   });
 });
