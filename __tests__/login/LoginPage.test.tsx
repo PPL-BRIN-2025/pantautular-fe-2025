@@ -21,6 +21,8 @@ global.fetch = jest.fn();
 
 describe('LoginPage', () => {
   const mockPush = jest.fn();
+  const testEmail = 'user@example.com';
+  const testPassword = 'password123';
   
   beforeEach(() => {
     jest.clearAllMocks();
@@ -29,6 +31,26 @@ describe('LoginPage', () => {
     process.env.NEXT_PUBLIC_API_KEY = 'testApiKey';
   });
   
+  // Helper function to setup component rendering
+  const setupComponent = () => {
+    return render(<LoginPage />);
+  };
+
+  // Helper function to fill login form
+  const fillLoginForm = (email = testEmail, password = testPassword) => {
+    fireEvent.change(screen.getByLabelText(/email/i), { 
+      target: { value: email } 
+    });
+    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
+      target: { value: password } 
+    });
+  };
+
+  // Helper function to submit form
+  const submitForm = () => {
+    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
+  };
+  
   // Happy Path: Successful login
   test('handles successful login', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -36,16 +58,9 @@ describe('LoginPage', () => {
       json: async () => ({}),
     });
     
-    render(<LoginPage />);
-    
-    fireEvent.change(screen.getByLabelText(/email/i), { 
-      target: { value: 'user@example.com' } 
-    });
-    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
-      target: { value: 'password123' } 
-    });
-    
-    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
+    setupComponent();
+    fillLoginForm();
+    submitForm();
     
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -53,9 +68,9 @@ describe('LoginPage', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'x-api-key': expect.any(String),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'x-api-key': expect.any(String),
           }),
           credentials: 'include',
           body: expect.stringMatching(/user@example\.com.*password123/),
@@ -65,64 +80,37 @@ describe('LoginPage', () => {
     });
   });
   
-  // Unhappy Path: Failed login (network error)
-  test('handles network error during login', async () => {
-    const errorMessage = 'Network error';
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
-    
-    render(<LoginPage />);
-    
-    fireEvent.change(screen.getByLabelText(/email/i), { 
-      target: { value: 'user@example.com' } 
-    });
-    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
-      target: { value: 'password123' } 
-    });
-    
-    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
-    
-    await waitFor(() => {
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
-    });
-  });
+  // Error scenarios
+  const errorScenarios = [
+    { 
+      name: 'network error',
+      error: new Error('Network error'),
+      expectedMessage: 'Network error'
+    },
+    {
+      name: 'server error',
+      error: new Error('Internal Server Error'),
+      expectedMessage: 'Internal Server Error'
+    },
+    {
+      name: 'unknown error',
+      error: 'Unknown error',
+      expectedMessage: 'Terjadi kesalahan saat login'
+    }
+  ];
   
-  // Unhappy Path: Failed login (server error)
-  test('handles server error during login', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Internal Server Error'));
-    
-    render(<LoginPage />);
-    
-    fireEvent.change(screen.getByLabelText(/email/i), { 
-      target: { value: 'user@example.com' } 
-    });
-    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
-      target: { value: 'password123' } 
-    });
-    
-    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
-    
-    await waitFor(() => {
-      expect(screen.getByText('Internal Server Error')).toBeInTheDocument();
-    });
-  });
-  
-  // Unhappy Path: Generic error (non-Error object thrown)
-  test('handles unknown error during login', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce('Unknown error');
-    
-    render(<LoginPage />);
-    
-    fireEvent.change(screen.getByLabelText(/email/i), { 
-      target: { value: 'user@example.com' } 
-    });
-    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
-      target: { value: 'password123' } 
-    });
-    
-    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
-    
-    await waitFor(() => {
-      expect(screen.getByText('Terjadi kesalahan saat login')).toBeInTheDocument();
+  // Test all error scenarios using parameterized tests
+  errorScenarios.forEach(scenario => {
+    test(`handles ${scenario.name} during login`, async () => {
+      (global.fetch as jest.Mock).mockRejectedValueOnce(scenario.error);
+      
+      setupComponent();
+      fillLoginForm();
+      submitForm();
+      
+      await waitFor(() => {
+        expect(screen.getByText(scenario.expectedMessage)).toBeInTheDocument();
+      });
     });
   });
   
@@ -131,7 +119,7 @@ describe('LoginPage', () => {
     const formElement = document.createElement('form');
     formElement.submit = jest.fn();
     
-    render(<LoginPage />);
+    setupComponent();
     
     // Try to submit without filling required fields (this will trigger HTML5 validation)
     const submitButton = screen.getByRole('button', { name: /masuk/i });
@@ -150,12 +138,9 @@ describe('LoginPage', () => {
     
     (global.fetch as jest.Mock).mockImplementationOnce(() => fetchPromise);
     
-    render(<LoginPage />);
-    
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByLabelText(/kata sandi/i), { target: { value: 'password123' } });
-    
-    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
+    setupComponent();
+    fillLoginForm();
+    submitForm();
     
     // Button should show loading state
     expect(screen.getByRole('button', { name: /memproses/i })).toBeInTheDocument();
@@ -171,7 +156,7 @@ describe('LoginPage', () => {
   
   // UI Elements Test
   test('renders all UI elements correctly', () => {
-    render(<LoginPage />);
+    setupComponent();
     
     // Check for image
     expect(screen.getByAltText('Login')).toBeInTheDocument();
@@ -194,7 +179,7 @@ describe('LoginPage', () => {
   
   // Input Change Handling Test
   test('updates state when input values change', () => {
-    render(<LoginPage />);
+    setupComponent();
     
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/kata sandi/i);
