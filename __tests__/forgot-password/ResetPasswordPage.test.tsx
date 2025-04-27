@@ -15,12 +15,19 @@ jest.mock('../../services/api', () => ({
 jest.mock('../../app/components/forgot_password/ResetPasswordForm', () => {
   const React = require('react');
   
-  return function MockPasswordForm({ onSubmit }: { 
+  return function MockPasswordForm({ passwordValidator, onSubmit }: { 
     passwordValidator: any,
     onSubmit: (password: string, confirmPassword: string) => Promise<void>
   }) {
     const [error, setError] = React.useState('');
     const [formSubmitted, setFormSubmitted] = React.useState(false);
+    const [passwordValidated, setPasswordValidated] = React.useState(false);
+    
+    React.useEffect(() => {
+      if (passwordValidator) {
+        setPasswordValidated(true);
+      }
+    }, [passwordValidator]);
     
     const simulateError = () => {
       setError('Terjadi kesalahan pada server');
@@ -28,9 +35,14 @@ jest.mock('../../app/components/forgot_password/ResetPasswordForm', () => {
 
     const simulateSuccess = async () => {
       try {
-        await onSubmit('ValidPassword123!', 'ValidPassword123!');
-        setFormSubmitted(true);
-        setError('');
+        const validationResult = passwordValidator.validate('ValidPassword123!');
+        if (!validationResult) {
+          await onSubmit('ValidPassword123!', 'ValidPassword123!');
+          setFormSubmitted(true);
+          setError('');
+        } else {
+          setError(validationResult);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error submitting form');
       }
@@ -42,21 +54,9 @@ jest.mock('../../app/components/forgot_password/ResetPasswordForm', () => {
         <button data-testid="trigger-success" onClick={simulateSuccess}>Submit Valid Form</button>
         {error && <div data-testid="error-message" className="text-red-600">{error}</div>}
         {formSubmitted && <div data-testid="success-message">Password berhasil diubah</div>}
+        {passwordValidated && <div data-testid="validator-used" className="hidden">Validator Used</div>}
       </div>
     );
-  };
-});
-
-jest.mock('../../utils/PasswordValidator', () => {
-  return function MockPasswordValidator() {
-    return {
-      validate: jest.fn((password) => {
-        if (password === 'invalid') {
-          return 'Password tidak memenuhi syarat';
-        }
-        return '';
-      }),
-    };
   };
 });
 
