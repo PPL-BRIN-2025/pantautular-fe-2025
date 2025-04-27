@@ -1,198 +1,208 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
 import LoginPage from '../../app/login/page';
+import { useRouter } from 'next/navigation';
 
-// Mock Next's Image component
+// Mock Next.js hooks
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+}));
+
+// Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props: any) => {
-    // eslint-disable-next-line jsx-a11y/alt-text
     return <img {...props} />;
   },
 }));
 
-describe('LoginPage Component', () => {
-  // Happy Path Tests
-  describe('Happy Path', () => {
-    it('renders the login page correctly', () => {
-      render(<LoginPage />);
-      
-      // Check heading
-      expect(screen.getByText('Sudah siap menjelajahi PantauTular?')).toBeInTheDocument();
-      
-      // Check inputs
-      expect(screen.getByLabelText('Email')).toBeInTheDocument();
-      expect(screen.getByLabelText('Kata Sandi')).toBeInTheDocument();
-      
-      // Check links
-      expect(screen.getByText('Daftar')).toBeInTheDocument();
-      expect(screen.getByText('Lupa Kata Sandi?')).toBeInTheDocument();
-      
-      // Check button
-      expect(screen.getByRole('button', { name: 'Masuk' })).toBeInTheDocument();
-      
-      // Check image
-      const image = screen.getByAltText('Login');
-      expect(image).toBeInTheDocument();
-      expect(image).toHaveAttribute('src');
-    });
+// Mock fetch
+global.fetch = jest.fn();
 
-    it('allows user to input email and password', async () => {
-      const user = userEvent.setup();
-      render(<LoginPage />);
-      
-      const emailInput = screen.getByLabelText('Email');
-      const passwordInput = screen.getByLabelText('Kata Sandi');
-      
-      await user.type(emailInput, 'test@example.com');
-      await user.type(passwordInput, 'password123');
-      
-      expect(emailInput).toHaveValue('test@example.com');
-      expect(passwordInput).toHaveValue('password123');
+describe('LoginPage', () => {
+  const mockPush = jest.fn();
+  
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.example.com';
+    process.env.NEXT_PUBLIC_API_KEY = 'testApiKey';
+  });
+  
+  // Happy Path: Successful login
+  test('handles successful login', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
     });
     
-    it('handles form submission correctly', async () => {
-      // Setup a spy on form submission
-      const formSubmitSpy = jest.fn((e) => e.preventDefault());
-      
-      const { container } = render(<LoginPage />);
-      const form = container.querySelector('form');
-      form?.addEventListener('submit', formSubmitSpy);
-      
-      // Fill in the form
-      const emailInput = screen.getByLabelText('Email');
-      const passwordInput = screen.getByLabelText('Kata Sandi');
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-      
-      // Submit the form
-      const submitButton = screen.getByRole('button', { name: 'Masuk' });
-      fireEvent.click(submitButton);
-      
-      // Check if form was submitted
-      expect(formSubmitSpy).toHaveBeenCalledTimes(1);
+    render(<LoginPage />);
+    
+    fireEvent.change(screen.getByLabelText(/email/i), { 
+      target: { value: 'user@example.com' } 
+    });
+    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
+      target: { value: 'password123' } 
+    });
+    
+    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
+    
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://api.example.com/authentication/login',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'x-api-key': 'testApiKey',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
+        })
+      );
+      expect(mockPush).toHaveBeenCalledWith('/');
     });
   });
   
-  // Unhappy Path Tests
-  describe('Unhappy Path', () => {
-    it('shows validation error for invalid email format', async () => {
-      // This test is for future implementation of validation
-      const user = userEvent.setup();
-      render(<LoginPage />);
-      
-      const emailInput = screen.getByLabelText('Email');
-      const submitButton = screen.getByRole('button', { name: 'Masuk' });
-      
-      await user.type(emailInput, 'invalid-email');
-      await user.click(submitButton);
-      
-      // Since validation is not implemented yet, we just verify we can type invalid data
-      expect(emailInput).toHaveValue('invalid-email');
+  // Unhappy Path: Failed login (network error)
+  test('handles network error during login', async () => {
+    const errorMessage = 'Network error';
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error(errorMessage));
+    
+    render(<LoginPage />);
+    
+    fireEvent.change(screen.getByLabelText(/email/i), { 
+      target: { value: 'user@example.com' } 
+    });
+    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
+      target: { value: 'password123' } 
     });
     
-    it('handles empty form submission', async () => {
-      // Setup a spy on form submission
-      const formSubmitSpy = jest.fn((e) => e.preventDefault());
-      
-      const { container } = render(<LoginPage />);
-      const form = container.querySelector('form');
-      form?.addEventListener('submit', formSubmitSpy);
-      
-      // Submit the form without filling it
-      const submitButton = screen.getByRole('button', { name: 'Masuk' });
-      fireEvent.click(submitButton);
-      
-      // Check if form was submitted anyway (as there's no validation yet)
-      expect(formSubmitSpy).toHaveBeenCalledTimes(1);
+    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
+    
+    await waitFor(() => {
+      expect(screen.getByText(errorMessage)).toBeInTheDocument();
     });
   });
   
-  // Edge Cases
-  describe('Edge Cases', () => {
-    it('handles very long input values', async () => {
-      const user = userEvent.setup();
-      render(<LoginPage />);
-      
-      const emailInput = screen.getByLabelText('Email');
-      const passwordInput = screen.getByLabelText('Kata Sandi');
-      
-      const longEmail = 'a'.repeat(100) + '@example.com';
-      const longPassword = 'b'.repeat(100);
-      
-      await user.type(emailInput, longEmail);
-      await user.type(passwordInput, longPassword);
-      
-      expect(emailInput).toHaveValue(longEmail);
-      expect(passwordInput).toHaveValue(longPassword);
+  // Unhappy Path: Failed login (server error)
+  test('handles server error during login', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Internal Server Error'));
+    
+    render(<LoginPage />);
+    
+    fireEvent.change(screen.getByLabelText(/email/i), { 
+      target: { value: 'user@example.com' } 
+    });
+    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
+      target: { value: 'password123' } 
     });
     
-    it('renders correctly on small screen sizes', () => {
-      // Mock window innerWidth to simulate mobile device
-      Object.defineProperty(window, 'innerWidth', {
-        writable: true,
-        configurable: true,
-        value: 320,
-      });
-      
-      // Trigger window resize event
-      window.dispatchEvent(new Event('resize'));
-      
-      render(<LoginPage />);
-      
-      // Check that elements still exist in mobile view
-      expect(screen.getByText('Sudah siap menjelajahi PantauTular?')).toBeInTheDocument();
-      expect(screen.getByLabelText('Email')).toBeInTheDocument();
-      expect(screen.getByLabelText('Kata Sandi')).toBeInTheDocument();
-    });
+    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
     
-    it('handles tab navigation correctly', async () => {
-      const user = userEvent.setup();
-      render(<LoginPage />);
-      
-      // Focus first element (email input)
-      const emailInput = screen.getByLabelText('Email');
-      emailInput.focus();
-      expect(document.activeElement).toBe(emailInput);
-      
-      // Tab to next element (password input)
-      await user.tab();
-      const passwordInput = screen.getByLabelText('Kata Sandi');
-      expect(document.activeElement).toBe(passwordInput);
-      
-      // Continue tabbing to ensure all interactive elements are reachable
-      await user.tab(); // Should move to Daftar link
-      await user.tab(); // Should move to Lupa Kata Sandi link
-      await user.tab(); // Should move to Masuk button
-      
-      const submitButton = screen.getByRole('button', { name: 'Masuk' });
-      expect(document.activeElement).toBe(submitButton);
+    await waitFor(() => {
+      expect(screen.getByText('Internal Server Error')).toBeInTheDocument();
     });
   });
-
-  // Specific UI element behavior tests
-  describe('UI Element Behavior', () => {
-    it('button has hover state', async () => {
-      render(<LoginPage />);
-      const button = screen.getByRole('button', { name: 'Masuk' });
-      
-      // Check that button has the hover styles class
-      expect(button).toHaveClass('hover:bg-blue-700');
+  
+  // Unhappy Path: Generic error (non-Error object thrown)
+  test('handles unknown error during login', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce('Unknown error');
+    
+    render(<LoginPage />);
+    
+    fireEvent.change(screen.getByLabelText(/email/i), { 
+      target: { value: 'user@example.com' } 
+    });
+    fireEvent.change(screen.getByLabelText(/kata sandi/i), { 
+      target: { value: 'password123' } 
     });
     
-    it('tests link navigation', () => {
-      render(<LoginPage />);
-      
-      const registerLink = screen.getByText('Daftar');
-      const forgotPasswordLink = screen.getByText('Lupa Kata Sandi?');
-      
-      // Verify links have href attribute (would be populated in real implementation)
-      expect(registerLink.tagName.toLowerCase()).toBe('a');
-      expect(forgotPasswordLink.tagName.toLowerCase()).toBe('a');
-      expect(registerLink).toHaveAttribute('href', '#');
-      expect(forgotPasswordLink).toHaveAttribute('href', '#');
+    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
+    
+    await waitFor(() => {
+      expect(screen.getByText('Terjadi kesalahan saat login')).toBeInTheDocument();
     });
+  });
+  
+  // Edge Case: Empty form submission
+  test('validates required fields', async () => {
+    const formElement = document.createElement('form');
+    formElement.submit = jest.fn();
+    
+    render(<LoginPage />);
+    
+    // Try to submit without filling required fields (this will trigger HTML5 validation)
+    const submitButton = screen.getByRole('button', { name: /masuk/i });
+    fireEvent.click(submitButton);
+    
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+  
+  // Edge Case: Test loading state
+  test('shows loading state while submitting', async () => {
+    // Setup fetch to delay resolution
+    let resolvePromise: (value: any) => void;
+    const fetchPromise = new Promise(resolve => {
+      resolvePromise = resolve;
+    });
+    
+    (global.fetch as jest.Mock).mockImplementationOnce(() => fetchPromise);
+    
+    render(<LoginPage />);
+    
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByLabelText(/kata sandi/i), { target: { value: 'password123' } });
+    
+    fireEvent.submit(screen.getByRole('button', { name: /masuk/i }));
+    
+    // Button should show loading state
+    expect(screen.getByRole('button', { name: /memproses/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /memproses/i })).toBeDisabled();
+    
+    // Resolve the fetch promise
+    resolvePromise!({});
+    
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/');
+    });
+  });
+  
+  // UI Elements Test
+  test('renders all UI elements correctly', () => {
+    render(<LoginPage />);
+    
+    // Check for image
+    expect(screen.getByAltText('Login')).toBeInTheDocument();
+    
+    // Check for heading
+    expect(screen.getByRole('heading', { 
+      name: /sudah siap menjelajahi pantautular/i 
+    })).toBeInTheDocument();
+    
+    // Check for form elements
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/kata sandi/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /masuk/i })).toBeInTheDocument();
+    
+    // Check for links
+    expect(screen.getByText(/belum memiliki akun/i)).toBeInTheDocument();
+    expect(screen.getByText(/daftar/i)).toBeInTheDocument();
+    expect(screen.getByText(/lupa kata sandi/i)).toBeInTheDocument();
+  });
+  
+  // Input Change Handling Test
+  test('updates state when input values change', () => {
+    render(<LoginPage />);
+    
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/kata sandi/i);
+    
+    fireEvent.change(emailInput, { target: { value: 'newuser@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'newpassword' } });
+    
+    expect(emailInput).toHaveValue('newuser@example.com');
+    expect(passwordInput).toHaveValue('newpassword');
   });
 });
