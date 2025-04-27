@@ -8,4 +8,3 @@ export const AuthContext = createContext<{
   user: any
   strategy: AuthStrategy
 } | null>(null)
-

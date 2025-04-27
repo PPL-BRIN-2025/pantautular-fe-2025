@@ -4,7 +4,7 @@ describe("JWTStrategy", () => {
   const jwt = new JWTStrategy()
 
   it("logs in successfully", async () => {
-    const res = await jwt.login({ username: "x", password: "x" })
+    const res = await jwt.login({ username: "x", password: "x" }) // NOSONAR – test data
     expect(res.token).toBe("mock-jwt-token")
     expect(res.user.username).toBe("testUser")
   })
