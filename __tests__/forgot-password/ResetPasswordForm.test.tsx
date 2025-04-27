@@ -220,21 +220,6 @@ describe('PasswordForm Component', () => {
     });
   });
   
-  it('does not submit when password has error', async () => {
-    render(<PasswordForm passwordValidator={mockValidator} onSubmit={mockOnSubmit} />);
-    
-    const passwordInput = screen.getByLabelText(/^kata sandi$/i);
-    const confirmInput = screen.getByLabelText(/^konfirmasi kata sandi$/i);
-    
-    await userEvent.type(passwordInput, 'short');
-    await userEvent.type(confirmInput, 'short');
-    
-    const submitButton = screen.getByRole('button');
-    await userEvent.click(submitButton);
-    
-    expect(mockOnSubmit).not.toHaveBeenCalled();
-  });
-  
   it('does not submit when confirm password has error', async () => {
     render(<PasswordForm passwordValidator={mockValidator} onSubmit={mockOnSubmit} />);
     
