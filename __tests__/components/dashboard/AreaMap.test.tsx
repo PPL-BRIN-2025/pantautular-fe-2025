@@ -19,45 +19,33 @@ jest.mock('next/image', () => ({
 }));
 
 describe('AreaMap Component', () => {
-  it('should display the component after loading', async () => {
+  beforeEach(async () => {
     render(<AreaMap />);
+    // Wait for loading to complete in each test
     await waitFor(() => {
       expect(screen.queryByText('Loading map...')).not.toBeInTheDocument();
-      expect(screen.getByText('Pemetaan Kondisi Wilayah')).toBeInTheDocument();
     });
   });
-
-  it('should display the first area by default', async () => {
-    render(<AreaMap />);
-    await waitFor(() => {
-      expect(screen.getByText('Peta Geografis Ketinggian Wilayah')).toBeInTheDocument();
-    });
+  
+  it('should display the component after loading', () => {
+    expect(screen.getByText('Pemetaan Kondisi Wilayah')).toBeInTheDocument();
   });
 
-  it('should display the correct area info', async () => {
-    render(<AreaMap />);
-    await waitFor(() => {
-      expect(screen.getByText('Peta Geografis Ketinggian Wilayah')).toBeInTheDocument();
-      expect(screen.getByText('Last updated: 10 Mei 2025 00.25 WIB')).toBeInTheDocument();
-    });
+  it('should display the first area by default', () => {
+    expect(screen.getByText('Peta Geografis Ketinggian Wilayah')).toBeInTheDocument();
   });
 
-  it('should navigate to the next area when next button is clicked', async () => {
-    render(<AreaMap />);
-    await waitFor(() => {
-      expect(screen.getByText('Peta Geografis Ketinggian Wilayah')).toBeInTheDocument();
-    });
+  it('should display the correct area info', () => {
+    expect(screen.getByText('Peta Geografis Ketinggian Wilayah')).toBeInTheDocument();
+    expect(screen.getByText('Last updated: 10 Mei 2025 00.25 WIB')).toBeInTheDocument();
+  });
 
+  it('should navigate to the next area when next button is clicked', () => {
     fireEvent.click(screen.getByLabelText('Next'));
     expect(screen.getByText('Peta Geografis Curah Hujan')).toBeInTheDocument();
   });
 
-  it('should navigate to the previous area when prev button is clicked', async () => {
-    render(<AreaMap />);
-    await waitFor(() => {
-      expect(screen.queryByText('Loading map...')).not.toBeInTheDocument();
-    });
-
+  it('should navigate to the previous area when prev button is clicked', () => {
     // Navigate to second area
     fireEvent.click(screen.getByLabelText('Next'));
     expect(screen.getByText('Peta Geografis Curah Hujan')).toBeInTheDocument();
@@ -68,12 +56,7 @@ describe('AreaMap Component', () => {
   });
 
   // Edge case tests
-  it('should cycle to the first area when navigating next from the last area', async () => {
-    render(<AreaMap />);
-    await waitFor(() => {
-      expect(screen.queryByText('Loading map...')).not.toBeInTheDocument();
-    });
-
+  it('should cycle to the first area when navigating next from the last area', () => {
     // Navigate to last area (4th item)
     fireEvent.click(screen.getByLabelText('Next'));
     fireEvent.click(screen.getByLabelText('Next'));
@@ -85,23 +68,13 @@ describe('AreaMap Component', () => {
     expect(screen.getByText('Peta Geografis Ketinggian Wilayah')).toBeInTheDocument();
   });
 
-  it('should cycle to the last area when navigating previous from the first area', async () => {
-    render(<AreaMap />);
-    await waitFor(() => {
-      expect(screen.queryByText('Loading map...')).not.toBeInTheDocument();
-    });
-
+  it('should cycle to the last area when navigating previous from the first area', () => {
     // From first area, navigate to last area using previous
     fireEvent.click(screen.getByLabelText('Previous'));
     expect(screen.getByText('Peta Kepadatan Penduduk (orang per Km persegi)')).toBeInTheDocument();
   });
 
-  it('should handle multiple rapid clicks correctly', async () => {
-    render(<AreaMap />);
-    await waitFor(() => {
-      expect(screen.queryByText('Loading map...')).not.toBeInTheDocument();
-    });
-
+  it('should handle multiple rapid clicks correctly', () => {
     // Multiple rapid next clicks
     fireEvent.click(screen.getByLabelText('Next'));
     fireEvent.click(screen.getByLabelText('Next'));
@@ -114,12 +87,7 @@ describe('AreaMap Component', () => {
   });
 
   // Unhappy path tests
-  it('should handle image load error', async () => {
-    render(<AreaMap />);
-    await waitFor(() => {
-      expect(screen.queryByText('Loading map...')).not.toBeInTheDocument();
-    });
-
+  it('should handle image load error', () => {
     const image = screen.getByTestId('map-image');
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     
