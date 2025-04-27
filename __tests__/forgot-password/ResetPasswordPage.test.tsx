@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ResetPasswordPage from '../../app/forgot-password/reset/page';
+import ResetPasswordPage from '../../app/forgot-password/reset/[uid]/[token]/page';
 
 // Gunakan hoisting untuk meng-import React di dalam mock
 jest.mock('../../app/components/forgot_password/ResetPasswordForm', () => {
