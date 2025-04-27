@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { AuthContext } from "./context"
 import { JWTStrategy } from "./strategies/jwt"
 
@@ -23,8 +23,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null)
   }
 
+  const value = useMemo(() => ({
+    login,
+    logout,
+    user,
+    strategy
+  }), [user])
+
   return (
-    <AuthContext.Provider value={{ login, logout, user, strategy }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
