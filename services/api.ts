@@ -203,7 +203,7 @@ export const resetPasswordApi = {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.detail || `Error: ${response.status}`);
+        throw new Error(data.detail ?? `Error: ${response.status}`);
       }
       
       return data;
