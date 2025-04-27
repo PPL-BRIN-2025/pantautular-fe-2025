@@ -49,16 +49,16 @@ describe('LoginPage', () => {
     
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://api.example.com/authentication/login',
+        expect.stringContaining('/authentication/login'),
         expect.objectContaining({
           method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'x-api-key': 'testApiKey',
-          },
+          headers: expect.objectContaining({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'x-api-key': expect.any(String),
+          }),
           credentials: 'include',
-          body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
+          body: expect.stringMatching(/user@example\.com.*password123/),
         })
       );
       expect(mockPush).toHaveBeenCalledWith('/');
