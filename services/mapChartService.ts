@@ -157,9 +157,27 @@ export class MapChartService {
       this.humiditySeries.set("heatRules", [{
         target: this.humiditySeries.mapPolygons.template,
         dataField: "value",
-        min: am5.color("#FFFFFF"),
-        max: am5.color("#E03444"),
-        key: "fill"
+        customFunction: function(sprite: am5.Sprite, min, max, value) {
+          if (value <= 100) {
+            (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
+          } else if (value <= 200) {
+            (sprite as am5.Graphics).set("fill", am5.color("#A5D6A7"));
+          } else if (value <= 300) {
+            (sprite as am5.Graphics).set("fill", am5.color("#4CAF50"));
+          } else if (value <= 400) {
+            (sprite as am5.Graphics).set("fill", am5.color("#2196F3"));
+          } else if (value <= 500) {
+            (sprite as am5.Graphics).set("fill", am5.color("#3F51B5"));
+          } else if (value <= 600) {
+            (sprite as am5.Graphics).set("fill", am5.color("#9C27B0"));
+          } else if (value <= 700) {
+            (sprite as am5.Graphics).set("fill", am5.color("#E91E63"));
+          } else if (value <= 800) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F44336"));
+          } else {
+            (sprite as am5.Graphics).set("fill", am5.color("#E03444"));
+          }
+        }
       }]);
 
       this.humiditySeries.data.setAll([
@@ -205,11 +223,11 @@ export class MapChartService {
         endColor: am5.color("#E03444"),
         startText: "Lowest",
         endText: "Highest",
-        stepCount: 4,
+        stepCount: 9,
         maxWidth: 1000,
         paddingTop: 800,
         paddingLeft: 600,
-        paddingRight: -200,
+        paddingRight: -200
       }));
       
       /* istanbul ignore next */
