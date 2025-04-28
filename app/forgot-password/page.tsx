@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
       if (result.success) {
         setMessage('Jika email terdaftar, kami telah mengirimkan link reset password ke email Anda.');
       } else {
-        setMessage(result.error || 'Terjadi kesalahan. Silakan coba lagi.');
+        setMessage(result.error ?? 'Terjadi kesalahan. Silakan coba lagi.');
       }
     } catch (error) {
       console.error('Error:', error);

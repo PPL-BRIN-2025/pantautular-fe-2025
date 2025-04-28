@@ -198,7 +198,7 @@ export const emailSubmitAPI = {
         return { success: true };
       } else {
         const data = await response.json();
-        return { success: false, error: data.error || 'Terjadi kesalahan. Silakan coba lagi.' };
+        return { success: false, error: data.error ?? 'Terjadi kesalahan. Silakan coba lagi.' };
       }
     } catch (error) {
       console.error('Error requesting password reset:', error);
