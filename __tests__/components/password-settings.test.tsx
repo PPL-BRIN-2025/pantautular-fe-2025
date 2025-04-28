@@ -4,8 +4,8 @@ import '@testing-library/jest-dom';
 import PasswordSettings from '../../app/components/password-settings';
 import fetchMock from 'jest-fetch-mock';
 
-// Mock the environment variables
-process.env.NEXT_PUBLIC_API_URL = 'http://test-api';
+// Mock the environment variables with secure protocol
+process.env.NEXT_PUBLIC_API_URL = 'https://test-api';
 process.env.NEXT_PUBLIC_API_KEY = 'test-api-key';
 
 // Test constants to avoid hard-coded credentials
@@ -177,15 +177,15 @@ describe('PasswordSettings Component', () => {
     // Submit the form
     fireEvent.click(submitButton);
     
-    // Check that the API was called with correct data
+    // Check that the API was called with correct data using HTTPS
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        'http://test-api/api/change-password',
+        `${process.env.NEXT_PUBLIC_API_URL}/api/change-password`,
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
-            'X-API-KEY': 'test-api-key'
+            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
           }),
           body: JSON.stringify({
             current_password: TEST_CURRENT_PASSWORD,
