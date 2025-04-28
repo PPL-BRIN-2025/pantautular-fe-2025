@@ -278,6 +278,50 @@ describe('AmChartKasus Component', () => {
     });
   });
 
+  // NEW TEST: Test the early return branch when series is undefined (line 111)
+  it('handles undefined series in pointerover event', async () => {
+    render(<AmChartTingkatanKasus jsonData={mockJsonData} />);
+    
+    await waitFor(() => {
+      // Find the call to 'on' with 'pointerover'
+      const pointerOverCall = mockLegendEventOn.mock.calls.find(
+        call => call[0] === 'pointerover'
+      );
+      
+      if (!pointerOverCall) {
+        throw new Error('pointerover event handler was not registered');
+      }
+      
+      // Get the handler function
+      const handler = pointerOverCall[1];
+      
+      // Reset the mock to verify it's not called after early return
+      mockChart.series.each.mockClear();
+      
+      // Call handler with undefined dataContext (should trigger early return)
+      handler({
+        target: {
+          dataItem: {
+            dataContext: undefined // This should trigger the "if (!series) return;" branch
+          }
+        }
+      });
+      
+      // series.each should not be called because of early return
+      expect(mockChart.series.each).not.toHaveBeenCalled();
+      
+      // Also test with null dataItem
+      handler({
+        target: {
+          dataItem: null // This should also trigger the early return
+        }
+      });
+      
+      // series.each should still not be called
+      expect(mockChart.series.each).not.toHaveBeenCalled();
+    });
+  });
+
   // Test legend pointerout event (lines 125-126)
   it('sets up legend item pointerout event', async () => {
     render(<AmChartTingkatanKasus jsonData={mockJsonData} />);

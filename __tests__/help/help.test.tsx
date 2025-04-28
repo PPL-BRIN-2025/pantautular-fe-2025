@@ -2,6 +2,12 @@ import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BantuanPantauTular from '../../app/help/page';
 
+jest.mock('../../app/components/Navbar', () => {
+  return function MockNavbar() {
+    return <div data-testid="mock-navbar"></div>;
+  };
+});
+
 describe('BantuanPantauTular', () => {
     it('renders the title', () => {
       render(<BantuanPantauTular />);
