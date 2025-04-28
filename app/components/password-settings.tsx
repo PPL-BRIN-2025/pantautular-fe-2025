@@ -3,6 +3,7 @@
 import { X } from "lucide-react"
 import { Button } from "./ui-profile/button"
 import { Input } from "./ui-profile/input"
+import { CheckIcon } from "./ui-profile/Checkicon"
 
 interface PasswordSettingsProps {
   onClose: () => void
@@ -22,74 +23,29 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-blue-500">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                <path
-                  d="M8 12L11 15L16 9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <p>Kata sandi harus terdiri dari setidaknya 8 karakter</p>
-            </div>
+                <CheckIcon />
+                <p>Kata sandi harus terdiri dari setidaknya 8 karakter</p>
+              </div>
 
-            <div className="flex items-center gap-2 text-blue-500">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                <path
-                  d="M8 12L11 15L16 9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <p>Kata sandi harus terdiri dari setidaknya 1 huruf kapital</p>
-            </div>
+              <div className="flex items-center gap-2 text-blue-500">
+                <CheckIcon />
+                <p>Kata sandi harus terdiri dari setidaknya 1 huruf kapital</p>
+              </div>
 
-            <div className="flex items-center gap-2 text-blue-500">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                <path
-                  d="M8 12L11 15L16 9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <p>Kata sandi harus terdiri dari setidaknya 1 huruf kecil</p>
-            </div>
+              <div className="flex items-center gap-2 text-blue-500">
+                <CheckIcon />
+                <p>Kata sandi harus terdiri dari setidaknya 1 huruf kecil</p>
+              </div>
 
-            <div className="flex items-center gap-2 text-blue-500">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                <path
-                  d="M8 12L11 15L16 9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <p>Kata sandi harus terdiri dari setidaknya 1 angka</p>
-            </div>
+              <div className="flex items-center gap-2 text-blue-500">
+                <CheckIcon/>
+                <p>Kata sandi harus terdiri dari setidaknya 1 angka</p>
+              </div>
 
-            <div className="flex items-center gap-2 text-blue-500">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                <path
-                  d="M8 12L11 15L16 9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <p>Kata sandi harus terdiri dari setidaknya 1 simbol khusus</p>
-            </div>
+              <div className="flex items-center gap-2 text-blue-500">
+                <CheckIcon />
+                <p>Kata sandi harus terdiri dari setidaknya 1 simbol khusus</p>
+              </div>
           </div>
 
           <div className="space-y-4">
