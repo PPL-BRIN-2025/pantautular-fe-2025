@@ -8,7 +8,7 @@ interface CheckIconProps {
 export function CheckIcon({ 
   className = "h-5 w-5", 
   isChecked = false 
-}: CheckIconProps) {
+}: Readonly<CheckIconProps>) {
   return (
     <svg
       className={className}
