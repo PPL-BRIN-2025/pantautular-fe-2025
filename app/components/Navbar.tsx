@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { usePathname } from "next/navigation"; 
+import { User } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui-profile/dropdown-menu";
+import PasswordSettings from "./password-settings";
 
 const NavLink = ({ href, label }: { href: string; label: string }) => {
   const pathname = usePathname();
@@ -18,11 +22,29 @@ const NavLink = ({ href, label }: { href: string; label: string }) => {
   );
 };
 
-const ProfileIcon = () => (
-  <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center shadow-md ml-8">
-    👤 {/* Placeholder profile icon */}
-  </div>
-);
+const ProfileIcon = () => {
+  const [showSettings, setShowSettings] = useState(false);
+  
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-300 shadow-md ml-8">
+          <User className="h-6 w-6" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => setShowSettings(true)}>
+            <span className="text-gray-800">Pengaturan</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <span className="text-red-500">Keluar</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      {showSettings && <PasswordSettings onClose={() => setShowSettings(false)} />}
+    </>
+  );
+};
 
 const Navbar = () => {
   return (
