@@ -82,7 +82,7 @@ export default function RegisterPage() {
         password: formData.password
       });
 
-      router.push('/'); // TO DO: change to login page
+      router.push('/login');
     } catch (error) {
       // istanbul ignore next
       setSubmitError(error instanceof Error ? error.message : 'Terjadi kesalahan saat mendaftar');
