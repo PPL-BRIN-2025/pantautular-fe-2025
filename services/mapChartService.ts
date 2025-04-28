@@ -13,8 +13,8 @@ export class MapChartService {
   private locationSeries: am5map.MapPointSeries | null = null;
   private basePolygonSeries: am5map.MapPolygonSeries | null = null;
   private highlightSeries: am5map.MapPolygonSeries | null = null;
-  private severitySeries: am5map.MapPolygonSeries | null = null;
-  private severityHeatLegend: am5.HeatLegend | null = null;
+  private rainfallSeries: am5map.MapPolygonSeries | null = null;
+  private rainfallHeatLegend: am5.HeatLegend | null = null;
   private readonly onError: ((message: string) => void) | null = null;
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
@@ -137,7 +137,7 @@ export class MapChartService {
       });
 
       // Add colored province layer
-      this.severitySeries = this.chart.series.push(
+      this.rainfallSeries = this.chart.series.push(
         am5map.MapPolygonSeries.new(root, {
           geoJSON: am5geodata_indonesiaLow,
           valueField: "value",
@@ -147,22 +147,22 @@ export class MapChartService {
       );
 
       // Set up the colored province layer
-      this.severitySeries.mapPolygons.template.setAll({
+      this.rainfallSeries.mapPolygons.template.setAll({
         fill: am5.color("#FFFFFF"),
         stroke: am5.color("#CCCCCC"),
         strokeWidth: 0.5,
         fillOpacity: 0.8,
       });
 
-      this.severitySeries.set("heatRules", [{
-        target: this.severitySeries.mapPolygons.template,
+      this.rainfallSeries.set("heatRules", [{
+        target: this.rainfallSeries.mapPolygons.template,
         dataField: "value",
         min: am5.color("#FFFFFF"),
         max: am5.color("#E03444"),
         key: "fill"
       }]);
 
-      this.severitySeries.data.setAll([
+      this.rainfallSeries.data.setAll([
         { id: "ID-AC", value: 417 },
         { id: "ID-BA", value: 156 },
         { id: "ID-BB", value: 141 },
@@ -199,7 +199,7 @@ export class MapChartService {
         { id: "ID-YO", value: 357 }
       ])
 
-      this.severityHeatLegend = this.chart.children.push(am5.HeatLegend.new(root, {
+      this.rainfallHeatLegend = this.chart.children.push(am5.HeatLegend.new(root, {
         orientation: "horizontal",
         startColor: am5.color("#FFFFFF"),
         endColor: am5.color("#E03444"),
@@ -213,21 +213,21 @@ export class MapChartService {
       }));
       
       /* istanbul ignore next */
-      this.severityHeatLegend.startLabel.setAll({
+      this.rainfallHeatLegend.startLabel.setAll({
         fontSize: 12,
-        fill: this.severityHeatLegend.get("startColor")
+        fill: this.rainfallHeatLegend.get("startColor")
       });
       
       /* istanbul ignore next */
-      this.severityHeatLegend.endLabel.setAll({
+      this.rainfallHeatLegend.endLabel.setAll({
         fontSize: 12,
-        fill: this.severityHeatLegend.get("endColor")
+        fill: this.rainfallHeatLegend.get("endColor")
       });
       
       /* istanbul ignore next */
-      // Initially hide the severity layer
-      this.severitySeries.hide();
-      this.severityHeatLegend.hide()
+      // Initially hide the rainfall layer
+      this.rainfallSeries.hide();
+      this.rainfallHeatLegend.hide()
 
       // Add a second layer for highlighting
       this.highlightSeries = this.chart.series.push(
@@ -569,25 +569,25 @@ export class MapChartService {
   // Add methods to control province layer visibility
     
   /* istanbul ignore next */
-  public showSeverityLayer(): void {
-    if (this.severitySeries && this.severityHeatLegend) {
-      this.severitySeries.show();
-      this.severityHeatLegend.show();
+  public showRainfallLayer(): void {
+    if (this.rainfallSeries && this.rainfallHeatLegend) {
+      this.rainfallSeries.show();
+      this.rainfallHeatLegend.show();
     }
   }
   
   /* istanbul ignore next */
-  public hideSeverityLayer(): void {
-    if (this.severitySeries && this.severityHeatLegend) {
-      this.severitySeries.hide();
-      this.severityHeatLegend.hide();
+  public hideRainfallLayer(): void {
+    if (this.rainfallSeries && this.rainfallHeatLegend) {
+      this.rainfallSeries.hide();
+      this.rainfallHeatLegend.hide();
     }
   }
 
   // Update the toggleLayers method to include province layer
     
   /* istanbul ignore next */
-  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showSeverity: boolean): void {
+  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showRainfall: boolean): void {
     if (showBase) {
       this.showBaseLayer();
     } else {
@@ -606,10 +606,10 @@ export class MapChartService {
       this.hidePointLayer();
     }
 
-    if (showSeverity) {
-      this.showSeverityLayer();
+    if (showRainfall) {
+      this.showRainfallLayer();
     } else {
-      this.hideSeverityLayer();
+      this.hideRainfallLayer();
     }
   }
 }
