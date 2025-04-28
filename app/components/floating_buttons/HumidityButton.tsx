@@ -1,11 +1,14 @@
 "use client"
 
 import { useMapStore } from "../../../store/store"
+import { useEffect } from "react"
+import { cn } from "../../../utils/tmg"
 
 interface HumidityButtonProps {
   onClick?: () => void
   className?: string
   size?: "sm" | "md" | "lg"
+  ariaLabel?: string
 }
 
 const sizeClasses = {
@@ -23,14 +26,23 @@ const sizeClasses = {
 export default function HumidityButton({ 
   onClick, className = "", size = "md" }
   : Readonly<HumidityButtonProps>) {
-  const { activeButton, setActiveButton } = useMapStore()
+  const { mapService, activeButton, setActiveButton } = useMapStore()
   const isActive = activeButton === 'humidity'
 
   const handleClick = () => {
     const newActiveState = !isActive
     setActiveButton(newActiveState ? 'humidity' : null)
-    if (onClick) onClick()
+    onClick?.()
   }
+
+  useEffect(() => {
+    /* istanbul ignore next */
+    if (mapService) {
+      /* istanbul ignore next */
+      if (isActive) mapService.showHumidityLayer()
+      else mapService.hideHumidityLayer()
+    }
+  }, [isActive, mapService])
 
   return (
     <button
