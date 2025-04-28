@@ -1,4 +1,4 @@
-import { mapApi } from "../../services/api";
+import { mapApi, resetPasswordApi } from "../../services/api";
 
 // Mock global fetch and console.error
 global.fetch = jest.fn();
@@ -262,6 +262,185 @@ describe('mapApi', () => {
 
             const result = await mapApi.getCaseDetail(mockCaseId);
             expect(result).toEqual({});
+        });
+    });
+
+    describe('resetPasswordApi', () => {
+        const mockUid = 'user123';
+        const mockToken = 'validtoken456';
+        const mockPassword = 'NewPassword123!';
+        const mockConfirmPassword = 'NewPassword123!';
+        
+        beforeEach(() => {
+            jest.clearAllMocks();
+        });
+        
+        it('should reset password successfully', async () => {
+            const successResponse = { detail: "Password berhasil diganti" };
+            
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(successResponse)
+            });
+            
+            const result = await resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            );
+            
+            expect(result).toEqual(successResponse);
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${process.env.NEXT_PUBLIC_API_URL}/authentication/password-reset-confirm/${mockUid}/${mockToken}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        password: mockPassword,
+                        "password-confirm": mockConfirmPassword
+                    }),
+                }
+            );
+        });
+        
+        it('should handle password mismatch error', async () => {
+            const errorResponse = { detail: "Password dan konfirmasi password tidak sama" };
+            
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                json: () => Promise.resolve(errorResponse)
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                'DifferentPassword123!'
+            )).rejects.toThrow("Password dan konfirmasi password tidak sama");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle weak password error', async () => {
+            const errorResponse = { detail: "Password harus memiliki minimal 8 karakter, 1 huruf kapital, 1 huruf kecil, 1 angka, dan 1 simbol khusus" };
+            
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                json: () => Promise.resolve(errorResponse)
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                'simple',
+                'simple'
+            )).rejects.toThrow("Password harus memiliki minimal 8 karakter, 1 huruf kapital, 1 huruf kecil, 1 angka, dan 1 simbol khusus");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle invalid or expired token', async () => {
+            const errorResponse = { detail: "Invalid or expired token" };
+            
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                json: () => Promise.resolve(errorResponse)
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                'expiredtoken123',
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow("Invalid or expired token");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle invalid reset link', async () => {
+            const errorResponse = { detail: "Invalid link" };
+            
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                json: () => Promise.resolve(errorResponse)
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                'invaliduid',
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow("Invalid link");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle server response with no detail field', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                json: () => Promise.resolve({ message: "Internal server error" })
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow("Error: 500");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle network errors', async () => {
+            const networkError = new Error('Network error');
+            (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow('Network error');
+            
+            expect(console.error).toHaveBeenCalledWith('Error resetting password:', networkError);
+        });
+        
+        it('should handle JSON parse error', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.reject(new Error('Invalid JSON'))
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow('Invalid JSON');
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle empty parameters', async () => {
+            await expect(resetPasswordApi.resetPassword(
+                '',
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow(); // akan gagal karena URL tidak valid
+            
+            expect(console.error).toHaveBeenCalled();
         });
     });
 }); 

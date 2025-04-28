@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest --coverage",
-    "test:watch": "jest --watchAll"
+    "test:watch": "jest --watchAll",
+    "view-coverage": "start coverage/lcov-report/index.html"
   },
   "dependencies": {
     "@amcharts/amcharts5": "^5.11.2",
