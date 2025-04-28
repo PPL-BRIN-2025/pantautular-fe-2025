@@ -14,7 +14,7 @@ export class MapChartService {
   private basePolygonSeries: am5map.MapPolygonSeries | null = null;
   private highlightSeries: am5map.MapPolygonSeries | null = null;
   private humiditySeries: am5map.MapPolygonSeries | null = null;
-  private humidityHeatLegend: am5.HeatLegend | null = null;
+  private humidityHeatLegend: am5.Container | null = null;
   private readonly onError: ((message: string) => void) | null = null;
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
@@ -217,30 +217,65 @@ export class MapChartService {
         { id: "ID-YO", value: 357 }
       ])
 
-      this.humidityHeatLegend = this.chart.children.push(am5.HeatLegend.new(root, {
-        orientation: "horizontal",
-        startColor: am5.color("#FFFFFF"),
-        endColor: am5.color("#E03444"),
-        startText: "Lowest",
-        endText: "Highest",
-        stepCount: 9,
+      // Create custom legend
+      let legend = this.chart.children.push(am5.Container.new(root, {
         maxWidth: 1000,
+        height: 100,
+        layout: root.verticalLayout,
         paddingTop: 800,
-        paddingLeft: 600,
-        paddingRight: -200
+        paddingLeft: 0,
+        paddingRight: 0
       }));
-      
-      /* istanbul ignore next */
-      this.humidityHeatLegend.startLabel.setAll({
-        fontSize: 12,
-        fill: this.humidityHeatLegend.get("startColor")
+
+      let gradient = am5.LinearGradient.new(root, {
+        stops: [
+          { color: am5.color("#FFFFFF"), offset: 0 },
+          { color: am5.color("#FFFFFF"), offset: 0.1 },
+          { color: am5.color("#A5D6A7"), offset: 0.1 },
+          { color: am5.color("#A5D6A7"), offset: 0.2 },
+          { color: am5.color("#4CAF50"), offset: 0.2 },
+          { color: am5.color("#4CAF50"), offset: 0.3 },
+          { color: am5.color("#2196F3"), offset: 0.3 },
+          { color: am5.color("#2196F3"), offset: 0.4 },
+          { color: am5.color("#3F51B5"), offset: 0.4 },
+          { color: am5.color("#3F51B5"), offset: 0.5 },
+          { color: am5.color("#9C27B0"), offset: 0.5 },
+          { color: am5.color("#9C27B0"), offset: 0.6 },
+          { color: am5.color("#E91E63"), offset: 0.6 },
+          { color: am5.color("#E91E63"), offset: 0.7 },
+          { color: am5.color("#F44336"), offset: 0.7 },
+          { color: am5.color("#F44336"), offset: 0.8 },
+          { color: am5.color("#E03444"), offset: 0.8 },
+          { color: am5.color("#E03444"), offset: 1 }
+        ],
+        rotation: 0
       });
-      
-      /* istanbul ignore next */
-      this.humidityHeatLegend.endLabel.setAll({
+
+      let labels = legend.children.push(am5.Container.new(root, {
+        width: am5.p100
+      }));
+
+      let fromLabel = labels.children.push(am5.Label.new(root, {
+        text: "Lowest",
+        fontSize: 12
+      }));
+
+      let toLabel = labels.children.push(am5.Label.new(root, {
+        text: "Highest",
         fontSize: 12,
-        fill: this.humidityHeatLegend.get("endColor")
-      });
+        x: am5.p100,
+        centerX: am5.p100
+      }));
+
+      let bar = legend.children.push(am5.Rectangle.new(root, {
+        width: am5.p50,
+        height: 40,
+        fillGradient: gradient,
+        fillOpacity: 1
+      }));
+
+      // Store the legend for later use
+      this.humidityHeatLegend = legend;
       
       /* istanbul ignore next */
       // Initially hide the humidity layer
