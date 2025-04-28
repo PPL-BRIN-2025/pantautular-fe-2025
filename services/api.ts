@@ -183,3 +183,33 @@ export const severityApi = {
 };
 
 
+export const resetPasswordApi = {
+  async resetPassword(uid: string, token: string, password: string, confirmPassword: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/authentication/password-reset-confirm/${uid}/${token}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          password: password,
+          "password-confirm": confirmPassword
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail ?? `Error: ${response.status}`);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  }
+};
