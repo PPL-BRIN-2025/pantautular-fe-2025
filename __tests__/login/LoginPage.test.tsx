@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import LoginPage from '../../app/login/page';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../app/auth/hooks/useAuth';
 
 // Mock Next.js hooks
 jest.mock('next/navigation', () => ({
@@ -16,17 +17,21 @@ jest.mock('next/image', () => ({
   },
 }));
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock useAuth hook
+jest.mock('../../app/auth/hooks/useAuth', () => ({
+  useAuth: jest.fn(),
+}));
 
 describe('LoginPage', () => {
   const mockPush = jest.fn();
+  const mockLogin = jest.fn();
   const testEmail = 'user@example.com';
   const testPassword = 'password123';
   
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+    (useAuth as jest.Mock).mockReturnValue({ login: mockLogin });
     process.env.NEXT_PUBLIC_API_URL = 'https://api.example.com';
     process.env.NEXT_PUBLIC_API_KEY = 'testApiKey';
   });
@@ -53,29 +58,17 @@ describe('LoginPage', () => {
   
   // Happy Path: Successful login
   test('handles successful login', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({}),
-    });
+    mockLogin.mockResolvedValueOnce({});
     
     setupComponent();
     fillLoginForm();
     submitForm();
     
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/authentication/login'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'x-api-key': expect.any(String),
-          }),
-          credentials: 'include',
-          body: expect.stringMatching(/user@example\.com.*password123/),
-        })
-      );
+      expect(mockLogin).toHaveBeenCalledWith({
+        email: testEmail,
+        password: testPassword
+      });
       expect(mockPush).toHaveBeenCalledWith('/');
     });
   });
@@ -102,7 +95,7 @@ describe('LoginPage', () => {
   // Test all error scenarios using parameterized tests
   errorScenarios.forEach(scenario => {
     test(`handles ${scenario.name} during login`, async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(scenario.error);
+      mockLogin.mockRejectedValueOnce(scenario.error);
       
       setupComponent();
       fillLoginForm();
@@ -125,18 +118,18 @@ describe('LoginPage', () => {
     const submitButton = screen.getByRole('button', { name: /masuk/i });
     fireEvent.click(submitButton);
     
-    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockLogin).not.toHaveBeenCalled();
   });
   
   // Edge Case: Test loading state
   test('shows loading state while submitting', async () => {
-    // Setup fetch to delay resolution
+    // Setup login to delay resolution
     let resolvePromise: (value: any) => void;
-    const fetchPromise = new Promise(resolve => {
+    const loginPromise = new Promise(resolve => {
       resolvePromise = resolve;
     });
     
-    (global.fetch as jest.Mock).mockImplementationOnce(() => fetchPromise);
+    mockLogin.mockImplementationOnce(() => loginPromise);
     
     setupComponent();
     fillLoginForm();
@@ -146,7 +139,7 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: /memproses/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /memproses/i })).toBeDisabled();
     
-    // Resolve the fetch promise
+    // Resolve the login promise
     resolvePromise!({});
     
     await waitFor(() => {
