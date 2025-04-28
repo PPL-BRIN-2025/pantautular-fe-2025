@@ -390,7 +390,7 @@ describe("MapChartService", () => {
     expect(mockChartOn).toHaveBeenCalledWith('translateY', expect.any(Function));
   });
 
-  test("setupPolygonSeries creates severitySeries and heatLegend", () => {
+  test("setupPolygonSeries creates rainfallSeries and heatLegend", () => {
     // Create a mock heat legend
     const mockHeatLegend = {
       startLabel: { setAll: jest.fn() },
@@ -432,10 +432,10 @@ describe("MapChartService", () => {
       endText: "Highest"
     }));
     
-    // Verify severitySeries was created and heat rules were set
-    expect((mapService as any).severitySeries.set).toHaveBeenCalledWith("heatRules", expect.any(Array));
-    expect((mapService as any).severitySeries.hide).toHaveBeenCalled();
-    expect((mapService as any).severityHeatLegend.hide).toHaveBeenCalled();
+    // Verify rainfallSeries was created and heat rules were set
+    expect((mapService as any).rainfallSeries.set).toHaveBeenCalledWith("heatRules", expect.any(Array));
+    expect((mapService as any).rainfallSeries.hide).toHaveBeenCalled();
+    expect((mapService as any).rainfallHeatLegend.hide).toHaveBeenCalled();
     
     // Restore the original HeatLegend.new
     am5.HeatLegend.new = originalHeatLegendNew;
@@ -857,26 +857,26 @@ describe("MapChartService", () => {
       expect(mockHide).toHaveBeenCalled();
     });
 
-    test("showSeverityLayer shows both severity series and heat legend when they exist", () => {
+    test("showRainfallLayer shows both rainfall series and heat legend when they exist", () => {
       mapService.initialize("chartdiv", mockConfig);
       const mockShowSeries = jest.fn();
       const mockShowLegend = jest.fn();
-      (mapService as any).severitySeries = { show: mockShowSeries };
-      (mapService as any).severityHeatLegend = { show: mockShowLegend };
+      (mapService as any).rainfallSeries = { show: mockShowSeries };
+      (mapService as any).rainfallHeatLegend = { show: mockShowLegend };
       
-      mapService.showSeverityLayer();
+      mapService.showRainfallLayer();
       expect(mockShowSeries).toHaveBeenCalled();
       expect(mockShowLegend).toHaveBeenCalled();
     });
 
-    test("hideSeverityLayer hides both severity series and heat legend when they exist", () => {
+    test("hideRainfallLayer hides both rainfall series and heat legend when they exist", () => {
       mapService.initialize("chartdiv", mockConfig);
       const mockHideSeries = jest.fn();
       const mockHideLegend = jest.fn();
-      (mapService as any).severitySeries = { hide: mockHideSeries };
-      (mapService as any).severityHeatLegend = { hide: mockHideLegend };
+      (mapService as any).rainfallSeries = { hide: mockHideSeries };
+      (mapService as any).rainfallHeatLegend = { hide: mockHideLegend };
       
-      mapService.hideSeverityLayer();
+      mapService.hideRainfallLayer();
       expect(mockHideSeries).toHaveBeenCalled();
       expect(mockHideLegend).toHaveBeenCalled();
     });
@@ -893,21 +893,21 @@ describe("MapChartService", () => {
       const mockHideHighlight = jest.fn();
       const mockShowPoints = jest.fn();
       const mockHidePoints = jest.fn();
-      const mockShowSeverity = jest.fn();
-      const mockHideSeverity = jest.fn();
+      const mockShowRainfall = jest.fn();
+      const mockHideRainfall = jest.fn();
       
       (mapService as any).basePolygonSeries = { show: mockShowBase, hide: mockHideBase };
       (mapService as any).highlightSeries = { show: mockShowHighlight, hide: mockHideHighlight };
       (mapService as any).pointSeries = { show: mockShowPoints, hide: mockHidePoints };
-      (mapService as any).severitySeries = { show: mockShowSeverity, hide: mockHideSeverity };
-      (mapService as any).severityHeatLegend = { show: mockShowSeverity, hide: mockHideSeverity };
+      (mapService as any).rainfallSeries = { show: mockShowRainfall, hide: mockHideRainfall };
+      (mapService as any).rainfallHeatLegend = { show: mockShowRainfall, hide: mockHideRainfall };
       
       // Test showing all layers
       mapService.toggleLayers(true, true, true, true);
       expect(mockShowBase).toHaveBeenCalled();
       expect(mockShowHighlight).toHaveBeenCalled();
       expect(mockShowPoints).toHaveBeenCalled();
-      expect(mockShowSeverity).toHaveBeenCalled();
+      expect(mockShowRainfall).toHaveBeenCalled();
       
       // Reset mocks
       jest.clearAllMocks();
@@ -917,7 +917,7 @@ describe("MapChartService", () => {
       expect(mockHideBase).toHaveBeenCalled();
       expect(mockHideHighlight).toHaveBeenCalled();
       expect(mockHidePoints).toHaveBeenCalled();
-      expect(mockHideSeverity).toHaveBeenCalled();
+      expect(mockHideRainfall).toHaveBeenCalled();
     });
   });
 
@@ -1413,8 +1413,8 @@ describe("MapChartService - Layer visibility methods", () => {
     (mapService as any).basePolygonSeries = { show: jest.fn(), hide: jest.fn() };
     (mapService as any).highlightSeries = { show: jest.fn(), hide: jest.fn() };
     (mapService as any).pointSeries = { show: jest.fn(), hide: jest.fn() };
-    (mapService as any).severitySeries = { show: jest.fn(), hide: jest.fn() };
-    (mapService as any).severityHeatLegend = { show: jest.fn(), hide: jest.fn() };
+    (mapService as any).rainfallSeries = { show: jest.fn(), hide: jest.fn() };
+    (mapService as any).rainfallHeatLegend = { show: jest.fn(), hide: jest.fn() };
     
     // Test showing all layers
     mapService.toggleLayers(true, true, true, true);
@@ -1422,8 +1422,8 @@ describe("MapChartService - Layer visibility methods", () => {
     expect((mapService as any).basePolygonSeries.show).toHaveBeenCalled();
     expect((mapService as any).highlightSeries.show).toHaveBeenCalled();
     expect((mapService as any).pointSeries.show).toHaveBeenCalled();
-    expect((mapService as any).severitySeries.show).toHaveBeenCalled();
-    expect((mapService as any).severityHeatLegend.show).toHaveBeenCalled();
+    expect((mapService as any).rainfallSeries.show).toHaveBeenCalled();
+    expect((mapService as any).rainfallHeatLegend.show).toHaveBeenCalled();
     
     // Reset mocks
     jest.clearAllMocks();
@@ -1434,34 +1434,34 @@ describe("MapChartService - Layer visibility methods", () => {
     expect((mapService as any).basePolygonSeries.show).toHaveBeenCalled();
     expect((mapService as any).highlightSeries.hide).toHaveBeenCalled();
     expect((mapService as any).pointSeries.show).toHaveBeenCalled();
-    expect((mapService as any).severitySeries.hide).toHaveBeenCalled();
-    expect((mapService as any).severityHeatLegend.hide).toHaveBeenCalled();
+    expect((mapService as any).rainfallSeries.hide).toHaveBeenCalled();
+    expect((mapService as any).rainfallHeatLegend.hide).toHaveBeenCalled();
   });
   
-  test("showSeverityLayer shows both severity series and heat legend", () => {
-    // Mock severity layers
-    (mapService as any).severitySeries = { show: jest.fn() };
-    (mapService as any).severityHeatLegend = { show: jest.fn() };
+  test("showRainfallLayer shows both rainfall series and heat legend", () => {
+    // Mock rainfall layers
+    (mapService as any).rainfallSeries = { show: jest.fn() };
+    (mapService as any).rainfallHeatLegend = { show: jest.fn() };
     
     // Call the method
-    mapService.showSeverityLayer();
+    mapService.showRainfallLayer();
     
     // Verify both layers are shown
-    expect((mapService as any).severitySeries.show).toHaveBeenCalled();
-    expect((mapService as any).severityHeatLegend.show).toHaveBeenCalled();
+    expect((mapService as any).rainfallSeries.show).toHaveBeenCalled();
+    expect((mapService as any).rainfallHeatLegend.show).toHaveBeenCalled();
   });
   
-  test("hideSeverityLayer hides both severity series and heat legend", () => {
-    // Mock severity layers
-    (mapService as any).severitySeries = { hide: jest.fn() };
-    (mapService as any).severityHeatLegend = { hide: jest.fn() };
+  test("hideRainfallLayer hides both rainfall series and heat legend", () => {
+    // Mock rainfall layers
+    (mapService as any).rainfallSeries = { hide: jest.fn() };
+    (mapService as any).rainfallHeatLegend = { hide: jest.fn() };
     
     // Call the method
-    mapService.hideSeverityLayer();
+    mapService.hideRainfallLayer();
     
     // Verify both layers are hidden
-    expect((mapService as any).severitySeries.hide).toHaveBeenCalled();
-    expect((mapService as any).severityHeatLegend.hide).toHaveBeenCalled();
+    expect((mapService as any).rainfallSeries.hide).toHaveBeenCalled();
+    expect((mapService as any).rainfallHeatLegend.hide).toHaveBeenCalled();
   });
 });
 
