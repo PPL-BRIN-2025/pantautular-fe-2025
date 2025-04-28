@@ -8,6 +8,12 @@ import fetchMock from 'jest-fetch-mock';
 process.env.NEXT_PUBLIC_API_URL = 'http://test-api';
 process.env.NEXT_PUBLIC_API_KEY = 'test-api-key';
 
+// Test constants to avoid hard-coded credentials
+const TEST_CURRENT_PASSWORD = 'TestCurrentPwd';
+const TEST_WRONG_PASSWORD = 'TestWrongPwd';
+const TEST_NEW_PASSWORD = 'TestP@ssw0rd'; // Meets requirements: 8+ chars, upper, lower, digit, symbol
+const TEST_DIFFERENT_PASSWORD = 'D1fferent@Pass';
+
 // Mock the Button component
 jest.mock('../../app/components/ui-profile/button', () => ({
   Button: ({ children, className, onClick, disabled, type }: any) => (
@@ -105,7 +111,7 @@ describe('PasswordSettings Component', () => {
     const newPasswordInput = screen.getByTestId('input-new-password');
     
     // Type a password that meets all requirements
-    fireEvent.change(newPasswordInput, { target: { value: 'Password123!' } });
+    fireEvent.change(newPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
     
     // Check that all validation icons are checked
     const checkIcons = screen.getAllByTestId('check-icon');
@@ -120,8 +126,8 @@ describe('PasswordSettings Component', () => {
     const confirmPasswordInput = screen.getByTestId('input-confirm-password');
     
     // Type different passwords
-    fireEvent.change(newPasswordInput, { target: { value: 'Password123!' } });
-    fireEvent.change(confirmPasswordInput, { target: { value: 'DifferentPassword123!' } });
+    fireEvent.change(newPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
+    fireEvent.change(confirmPasswordInput, { target: { value: TEST_DIFFERENT_PASSWORD } });
     
     // Error message should be displayed
     const errorMessage = screen.getByText('Konfirmasi kata sandi tidak sesuai');
@@ -136,7 +142,7 @@ describe('PasswordSettings Component', () => {
     expect(submitButton).toBeDisabled();
     
     // Add current password but no new password
-    fireEvent.change(currentPasswordInput, { target: { value: 'currentPass' } });
+    fireEvent.change(currentPasswordInput, { target: { value: TEST_CURRENT_PASSWORD } });
     expect(submitButton).toBeDisabled();
   });
 
@@ -147,9 +153,9 @@ describe('PasswordSettings Component', () => {
     const submitButton = screen.getByTestId('button');
     
     // Fill in all fields with valid data
-    fireEvent.change(currentPasswordInput, { target: { value: 'currentPass' } });
-    fireEvent.change(newPasswordInput, { target: { value: 'Password123!' } });
-    fireEvent.change(confirmPasswordInput, { target: { value: 'Password123!' } });
+    fireEvent.change(currentPasswordInput, { target: { value: TEST_CURRENT_PASSWORD } });
+    fireEvent.change(newPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
+    fireEvent.change(confirmPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
     
     // Button should be enabled
     expect(submitButton).not.toBeDisabled();
@@ -164,9 +170,9 @@ describe('PasswordSettings Component', () => {
     const submitButton = screen.getByTestId('button');
     
     // Fill in all fields with valid data
-    fireEvent.change(currentPasswordInput, { target: { value: 'currentPass' } });
-    fireEvent.change(newPasswordInput, { target: { value: 'Password123!' } });
-    fireEvent.change(confirmPasswordInput, { target: { value: 'Password123!' } });
+    fireEvent.change(currentPasswordInput, { target: { value: TEST_CURRENT_PASSWORD } });
+    fireEvent.change(newPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
+    fireEvent.change(confirmPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
     
     // Submit the form
     fireEvent.click(submitButton);
@@ -182,9 +188,9 @@ describe('PasswordSettings Component', () => {
             'X-API-KEY': 'test-api-key'
           }),
           body: JSON.stringify({
-            current_password: 'currentPass',
-            new_password: 'Password123!',
-            confirm_password: 'Password123!'
+            current_password: TEST_CURRENT_PASSWORD,
+            new_password: TEST_NEW_PASSWORD,
+            confirm_password: TEST_NEW_PASSWORD
           })
         })
       );
@@ -206,9 +212,9 @@ describe('PasswordSettings Component', () => {
     const submitButton = screen.getByTestId('button');
     
     // Fill in all fields with valid data
-    fireEvent.change(currentPasswordInput, { target: { value: 'wrongPass' } });
-    fireEvent.change(newPasswordInput, { target: { value: 'Password123!' } });
-    fireEvent.change(confirmPasswordInput, { target: { value: 'Password123!' } });
+    fireEvent.change(currentPasswordInput, { target: { value: TEST_WRONG_PASSWORD } });
+    fireEvent.change(newPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
+    fireEvent.change(confirmPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
     
     // Submit the form
     fireEvent.click(submitButton);
