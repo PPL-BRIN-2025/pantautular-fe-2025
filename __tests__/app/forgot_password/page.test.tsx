@@ -1,72 +1,154 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import React from 'react';
+import { render, screen, fireEvent, waitFor, RenderResult } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import ForgotPasswordPage from "../../../app/forgot-password/page";
+import { emailSubmitAPI } from '../../../services/api';
 
-describe("ForgotPasswordPage Component", () => {
-    test("renders the page with all key elements", () => {
-      render(<ForgotPasswordPage />);
-      
-      // Check for heading
-      expect(screen.getByRole("heading", { name: /lupa kata sandi/i })).toBeInTheDocument();
-      
-      // Check for logo and illustration
-      expect(screen.getByText(/pantau penyebaran, cegah penularan/i)).toBeInTheDocument();
-      
-      // Check for form elements
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/masukkan email terdaftar/i)).toBeInTheDocument();
-      expect(screen.getByText(/isi dengan email yang sudah terdaftar sebelumnya/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /kirim/i })).toBeInTheDocument();
-    });
-  
-    test("allows typing in email input field", () => {
-      render(<ForgotPasswordPage />);
-      
-      const emailInput = screen.getByLabelText(/email/i);
-      fireEvent.change(emailInput, { target: { value: "user@example.com" } });
-      
-      expect(emailInput).toHaveValue("user@example.com");
-    });
-  
-    test("email input has correct type attribute", () => {
-      render(<ForgotPasswordPage />);
-      
-      const emailInput = screen.getByLabelText(/email/i);
-      expect(emailInput).toHaveAttribute("type", "email");
-    });
-  
-    test("submit button has correct type and styling", () => {
-      render(<ForgotPasswordPage />);
-      
-      const submitButton = screen.getByRole("button", { name: /kirim/i });
-      expect(submitButton).toHaveAttribute("type", "submit");
-      expect(submitButton).toHaveClass("bg-[#0066CC]");
-      expect(submitButton).toHaveClass("text-white");
-    });
-  
-    test("form layout renders correctly", () => {
-      render(<ForgotPasswordPage />);
-      
-      // Check for the two-column layout
-      const flexContainer = document.querySelector(".flex.min-h-screen.flex-col.md\\:flex-row");
-      expect(flexContainer).toBeInTheDocument();
-      
-      // Check for left and right sides
-      const leftSide = document.querySelector(".md\\:w-1\\/2");
-      expect(leftSide).toBeInTheDocument();
-      
-      const rightSide = document.querySelector(".flex.flex-col.justify-center");
-      expect(rightSide).toBeInTheDocument();
-    });
-  
-    test("allows form submission", () => {
-      render(<ForgotPasswordPage />);
-      
-      const emailInput = screen.getByLabelText(/email/i);
-      fireEvent.change(emailInput, { target: { value: "user@example.com" } });
-      
-      emailInput.closest("form");
-      const submitButton = screen.getByRole("button", { name: /kirim/i });
+// Mock the API module
+jest.mock('../../../services/api', () => ({
+  emailSubmitAPI: {
+    requestPasswordReset: jest.fn(),
+  },
+}));
 
-      expect(() => fireEvent.click(submitButton)).not.toThrow();
+describe('ForgotPasswordPage', () => {
+  // Helper functions to reduce duplication
+  const renderPage = (): RenderResult => render(<ForgotPasswordPage />);
+  
+  const fillEmailForm = (value: string) => {
+    const emailInput = screen.getByTestId('email-input');
+    fireEvent.change(emailInput, { target: { value } });
+  };
+  
+  const submitForm = () => {
+    const submitButton = screen.getByTestId('submit-button');
+    fireEvent.click(submitButton);
+  };
+  
+  const setupApiSuccess = () => {
+    (emailSubmitAPI.requestPasswordReset as jest.Mock).mockResolvedValueOnce({ 
+      success: true 
+    });
+  };
+  
+  const setupApiError = (errorMessage?: string) => {
+    (emailSubmitAPI.requestPasswordReset as jest.Mock).mockResolvedValueOnce({ 
+      success: false, 
+      error: errorMessage 
+    });
+  };
+  
+  const setupNetworkError = () => {
+    (emailSubmitAPI.requestPasswordReset as jest.Mock).mockRejectedValueOnce(
+      new Error('Network error')
+    );
+  };
+  
+  const expectErrorMessage = (text: string) => {
+    const errorElement = screen.getByTestId('email-error');
+    expect(errorElement).toHaveTextContent(text);
+    expect(errorElement).toBeVisible();
+  };
+  
+  const expectFeedbackMessage = async (text: string) => {
+    await waitFor(() => {
+      const messageElement = screen.getByTestId('feedback-message');
+      expect(messageElement).toHaveTextContent(text);
+      expect(messageElement).toBeVisible();
+    });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('renders the forgot password page correctly', () => {
+    renderPage();
+    
+    expect(screen.getByText('Lupa Kata Sandi')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Kirim/i })).toBeInTheDocument();
+    expect(screen.getByAltText('Forgot Password Illustration')).toBeInTheDocument();
+    expect(screen.getByText('Isi dengan email yang sudah terdaftar sebelumnya')).toBeInTheDocument();
+  });
+
+  describe('Email validation', () => {
+    it('validates empty email', () => {
+      renderPage();
+      submitForm();
+      expectErrorMessage('Email tidak boleh kosong');
+    });
+  
+    it('validates invalid email format', () => {
+      renderPage();
+      fillEmailForm('invalid-email');
+      submitForm();
+      expectErrorMessage('Format email tidak valid');
+    });
+  
+    it('clears validation error when entering valid email after error', () => {
+      renderPage();
+      fillEmailForm('invalid-email');
+      submitForm();
+      
+      const errorElement = screen.getByTestId('email-error');
+      expect(errorElement).toHaveTextContent('Format email tidak valid');
+      
+      fillEmailForm('valid@example.com');
+      expect(errorElement).not.toBeVisible();
     });
   });
+
+  describe('API interactions', () => {
+    it('successfully submits the form with valid email', async () => {
+      setupApiSuccess();
+      renderPage();
+      
+      fillEmailForm('valid@example.com');
+      submitForm();
+      
+      expect(screen.getByText('Mengirim...')).toBeInTheDocument();
+      
+      await expectFeedbackMessage('Jika email terdaftar, kami telah mengirimkan link reset password ke email Anda.');
+      
+      expect(emailSubmitAPI.requestPasswordReset).toHaveBeenCalledWith('valid@example.com');
+      expect(screen.getByRole('button', { name: /Kirim/i })).toBeInTheDocument();
+    });
+  
+    it('handles API error with error message', async () => {
+      const errorMessage = 'Email tidak terdaftar';
+      setupApiError(errorMessage);
+      
+      renderPage();
+      fillEmailForm('valid@example.com');
+      submitForm();
+      
+      await expectFeedbackMessage(errorMessage);
+    });
+  
+    it('handles API error without specific error message', async () => {
+      setupApiError();
+      
+      renderPage();
+      fillEmailForm('valid@example.com');
+      submitForm();
+      
+      await expectFeedbackMessage('Terjadi kesalahan. Silakan coba lagi.');
+    });
+  
+    it('handles network error', async () => {
+      setupNetworkError();
+      
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      
+      renderPage();
+      fillEmailForm('valid@example.com');
+      submitForm();
+      
+      await expectFeedbackMessage('Terjadi kesalahan jaringan. Coba lagi nanti.');
+      
+      expect(console.error).toHaveBeenCalled();
+      (console.error as jest.Mock).mockRestore();
+    });
+  });
+});
