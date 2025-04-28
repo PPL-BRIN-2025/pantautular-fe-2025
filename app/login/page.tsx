@@ -3,13 +3,24 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../auth/hooks/useAuth';
+import { AuthProvider } from '../auth/provider';
 
 export default function LoginPage() {
+    return (
+        <AuthProvider>
+            <LoginForm />
+        </AuthProvider>
+    );
+}
+
+function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const { login } = useAuth();
 
     interface LoginRequestBody {
       email: string;
@@ -22,22 +33,12 @@ export default function LoginPage() {
       setError('');
 
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/authentication/login`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
-          },
-          credentials: 'include',
-          body: JSON.stringify({ email, password } as LoginRequestBody),
-        });
-
+        const credentials: LoginRequestBody = { email, password };
+        await login(credentials);
+        router.push('/');
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat login');
       } finally {
-        console.log('Login attempted with email:', email, 'and password:', password);
-        router.push('/');
         setLoading(false);
       }
     };
