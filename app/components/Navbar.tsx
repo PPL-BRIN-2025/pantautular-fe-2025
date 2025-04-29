@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import Link from "next/link";
 import Image from "next/image";
@@ -7,6 +7,41 @@ import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui-profile/dropdown-menu";
 import PasswordSettings from "./password-settings";
+import { useAuth } from '../auth/hooks/useAuth';
+import { AuthProvider } from '../auth/provider';
+import { useRouter } from "next/navigation";
+
+export default function Navbar() {
+  return (
+    <AuthProvider>
+      <NavbarContent />
+    </AuthProvider>
+  );
+}
+
+const ProfileIcon = ({ logout }: { logout: () => void }) => {
+  const [showSettings, setShowSettings] = useState(false);
+  
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-300 shadow-md ml-8">
+          <User className="h-6 w-6" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => setShowSettings(true)}>
+            <span className="text-gray-800">Pengaturan</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={logout}>
+            <span className="text-red-500">Keluar</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      {showSettings && <PasswordSettings onClose={() => setShowSettings(false)} />}
+    </>
+  );
+};
 
 const NavLink = ({ href, label }: { href: string; label: string }) => {
   const pathname = usePathname();
@@ -22,31 +57,10 @@ const NavLink = ({ href, label }: { href: string; label: string }) => {
   );
 };
 
-const ProfileIcon = () => {
-  const [showSettings, setShowSettings] = useState(false);
-  
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-300 shadow-md ml-8">
-          <User className="h-6 w-6" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={() => setShowSettings(true)}>
-            <span className="text-gray-800">Pengaturan</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <span className="text-red-500">Keluar</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      
-      {showSettings && <PasswordSettings onClose={() => setShowSettings(false)} />}
-    </>
-  );
-};
+function NavbarContent() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
-const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 w-full z-10 flex items-center justify-between px-16 py-6 bg-white shadow-[0_5px_15px_rgba(0,0,0,0.3)] h-20">
       <div className="flex items-center h-20">
@@ -60,10 +74,25 @@ const Navbar = () => {
           <NavLink href="/about" label="Tentang Kami" />
           <NavLink href="/help" label="Bantuan" />
         </div>
-        <ProfileIcon />
+        {user ? (
+          <ProfileIcon logout={logout}/>
+        ) : (
+            <div className="flex items-center gap-4 pl-4">
+              <button
+                className="bg-white text-[#0069cf] px-6 py-2 rounded-md border-2 border-[#0069cf] mr-3"
+                onClick={() => router.push("/login")}
+              >
+                Masuk
+              </button>
+              <button
+                className="bg-[#0069cf] text-white px-6 py-2 rounded-md border-2 border-transparent"
+                onClick={() => router.push("/register")}
+              >
+                Register
+              </button>
+            </div>
+        )}
       </div>
     </nav>
   );
-};
-
-export default Navbar;
+}

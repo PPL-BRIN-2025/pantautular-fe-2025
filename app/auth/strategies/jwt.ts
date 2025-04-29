@@ -8,7 +8,7 @@ export class JWTStrategy implements AuthStrategy {
   }
 
   async logout() {
-    return
+    return Promise.resolve()
   }
 
   async getUser() {
