@@ -5,6 +5,7 @@ import { Button } from "./ui-profile/button"
 import { Input } from "./ui-profile/input"
 import { useState } from "react"
 import { CheckIcon } from "./ui-profile/Checkicon"
+import { useAuth } from "../auth/hooks/useAuth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
@@ -14,6 +15,8 @@ interface PasswordSettingsProps {
 }
 
 export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsProps>) {
+  const { user } = useAuth();
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -61,11 +64,14 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
     setIsLoading(true);
     
     try {
+      const token = localStorage.getItem('accessToken');
+
       const response = await fetch(`${API_BASE_URL}/authentication/api/auth/change-password/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-KEY': String(API_KEY)
+          'X-API-KEY': String(API_KEY),
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           current_password: currentPassword,
