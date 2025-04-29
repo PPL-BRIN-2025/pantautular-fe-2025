@@ -3,13 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { usePathname } from "next/navigation"; 
+import { usePathname, useRouter } from "next/navigation"; 
 import { User } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui-profile/dropdown-menu";
 import PasswordSettings from "./password-settings";
 import { useAuth } from '../auth/hooks/useAuth';
 import { AuthProvider } from '../auth/provider';
-import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   return (
