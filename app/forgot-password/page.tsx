@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
       <div className="flex flex-col items-center justify-center bg-white p-6 md:w-1/2">
         <div className="flex w-full items-center justify-center mb-2">
           <div className="illustration-placeholder -mt-6">
-            <img src="/logo-forgotPassword.svg" alt="Forgot Password Illustration" className="object-contain max-h-96" />
+            <img src="/forgotPassword.svg" alt="Forgot Password Illustration" className="object-contain max-h-96" />
           </div>
         </div>
       </div>

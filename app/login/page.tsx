@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth/hooks/useAuth';
@@ -86,10 +87,10 @@ function LoginForm() {
             </div>
             <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 space-y-2 sm:space-y-0'>
               <p className="text-xs sm:text-sm">
-                Belum memiliki akun? <a href="#" className="text-[#0D2B5E] font-semibold">Daftar</a>
+                Belum memiliki akun? <Link href="/register" className="text-[#0D2B5E] font-semibold">Daftar</Link>
               </p>
               <p className="text-xs sm:text-sm">
-                <a href="#" className="text-[#0D2B5E] font-semibold">Lupa Kata Sandi?</a>
+                <Link href="/forgot-password" className="text-[#0D2B5E] font-semibold">Lupa Kata Sandi?</Link>
               </p>
             </div>
             <button
