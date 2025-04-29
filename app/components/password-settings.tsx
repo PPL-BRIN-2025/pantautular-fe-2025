@@ -61,7 +61,7 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+      const response = await fetch(`${API_BASE_URL}/authentication/api/auth/change-password/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
