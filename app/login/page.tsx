@@ -4,13 +4,11 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth/hooks/useAuth';
-import { AuthProvider } from '../auth/provider';
+import { LoginRequestBody } from '@/types';
 
 export default function LoginPage() {
     return (
-        <AuthProvider>
-            <LoginForm />
-        </AuthProvider>
+      <LoginForm />
     );
 }
 
@@ -20,12 +18,7 @@ function LoginForm() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const { login } = useAuth();
-
-    interface LoginRequestBody {
-      email: string;
-      password: string;
-    }
+    const { user, login } = useAuth();
 
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -35,6 +28,7 @@ function LoginForm() {
       try {
         const credentials: LoginRequestBody = { email, password };
         await login(credentials);
+        console.log('Login successful!');
         router.push('/');
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat login');
@@ -42,6 +36,7 @@ function LoginForm() {
         setLoading(false);
       }
     };
+    console.log('User from Login:', user);
 
     return (
       <div className="flex flex-col md:flex-row items-center justify-center bg-white px-4 sm:mx-6 my-8 sm:my-12">
