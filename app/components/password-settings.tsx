@@ -61,7 +61,7 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/change-password`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,10 +77,10 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || "Gagal mengubah kata sandi");
+        throw new Error(data.error ?? "Gagal mengubah kata sandi");
       }
       
-      setSuccessMessage(data.message || "Kata sandi berhasil diubah");
+      setSuccessMessage(data.message ?? "Kata sandi berhasil diubah");
       
       // Clear form fields on success
       setCurrentPassword("");
