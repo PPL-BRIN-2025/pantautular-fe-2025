@@ -3,21 +3,23 @@
 import { useState, useEffect, useMemo } from "react"
 import { AuthContext } from "./context"
 import { JWTStrategy } from "./strategies/jwt"
+import { LoginRequestBody, User } from "@/types"
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<{ username: string } | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const strategy = new JWTStrategy()
 
   useEffect(() => {
     strategy.getUser().then(setUser)
   }, [])
 
-  const login = async (credentials: any) => {
+  const login = async (credentials: LoginRequestBody) => {
     const res = await strategy.login(credentials)
-    setUser(res.user)
+    const userData:User = await strategy.getUser()
+    setUser(userData)
     return res
   }
-
+  
   const logout = async () => {
     await strategy.logout()
     setUser(null)

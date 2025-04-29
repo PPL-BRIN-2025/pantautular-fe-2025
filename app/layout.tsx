@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "../styles/globals.css";
+import { AuthProvider } from "./auth/provider";
 
 const inter = { className: "" };
 
@@ -31,7 +32,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} min-h-screen`}>
         <main className="min-h-screen pt-20">
+          <AuthProvider>
           {children}
+          </AuthProvider>
         </main>
       </body>
     </html>
