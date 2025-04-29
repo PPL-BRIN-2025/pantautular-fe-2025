@@ -37,7 +37,7 @@ export class JWTStrategy implements AuthStrategy {
         name: this.tokenPayload!.name,
         role: this.tokenPayload!.role,
       }
-      localStorage.setItem("token", this.token!);
+      localStorage.setItem("accessToken", this.token!);
       localStorage.setItem("user", JSON.stringify(user));
       
     } catch (error) {
@@ -66,6 +66,5 @@ export class JWTStrategy implements AuthStrategy {
     this.token = null;
     this.tokenPayload = null;
     // redirect ke login
-    return;
   }
 }
