@@ -36,7 +36,14 @@ describe("Navbar", () => {
   });
 
   it("menampilkan ikon profil", () => {
-    expect(screen.getByText("👤")).toBeInTheDocument();
+    // Periksa SVG icon profil berdasarkan class
+    expect(screen.getByRole('button', { 
+      name: '' // Button tidak memiliki teks
+    })).toBeInTheDocument();
+    
+    // Atau lebih spesifik menggunakan SVG class
+    const userIcon = document.querySelector('.lucide-user');
+    expect(userIcon).toBeInTheDocument();
   });
 
   it("tidak menampilkan menu yang tidak ada", () => {
