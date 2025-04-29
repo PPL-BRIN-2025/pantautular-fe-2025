@@ -5,7 +5,6 @@ import { Button } from "./ui-profile/button"
 import { Input } from "./ui-profile/input"
 import { useState } from "react"
 import { CheckIcon } from "./ui-profile/Checkicon"
-import { useAuth } from "../auth/hooks/useAuth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
