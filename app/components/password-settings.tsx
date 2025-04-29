@@ -15,7 +15,6 @@ interface PasswordSettingsProps {
 }
 
 export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsProps>) {
-  const { user } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
