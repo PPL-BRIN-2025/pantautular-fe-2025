@@ -25,3 +25,31 @@ export interface DistributionData {
     news_count: number;
     disease_count: number;
 }
+
+export interface LoginRequestBody {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  detail: string;
+  access_token: string;
+}
+
+export interface TokenPayload {
+  email: string;
+  exp: number;
+  iat: number;
+  jti: string;
+  name: string;
+  role: string;
+  token_type: string;
+  user_id: number;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+}
