@@ -69,3 +69,8 @@ export interface StatisticsData {
     all_healthcare: Array<{ portal: string; news_count: number; disease_count: number }>;
   };
 }
+
+export interface ProvinceData {
+  id: string;
+  value: string | number;
+}

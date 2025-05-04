@@ -2,7 +2,7 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
 import am5geodata_indonesiaLow from "@amcharts/amcharts5-geodata/indonesiaLow";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
-import { MapLocation, MapConfig } from "../types";
+import { MapLocation, MapConfig, ProvinceData } from "../types";
 import { getTooltip } from "../utils/tooltipUtils";
 import { useMapStore } from "../store/store";
 
@@ -18,6 +18,9 @@ export class MapChartService {
   private readonly onError: ((message: string) => void) | null = null;
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
+  private provinceHumidityData: ProvinceData[] | null  = null;
+  private provinceTemperatureData: ProvinceData[] | null = null;
+  private provincePrecipitationData: ProvinceData[] | null = null;
 
   constructor(onError?: (message: string) => void) {
     this.onError = onError || null;
@@ -75,7 +78,7 @@ export class MapChartService {
 
   // Your method that updates the count of selected points
   private getPointsInSelection(): void {
-    console.log('Runnnnn');
+    // console.log('Runnnnn');
     const tl = this.chart?.invert({ x: 0, y: 0 });
     const br = this.chart?.invert({ x: this.chart.innerWidth(), y: this.chart.innerHeight() });
 
@@ -114,7 +117,7 @@ export class MapChartService {
     /* istanbul ignore next */
     // Set the countSelectedPoints using the private setter
     this.countSelectedPoints = selectedPoints.length;
-    console.log(this._countSelectedPoints);
+    // console.log(this._countSelectedPoints);
   }
 
   private setupPolygonSeries(): void {
@@ -142,7 +145,7 @@ export class MapChartService {
           geoJSON: am5geodata_indonesiaLow,
           valueField: "value",
           calculateAggregates: true,
-          // exclude: ["AQ"],   
+          exclude: ["AQ"],   
         })
       );
 
@@ -158,64 +161,31 @@ export class MapChartService {
         target: this.humiditySeries.mapPolygons.template,
         dataField: "value",
         customFunction: function(sprite: am5.Sprite, min, max, value) {
-          if (value <= 100) {
-            (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
-          } else if (value <= 200) {
-            (sprite as am5.Graphics).set("fill", am5.color("#A5D6A7"));
-          } else if (value <= 300) {
-            (sprite as am5.Graphics).set("fill", am5.color("#4CAF50"));
-          } else if (value <= 400) {
-            (sprite as am5.Graphics).set("fill", am5.color("#2196F3"));
-          } else if (value <= 500) {
-            (sprite as am5.Graphics).set("fill", am5.color("#3F51B5"));
-          } else if (value <= 600) {
-            (sprite as am5.Graphics).set("fill", am5.color("#9C27B0"));
-          } else if (value <= 700) {
-            (sprite as am5.Graphics).set("fill", am5.color("#E91E63"));
-          } else if (value <= 800) {
-            (sprite as am5.Graphics).set("fill", am5.color("#F44336"));
+          if (value <= 0) {
+            (sprite as am5.Graphics).set("fill", am5.color("#C41A0A"));
+          } else if (value <= 10) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4440B"));
+          } else if (value <= 20) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F47A0B"));
+          } else if (value <= 30) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4B00B"));
+          } else if (value <= 40) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4E60B"));
+          } else if (value <= 50) {
+            (sprite as am5.Graphics).set("fill", am5.color("#D2EE3C"));
+          } else if (value <= 60) {
+            (sprite as am5.Graphics).set("fill", am5.color("#AFF474"));
+          } else if (value <= 70) {
+            (sprite as am5.Graphics).set("fill", am5.color("#A3D4FF"));
+          } else if (value <= 80) {
+            (sprite as am5.Graphics).set("fill", am5.color("#6DBCFF"));
+          } else if (value <= 90) {
+            (sprite as am5.Graphics).set("fill", am5.color("#1392FF"));
           } else {
-            (sprite as am5.Graphics).set("fill", am5.color("#E03444"));
+            (sprite as am5.Graphics).set("fill", am5.color("#00528F"));
           }
         }
       }]);
-
-      this.humiditySeries.data.setAll([
-        { id: "ID-AC", value: 417 },
-        { id: "ID-BA", value: 156 },
-        { id: "ID-BB", value: 141 },
-        { id: "ID-BE", value: 343 },
-        { id: "ID-BT", value: 225 },
-        { id: "ID-GO", value: 364 },
-        { id: "ID-JA", value: 910 },
-        { id: "ID-JB", value: 588 },
-        { id: "ID-JI", value: 721 },
-        { id: "ID-JK", value: 399 },
-        { id: "ID-JT", value: 522 },
-        { id: "ID-KB", value: 843 },
-        { id: "ID-KI", value: 294 },
-        { id: "ID-KR", value: 515 },
-        { id: "ID-KS", value: 238 },
-        { id: "ID-KT", value: 291 },
-        { id: "ID-KU", value: 136 },
-        { id: "ID-LA", value: 211 },
-        { id: "ID-MA", value: 525 },
-        { id: "ID-MU", value: 421 },
-        { id: "ID-NB", value: 358 },
-        { id: "ID-NT", value: 427 },
-        { id: "ID-PA", value: 294 },
-        { id: "ID-PB", value: 799 },
-        { id: "ID-RI", value: 98 },
-        { id: "ID-SA", value: 801 },
-        { id: "ID-SB", value: 311 },
-        { id: "ID-SG", value: 194 },
-        { id: "ID-SN", value: 436 },
-        { id: "ID-SR", value: 757 },
-        { id: "ID-SS", value: 28 },
-        { id: "ID-ST", value: 501 },
-        { id: "ID-SU", value: 442 },
-        { id: "ID-YO", value: 357 }
-      ])
 
       // Create custom legend
       let legend = this.chart.children.push(am5.Container.new(root, {
@@ -297,17 +267,6 @@ export class MapChartService {
           strokeWidth: 1,
       });
 
-      // Add hover effect using the helper function
-      /* istanbul ignore next */
-      this.basePolygonSeries.mapPolygons.template.events.on("pointerover", (ev) => {
-        this.handlePolygonEvent(ev, "#FF0000");
-      });
-
-      /* istanbul ignore next */
-      this.basePolygonSeries.mapPolygons.template.events.on("pointerout", (ev) => {
-        this.handlePolygonEvent(ev, "#E0E0E0");
-      });
-
       /* istanbul ignore next */
       this.chart.set("background", am5.Rectangle.new(this.root, {
           fill: am5.color("#E0E0E0"), 
@@ -321,20 +280,6 @@ export class MapChartService {
     } catch (error) {
       console.error("Error setting up polygon series:", error);
       if (this.onError) this.onError("Error setting up map polygons.");
-    }
-  }
-
-  /* istanbul ignore next */
-  private handlePolygonEvent(ev: any, fillColor: string): void {
-    const polygon = ev.target;
-    if (polygon && this.highlightSeries?.mapPolygons) {
-      const index = this.basePolygonSeries?.mapPolygons.indexOf(polygon);
-      if (index !== undefined) {
-        const highlightPolygon = this.highlightSeries.mapPolygons.getIndex(index);
-        if (highlightPolygon) {
-          highlightPolygon.set("fill", am5.color(fillColor));
-        }
-      }
     }
   }
 
@@ -363,6 +308,7 @@ export class MapChartService {
     if (!this.pointSeries || !this.root) return;
     try {
       const root = this.root;
+      const self = this; // Store reference to this
       /* istanbul ignore next */
       this.pointSeries.set("clusteredBullet", (root: am5.Root) => {
         const container = am5.Container.new(root, {
@@ -394,7 +340,20 @@ export class MapChartService {
 
         container.events.on("click", (e) => {
           if (e.target.dataItem) {
-            this.pointSeries?.zoomToCluster(e.target.dataItem as am5.DataItem<any>);
+            console.log("CLICKED");
+            try {
+              console.log("Attempting to zoom to cluster with dataItem:", e.target.dataItem);
+              // Check if zoomToCluster method exists
+              if (self.pointSeries && typeof self.pointSeries.zoomToCluster === 'function') {
+                // Pass true as second parameter to center the cluster
+                self.pointSeries.zoomToCluster(e.target.dataItem as am5.DataItem<any>, true);
+                console.log("Successfully called zoomToCluster with center parameter");
+              } else {
+                console.error("zoomToCluster method is not available on pointSeries", self.pointSeries);
+              }
+            } catch (error) {
+              console.error("Error in zoomToCluster:", error);
+            }
           }
         });
 
@@ -473,6 +432,22 @@ export class MapChartService {
     // Set the tooltip for the series
     this.pointSeries.set("tooltip", tooltip);
   }
+
+  populateProvinceHumidityData(provinceHumidityData: ProvinceData[]): void {
+    if (!this.humiditySeries) return;
+    this.provinceHumidityData = provinceHumidityData;
+    this.humiditySeries.data.clear();
+    console.log(provinceHumidityData);
+
+    provinceHumidityData.forEach(data => {
+      this.humiditySeries!.data.push({
+        id: data.id,
+        value: data.value
+      });
+    });
+    
+    console.log(this.humiditySeries.data);   
+  }
   
   populateLocations(locations: MapLocation[]): void {
     if (!this.pointSeries) return;
@@ -487,8 +462,8 @@ export class MapChartService {
         geometry: { 
           type: "Point", 
           coordinates: [
-            location.location__longitude, 
-            location.location__latitude,
+            parseFloat(location.location__longitude), 
+            parseFloat(location.location__latitude),
           ] 
         },
         city: location.city,
