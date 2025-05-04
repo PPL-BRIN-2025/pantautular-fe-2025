@@ -156,11 +156,27 @@ const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
 
 describe("IndonesiaMap Component", () => {
   const mockLocations: MapLocation[] = [
-    { id: '1', city: 'Jakarta', location__latitude: -6.2, location__longitude: 106.8 },
-    { id: '2', city: 'Surabaya', location__latitude: -7.3, location__longitude: 112.7 },
+    { id: '1', city: 'Jakarta', location__latitude: -6.2, location__longitude: 106.8, location__province: 'DKI Jakarta' },
+    { id: '2', city: 'Surabaya', location__latitude: -7.3, location__longitude: 112.7, location__province: 'Jawa Timur' },
   ];
   
   const mockOnError = jest.fn();
+  
+  // Mock province data for testing
+  const mockProvinceHumidityData = [
+    { id: 'ID-JK', value: 75 },
+    { id: 'ID-JI', value: 60 }
+  ];
+  
+  const mockProvinceTemperatureData = [
+    { id: 'ID-JK', value: 30 },
+    { id: 'ID-JI', value: 32 }
+  ];
+  
+  const mockProvincePrecipitationData = [
+    { id: 'ID-JK', value: 200 },
+    { id: 'ID-JI', value: 150 }
+  ];
   
   const mockMapService = {
     zoomToLocation: jest.fn(),
@@ -196,7 +212,15 @@ describe("IndonesiaMap Component", () => {
 
   test("renders the map container", async () => {
     await act(async () => {
-      render(<IndonesiaMap onError={jest.fn()} locations={[]} />);
+      render(
+        <IndonesiaMap 
+          onError={jest.fn()} 
+          locations={[]} 
+          provinceHumidityData={[]}
+          provinceTemperatureData={[]}
+          provincePrecipitationData={[]}
+        />
+      );
     });
     expect(screen.getByTestId("map-container")).toBeInTheDocument();
   });
@@ -214,7 +238,15 @@ describe("IndonesiaMap Component", () => {
     }));
 
     await act(async () => {
-      render(<IndonesiaMap onError={mockOnError} locations={[]} />);
+      render(
+        <IndonesiaMap 
+          onError={mockOnError} 
+          locations={[]} 
+          provinceHumidityData={[]}
+          provinceTemperatureData={[]}
+          provincePrecipitationData={[]}
+        />
+      );
     });
 
     expect(mockOnError).not.toHaveBeenCalled();
@@ -228,6 +260,9 @@ describe("IndonesiaMap Component", () => {
         onError={mockOnError}
         height="500px"
         width="800px"
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -252,6 +287,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -263,8 +301,11 @@ describe("IndonesiaMap Component", () => {
         zoomLevel: 2,
         centerPoint: { longitude: 113.9213, latitude: 0.7893 }
       }),
+      mockProvinceHumidityData,
+      mockProvinceTemperatureData,
+      mockProvincePrecipitationData,
       mockOnError,
-      expect.any(Boolean)
+      false
     );
   });
   
@@ -279,6 +320,9 @@ describe("IndonesiaMap Component", () => {
         locations={mockLocations}
         config={customConfig}
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -287,8 +331,11 @@ describe("IndonesiaMap Component", () => {
       'chartdiv',
       mockLocations,
       expect.objectContaining(customConfig),
+      mockProvinceHumidityData,
+      mockProvinceTemperatureData,
+      mockProvincePrecipitationData,
       mockOnError,
-      expect.any(Boolean)
+      false
     );
   });
   
@@ -302,11 +349,14 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
     // On first render, initialized should be false
-    expect((useIndonesiaMap as jest.Mock).mock.calls[0][4]).toBe(false);
+    expect((useIndonesiaMap as jest.Mock).mock.calls[0][7]).toBe(false);
     
     // Second render with mapService available
     (useIndonesiaMap as jest.Mock).mockReturnValueOnce({
@@ -318,6 +368,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -332,6 +385,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -345,6 +401,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -363,6 +422,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -382,6 +444,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -400,6 +465,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -418,6 +486,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -444,6 +515,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -478,6 +552,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -501,6 +578,9 @@ describe("IndonesiaMap Component", () => {
       <IndonesiaMap 
         locations={mockLocations} 
         onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
       />
     );
     
@@ -512,25 +592,28 @@ describe("IndonesiaMap Component", () => {
   });
 
   test("closing error popup clears the error", () => {
-  render(
-    <IndonesiaMap 
-      locations={mockLocations} 
-      onError={mockOnError}
-    />
-  );
+    render(
+      <IndonesiaMap 
+        locations={mockLocations} 
+        onError={mockOnError}
+        provinceHumidityData={mockProvinceHumidityData}
+        provinceTemperatureData={mockProvinceTemperatureData}
+        provincePrecipitationData={mockProvincePrecipitationData}
+      />
+    );
 
-  // Simulate setting an error
-  act(() => {
-    (useUserLocation as jest.Mock).mock.calls[0][1]({ type: "TEST_ERROR", message: "Test error" });
+    // Simulate setting an error
+    act(() => {
+      (useUserLocation as jest.Mock).mock.calls[0][1]({ type: "TEST_ERROR", message: "Test error" });
+    });
+
+    // Error popup should be visible
+    expect(screen.getByTestId("error-popup")).toBeInTheDocument();
+
+    // Click close button on error popup
+    fireEvent.click(screen.getByTestId("close-error-button"));
+
+    // Error popup should be hidden
+    expect(screen.queryByTestId("error-popup")).not.toBeInTheDocument();
   });
-
-  // Error popup should be visible
-  expect(screen.getByTestId("error-popup")).toBeInTheDocument();
-
-  // Click close button on error popup
-  fireEvent.click(screen.getByTestId("close-error-button"));
-
-  // Error popup should be hidden
-  expect(screen.queryByTestId("error-popup")).not.toBeInTheDocument();
-});
 });

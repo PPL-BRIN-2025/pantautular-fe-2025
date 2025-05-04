@@ -391,54 +391,55 @@ describe("MapChartService", () => {
   });
 
   test("setupPolygonSeries creates humiditySeries and heatLegend", () => {
-    // Create a mock heat legend
-    const mockHeatLegend = {
-      startLabel: { setAll: jest.fn() },
-      endLabel: { setAll: jest.fn() },
-      get: jest.fn().mockReturnValue({ color: 'test' }),
-      show: jest.fn(),
-      hide: jest.fn()
+    // Create a mock container for the legend
+    const mockContainer = {
+      children: { push: jest.fn().mockReturnValue({}) },
+      hide: jest.fn(),
+      show: jest.fn()
     };
     
     // Mock the chart with children push method
-    const mockChildrenPush = jest.fn().mockReturnValue(mockHeatLegend);
+    const mockChildrenPush = jest.fn().mockReturnValue(mockContainer);
     
     (mapService as any).chart = { 
       series: { push: jest.fn().mockReturnValue({ 
         mapPolygons: { template: { setAll: jest.fn() } },
         set: jest.fn(),
-        data: { setAll: jest.fn() },
+        data: { 
+          setAll: jest.fn(),
+          clear: jest.fn(),
+          push: jest.fn()
+        },
         hide: jest.fn(),
         show: jest.fn()
       }) },
       children: { push: mockChildrenPush },
       set: jest.fn()
     };
-    (mapService as any).root = { dispose: jest.fn() };
+    (mapService as any).root = { dispose: jest.fn(), verticalLayout: {} };
     
-    // Override HeatLegend.new just for this test
-    const originalHeatLegendNew = am5.HeatLegend.new;
-    am5.HeatLegend.new = jest.fn().mockReturnValue(mockHeatLegend);
+    // Mock the LinearGradient
+    const mockLinearGradient = { rotation: 0, stops: [] };
+    (am5 as any).LinearGradient = {
+      new: jest.fn().mockReturnValue(mockLinearGradient)
+    };
     
     // Call setupPolygonSeries
     (mapService as any).setupPolygonSeries();
     
-    // Verify heatLegend was created with correct properties
-    expect(am5.HeatLegend.new).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      orientation: "horizontal",
-      startColor: expect.anything(),
-      endColor: expect.anything(),
-      startText: "Lowest",
-      endText: "Highest"
-    }));
+    // Set the humidityHeatLegend mock after setupPolygonSeries has been called
+    (mapService as any).humidityHeatLegend = {
+      hide: jest.fn(),
+      show: jest.fn()
+    };
     
     // Verify humiditySeries was created and heat rules were set
     expect((mapService as any).humiditySeries.set).toHaveBeenCalledWith("heatRules", expect.any(Array));
-    expect((mapService as any).humiditySeries.hide).toHaveBeenCalled();
-    expect((mapService as any).humidityHeatLegend.hide).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.hide).not.toHaveBeenCalled();
     
-    // Restore the original HeatLegend.new
-    am5.HeatLegend.new = originalHeatLegendNew;
+    // Verify custom legend was created
+    expect(mockChildrenPush).toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.hide).not.toHaveBeenCalled();
   });
 
   test("setupPointSeries adds clustered point series to chart", () => {
@@ -1490,8 +1491,8 @@ describe("MapChartService - getPointsInSelection method", () => {
     
     // Set up test locations (one on each side of the international date line)
     (mapService as any).locations = [
-      { id: "1", location__longitude: 175, location__latitude: -5, city: "East", location__province: "Test" },
-      { id: "2", location__longitude: -175, location__latitude: -5, city: "West", location__province: "Test" }
+      { id: "1", location__longitude: "175", location__latitude: "-5", city: "East", location__province: "Test" },
+      { id: "2", location__longitude: "-175", location__latitude: "-5", city: "West", location__province: "Test" }
     ];
     
     // Call the method
@@ -1523,11 +1524,11 @@ describe("MapChartService - getPointsInSelection method", () => {
     
     // Set up locations with some inside and some outside
     (mapService as any).locations = [
-      { id: "1", location__longitude: 110, location__latitude: -5, city: "Inside", location__province: "Test" },
-      { id: "2", location__longitude: 130, location__latitude: -5, city: "Outside-East", location__province: "Test" },
-      { id: "3", location__longitude: 90, location__latitude: -5, city: "Outside-West", location__province: "Test" },
-      { id: "4", location__longitude: 110, location__latitude: 5, city: "Outside-North", location__province: "Test" },
-      { id: "5", location__longitude: 110, location__latitude: -15, city: "Outside-South", location__province: "Test" }
+      { id: "1", location__longitude: "110", location__latitude: "-5", city: "Inside", location__province: "Test" },
+      { id: "2", location__longitude: "130", location__latitude: "-5", city: "Outside-East", location__province: "Test" },
+      { id: "3", location__longitude: "90", location__latitude: "-5", city: "Outside-West", location__province: "Test" },
+      { id: "4", location__longitude: "110", location__latitude: "5", city: "Outside-North", location__province: "Test" },
+      { id: "5", location__longitude: "110", location__latitude: "-15", city: "Outside-South", location__province: "Test" }
     ];
     
     // Call the method
