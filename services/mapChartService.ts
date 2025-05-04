@@ -137,6 +137,7 @@ export class MapChartService {
           fill: am5.color("#FFFFFF"), 
           stroke: am5.color("#CCCCCC"), 
           strokeWidth: 0.5,
+          
       });
 
       // Add colored province layer
@@ -145,7 +146,7 @@ export class MapChartService {
           geoJSON: am5geodata_indonesiaLow,
           valueField: "value",
           calculateAggregates: true,
-          exclude: ["AQ"],   
+          exclude: ["AQ"], 
         })
       );
 
@@ -187,62 +188,82 @@ export class MapChartService {
         }
       }]);
 
-      // Create custom legend
+      // Create custom legend - positioned at the bottom center
       let legend = this.chart.children.push(am5.Container.new(root, {
-        maxWidth: 1000,
-        height: 100,
-        layout: root.verticalLayout,
-        paddingTop: 800,
-        paddingLeft: 0,
-        paddingRight: 0
+        width: am5.percent(80),
+        height: 50,
+        layout: root.horizontalLayout,
+        position: "absolute",
+        x: am5.percent(50),
+        centerX: am5.percent(50),
+        y: am5.percent(100),
+        dy: -30,
+        paddingLeft: 10,
+        paddingRight: 10,
+        paddingTop: 5,
+        paddingBottom: 5
       }));
 
-      let gradient = am5.LinearGradient.new(root, {
-        stops: [
-          { color: am5.color("#FFFFFF"), offset: 0 },
-          { color: am5.color("#FFFFFF"), offset: 0.1 },
-          { color: am5.color("#A5D6A7"), offset: 0.1 },
-          { color: am5.color("#A5D6A7"), offset: 0.2 },
-          { color: am5.color("#4CAF50"), offset: 0.2 },
-          { color: am5.color("#4CAF50"), offset: 0.3 },
-          { color: am5.color("#2196F3"), offset: 0.3 },
-          { color: am5.color("#2196F3"), offset: 0.4 },
-          { color: am5.color("#3F51B5"), offset: 0.4 },
-          { color: am5.color("#3F51B5"), offset: 0.5 },
-          { color: am5.color("#9C27B0"), offset: 0.5 },
-          { color: am5.color("#9C27B0"), offset: 0.6 },
-          { color: am5.color("#E91E63"), offset: 0.6 },
-          { color: am5.color("#E91E63"), offset: 0.7 },
-          { color: am5.color("#F44336"), offset: 0.7 },
-          { color: am5.color("#F44336"), offset: 0.8 },
-          { color: am5.color("#E03444"), offset: 0.8 },
-          { color: am5.color("#E03444"), offset: 1 }
-        ],
-        rotation: 0
+      // Create a container for the labels and color blocks
+      let labelsContainer = legend.children.push(am5.Container.new(root, {
+        width: am5.percent(100),
+        height: am5.percent(100),
+        layout: root.horizontalLayout,
+        centerY: am5.percent(50)
+      }));
+
+      // Create color blocks container
+      let blocksContainer = labelsContainer.children.push(am5.Container.new(root, {
+        width: am5.percent(60),
+        height: 20,
+        layout: root.horizontalLayout,
+        marginLeft: 10,
+        marginRight: 10,
+        centerY: am5.percent(50)
+      }));
+
+      // Define the colors and value ranges for each block
+      const colorBlocks = [
+        { color: "#C41A0A", range: "0%" },
+        { color: "#F4440B", range: "10%" },
+        { color: "#F47A0B", range: "20%" },
+        { color: "#F4B00B", range: "30%" },
+        { color: "#F4E60B", range: "40%" },
+        { color: "#D2EE3C", range: "50%" },
+        { color: "#AFF474", range: "60%" },
+        { color: "#A3D4FF", range: "70%" },
+        { color: "#6DBCFF", range: "80%" },
+        { color: "#1392FF", range: "90%" },
+        { color: "#00528F", range: "100%" }
+      ];
+
+      // Create a higher container for block styling
+      colorBlocks.forEach(block => {
+        // Create a container for each block (to hold both rectangle and label)
+        let blockContainer = blocksContainer.children.push(am5.Container.new(root, {
+          width: am5.percent(100 / colorBlocks.length),
+          height: 25,
+          layout: root.verticalLayout
+        }));
+
+        // Add the colored rectangle
+        let colorBlock = blockContainer.children.push(am5.Rectangle.new(root, {
+          width: am5.percent(100),
+          height: 20,
+          fill: am5.color(block.color),
+        }));
+
+        // Add the label inside the colored rectangle
+        let label = blockContainer.children.push(am5.Label.new(root, {
+          text: block.range,
+          fontSize: 11.5,
+          fontWeight: "500",
+          fill: am5.color(0xFFFFFF),
+          // textAlign: "center",
+          centerX: am5.percent(-75),
+          marginTop: -25,
+        }));
       });
-
-      let labels = legend.children.push(am5.Container.new(root, {
-        width: am5.p100
-      }));
-
-      let fromLabel = labels.children.push(am5.Label.new(root, {
-        text: "Lowest",
-        fontSize: 12
-      }));
-
-      let toLabel = labels.children.push(am5.Label.new(root, {
-        text: "Highest",
-        fontSize: 12,
-        x: am5.p100,
-        centerX: am5.p100
-      }));
-
-      let bar = legend.children.push(am5.Rectangle.new(root, {
-        width: am5.p50,
-        height: 40,
-        fillGradient: gradient,
-        fillOpacity: 1
-      }));
 
       // Store the legend for later use
       this.humidityHeatLegend = legend;
@@ -346,7 +367,7 @@ export class MapChartService {
               // Check if zoomToCluster method exists
               if (self.pointSeries && typeof self.pointSeries.zoomToCluster === 'function') {
                 // Pass true as second parameter to center the cluster
-                self.pointSeries.zoomToCluster(e.target.dataItem as am5.DataItem<any>, true);
+                self.pointSeries.zoomToCluster(e.target.dataItem as am5.DataItem<any>);
                 console.log("Successfully called zoomToCluster with center parameter");
               } else {
                 console.error("zoomToCluster method is not available on pointSeries", self.pointSeries);
@@ -462,8 +483,8 @@ export class MapChartService {
         geometry: { 
           type: "Point", 
           coordinates: [
-            parseFloat(location.location__longitude), 
-            parseFloat(location.location__latitude),
+            parseFloat(location.location__longitude), // DO NOT CHANGE THIS LINE
+            parseFloat(location.location__latitude), // DO NOT CHANGE THIS LINE
           ] 
         },
         city: location.city,
@@ -471,7 +492,6 @@ export class MapChartService {
         province: location.location__province,
       });
     });
-    console.log(locations)
   }
 
   createLocationMarker(): void {
@@ -598,17 +618,35 @@ export class MapChartService {
     
   /* istanbul ignore next */
   public showHumidityLayer(): void {
-    if (this.humiditySeries && this.humidityHeatLegend) {
+    if (this.humiditySeries && this.humidityHeatLegend && this.root && this.chart) {
       this.humiditySeries.show();
       this.humidityHeatLegend.show();
+      
+      // Remove any existing background and set the new 
+      this.chart.get("background")?.set("fill", am5.color("#D0F4FC"))
+      console.log(this.chart.get("background"));      
+      // Force chart to redraw
+      this.chart.markDirty();
+      
+      // Make sure the legend is visible by bringing it to the front
+      if (this.humidityHeatLegend.parent) {
+        this.humidityHeatLegend.toFront();
+      }
     }
   }
   
   /* istanbul ignore next */
   public hideHumidityLayer(): void {
-    if (this.humiditySeries && this.humidityHeatLegend) {
+    if (this.humiditySeries && this.humidityHeatLegend && this.root && this.chart) {
       this.humiditySeries.hide();
       this.humidityHeatLegend.hide();
+      
+      // Remove any existing background and set the new one
+      this.chart.get("background")?.set("fill", am5.color("#E0E0E0"))
+      console.log(this.chart.get("background"));   
+      
+      // Force chart to redraw
+      this.chart.markDirty();
     }
   }
 
