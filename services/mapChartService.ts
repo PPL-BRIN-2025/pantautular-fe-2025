@@ -17,6 +17,8 @@ export class MapChartService {
   private precipitationHeatLegend: am5.Container | null = null;
   private humiditySeries: am5map.MapPolygonSeries | null = null;
   private humidityHeatLegend: am5.Container | null = null;
+  private temperatureSeries: am5map.MapPolygonSeries | null = null;
+  private temperatureHeatLegend: am5.Container | null = null;
   private severitySeries: am5map.MapPolygonSeries | null = null;
   private severityHeatLegend: am5.Container | null = null;
   private readonly onError: ((message: string) => void) | null = null;
@@ -392,6 +394,167 @@ export class MapChartService {
       this.precipitationSeries.hide();
       this.precipitationHeatLegend.hide()
 
+      // ==================== TEMPERATURE SECTION ====================
+      // Add colored province layer for temperature
+      this.temperatureSeries = this.chart.series.push(
+        am5map.MapPolygonSeries.new(root, {
+          geoJSON: am5geodata_indonesiaLow,
+          valueField: "value",
+          calculateAggregates: true,
+          exclude: ["AQ"], 
+        })
+      );
+
+      // Set up the temperature layer styling
+      this.temperatureSeries.mapPolygons.template.setAll({
+        fill: am5.color("#FFFFFF"),
+        stroke: am5.color("#CCCCCC"),
+        strokeWidth: 0.5,
+        fillOpacity: 0.8,
+      });
+
+      // Set heat rules for temperature coloring
+      this.temperatureSeries.set("heatRules", [{
+        target: this.temperatureSeries.mapPolygons.template,
+        dataField: "value",
+        customFunction: function(sprite: am5.Sprite, min, max, value) {
+          if (value <= 0) {
+            (sprite as am5.Graphics).set("fill", am5.color("#000080")); // Dark blue
+          } else if (value <= 2) {
+            (sprite as am5.Graphics).set("fill", am5.color("#0000FF")); // Blue
+          } else if (value <= 4) {
+            (sprite as am5.Graphics).set("fill", am5.color("#0066FF"));
+          } else if (value <= 6) {
+            (sprite as am5.Graphics).set("fill", am5.color("#0099FF"));
+          } else if (value <= 8) {
+            (sprite as am5.Graphics).set("fill", am5.color("#00CCFF"));
+          } else if (value <= 10) {
+            (sprite as am5.Graphics).set("fill", am5.color("#00FFFF")); // Cyan
+          } else if (value <= 12) {
+            (sprite as am5.Graphics).set("fill", am5.color("#00FFCC"));
+          } else if (value <= 14) {
+            (sprite as am5.Graphics).set("fill", am5.color("#00FF99"));
+          } else if (value <= 16) {
+            (sprite as am5.Graphics).set("fill", am5.color("#00FF66"));
+          } else if (value <= 18) {
+            (sprite as am5.Graphics).set("fill", am5.color("#00FF00")); // Green
+          } else if (value <= 20) {
+            (sprite as am5.Graphics).set("fill", am5.color("#66FF00"));
+          } else if (value <= 22) {
+            (sprite as am5.Graphics).set("fill", am5.color("#99FF00"));
+          } else if (value <= 24) {
+            (sprite as am5.Graphics).set("fill", am5.color("#CCFF00"));
+          } else if (value <= 26) {
+            (sprite as am5.Graphics).set("fill", am5.color("#FFFF00")); // Yellow
+          } else if (value <= 28) {
+            (sprite as am5.Graphics).set("fill", am5.color("#FFCC00"));
+          } else if (value <= 30) {
+            (sprite as am5.Graphics).set("fill", am5.color("#FF9900")); 
+          } else if (value <= 32) {
+            (sprite as am5.Graphics).set("fill", am5.color("#FF6600"));
+          } else if (value <= 34) {
+            (sprite as am5.Graphics).set("fill", am5.color("#FF3300"));
+          } else if (value <= 36) {
+            (sprite as am5.Graphics).set("fill", am5.color("#FF0000")); // Red
+          } else {
+            (sprite as am5.Graphics).set("fill", am5.color("#CC0000")); // Dark red
+          }
+        }
+      }]);
+
+      // Create temperature legend
+      let temperatureLegend = this.chart.children.push(am5.Container.new(root, {
+        width: am5.percent(80),
+        height: 50,
+        layout: root.horizontalLayout,
+        position: "absolute",
+        x: am5.percent(50),
+        centerX: am5.percent(50),
+        y: am5.percent(100),
+        dy: -30,
+        paddingLeft: 10,
+        paddingRight: 10,
+        paddingTop: 5,
+        paddingBottom: 5
+      }));
+
+      // Create labels container
+      let temperatureLabelsContainer = temperatureLegend.children.push(am5.Container.new(root, {
+        width: am5.percent(100),
+        height: am5.percent(100),
+        layout: root.horizontalLayout,
+        centerY: am5.percent(50)
+      }));
+
+      // Create color blocks container
+      let temperatureBlocksContainer = temperatureLabelsContainer.children.push(am5.Container.new(root, {
+        width: am5.percent(60),
+        height: 20,
+        layout: root.horizontalLayout,
+        marginLeft: 10,
+        marginRight: 10,
+        centerY: am5.percent(50)
+      }));
+
+      // Define temperature color blocks
+      const temperatureColorBlocks = [
+        { color: "#000080", range: "≤0°C" },
+        { color: "#0000FF", range: "2°C" },
+        { color: "#0066FF", range: "4°C" },
+        { color: "#0099FF", range: "6°C" },
+        { color: "#00CCFF", range: "8°C" },
+        { color: "#00FFFF", range: "10°C" },
+        { color: "#00FFCC", range: "12°C" },
+        { color: "#00FF99", range: "14°C" },
+        { color: "#00FF66", range: "16°C" },
+        { color: "#00FF00", range: "18°C" },
+        { color: "#66FF00", range: "20°C" },
+        { color: "#99FF00", range: "22°C" },
+        { color: "#CCFF00", range: "24°C" },
+        { color: "#FFFF00", range: "26°C" },
+        { color: "#FFCC00", range: "28°C" },
+        { color: "#FF9900", range: "30°C" },
+        { color: "#FF6600", range: "32°C" },
+        { color: "#FF3300", range: "34°C" },
+        { color: "#FF0000", range: "36°C" },
+        { color: "#CC0000", range: ">36°C" }
+      ];
+
+      // Create blocks for temperature legend
+      temperatureColorBlocks.forEach(block => {
+        // Create container for each block
+        let temperatureBlockContainer = temperatureBlocksContainer.children.push(am5.Container.new(root, {
+          width: am5.percent(100 / temperatureColorBlocks.length),
+          height: 25,
+          layout: root.verticalLayout
+        }));
+
+        // Add colored rectangle
+        temperatureBlockContainer.children.push(am5.Rectangle.new(root, {
+          width: am5.percent(100),
+          height: 20,
+          fill: am5.color(block.color),
+        }));
+
+        // Add label
+        temperatureBlockContainer.children.push(am5.Label.new(root, {
+          text: block.range,
+          fontSize: 10,
+          fontWeight: "500",
+          fill: am5.color(0xFFFFFF),
+          centerX: am5.percent(-15),
+          marginTop: -25,
+        }));
+      });
+
+      // Store the legend for later use
+      this.temperatureHeatLegend = temperatureLegend;
+
+      // Initially hide the temperature layer
+      this.temperatureSeries.hide();
+      this.temperatureHeatLegend.hide();
+
+      // ===================== SEVERITY SECTION ====================
       // Add colored province layer
       this.severitySeries = this.chart.series.push(
         am5map.MapPolygonSeries.new(root, {
@@ -752,6 +915,19 @@ export class MapChartService {
     console.log(this.severitySeries.data);   
   }
 
+  populateProvinceTemperatureData(provinceTemperatureData: ProvinceData[]): void {
+    if (!this.temperatureSeries) return;
+    this.provinceTemperatureData = provinceTemperatureData;
+    this.temperatureSeries.data.clear();
+    
+    provinceTemperatureData.forEach(data => {
+      this.temperatureSeries!.data.push({
+        id: data.id,
+        value: data.value
+      });
+    });
+  }
+
   populateLocations(locations: MapLocation[]): void {
     if (!this.pointSeries) return;
     this.locations = locations
@@ -966,6 +1142,40 @@ export class MapChartService {
     }
   }
 
+  /* istanbul ignore next */
+  public showTemperatureLayer(): void {
+    if (this.temperatureSeries && this.temperatureHeatLegend && this.root && this.chart) {
+      this.temperatureSeries.show();
+      this.temperatureHeatLegend.show();
+      
+      // Remove any existing background and set the new
+      this.chart.get("background")?.set("fill", am5.color("#D0F4FC"))
+      console.log(this.chart.get("background"));
+      // Force chart to redraw
+      this.chart.markDirty();
+      
+      // Make sure the legend is visible by bringing it to the front
+      if (this.temperatureHeatLegend.parent) {
+        this.temperatureHeatLegend.toFront();
+      }
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hideTemperatureLayer(): void {
+    if (this.temperatureSeries && this.temperatureHeatLegend && this.root && this.chart) {
+      this.temperatureSeries.hide();
+      this.temperatureHeatLegend.hide();
+      
+      // Remove any existing background and set the new one
+      this.chart.get("background")?.set("fill", am5.color("#E0E0E0"))
+      console.log(this.chart.get("background"));   
+      
+      // Force chart to redraw
+      this.chart.markDirty();
+    }
+  }
+
    /* istanbul ignore next */
    public showSeverityLayer(): void {
     if (this.severitySeries && this.severityHeatLegend && this.root && this.chart) {
@@ -1003,7 +1213,7 @@ export class MapChartService {
   // Update the toggleLayers method to include province layer
     
   /* istanbul ignore next */
-  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean, showHumidity: boolean, showSeverity: boolean): void {
+  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean, showHumidity: boolean, showTemperature: boolean, showSeverity: boolean): void {
     if (showBase) {
       this.showBaseLayer();
     } else {
@@ -1032,6 +1242,13 @@ export class MapChartService {
       this.showHumidityLayer();
     } else {
       this.hideHumidityLayer();
+    }
+
+    if (showTemperature) {
+      console.log("showTemperatureLayer called")
+      this.showTemperatureLayer();
+    } else {
+      this.hideTemperatureLayer();
     }
 
     if (showSeverity) {
