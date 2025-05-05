@@ -3,7 +3,6 @@ import { useIndonesiaMap } from "../../hooks/useIndonesiaMap";
 import { MapChartService } from "../../services/mapChartService";
 import { MapLocation, MapConfig, ProvinceData } from "../../types";
 import { useRef } from "react";
-import { useMapStore } from "../../store/store";
 
 // Mock functions from MapChartService
 const mockInitialize = jest.fn();

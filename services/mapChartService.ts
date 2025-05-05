@@ -78,7 +78,6 @@ export class MapChartService {
 
   // Your method that updates the count of selected points
   private getPointsInSelection(): void {
-    // console.log('Runnnnn');
     const tl = this.chart?.invert({ x: 0, y: 0 });
     const br = this.chart?.invert({ x: this.chart.innerWidth(), y: this.chart.innerHeight() });
 
@@ -117,7 +116,6 @@ export class MapChartService {
     /* istanbul ignore next */
     // Set the countSelectedPoints using the private setter
     this.countSelectedPoints = selectedPoints.length;
-    // console.log(this._countSelectedPoints);
   }
 
   private setupPolygonSeries(): void {
@@ -247,14 +245,14 @@ export class MapChartService {
         }));
 
         // Add the colored rectangle
-        let colorBlock = blockContainer.children.push(am5.Rectangle.new(root, {
+        blockContainer.children.push(am5.Rectangle.new(root, {
           width: am5.percent(100),
           height: 20,
           fill: am5.color(block.color),
         }));
 
         // Add the label inside the colored rectangle
-        let label = blockContainer.children.push(am5.Label.new(root, {
+        blockContainer.children.push(am5.Label.new(root, {
           text: block.range,
           fontSize: 11.5,
           fontWeight: "500",
