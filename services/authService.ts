@@ -1,4 +1,4 @@
-import { LoginRequestBody } from "@/types";
+import { LoginRequestBody } from "../types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;

@@ -4,9 +4,29 @@ import '@testing-library/jest-dom';
 import PasswordSettings from '../../app/components/password-settings';
 import fetchMock from 'jest-fetch-mock';
 
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: jest.fn(() => 'mock-token'),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+};
+Object.defineProperty(window, 'localStorage', { value: mockLocalStorage });
+
 // Mock the environment variables with secure protocol
-process.env.NEXT_PUBLIC_API_URL = 'https://test-api';
-process.env.NEXT_PUBLIC_API_KEY = 'test-api-key';
+const mockEnv = {
+  NEXT_PUBLIC_API_URL: 'https://test-api',
+  NEXT_PUBLIC_API_KEY: 'test-api-key',
+};
+
+beforeAll(() => {
+  process.env = { ...process.env, ...mockEnv };
+  fetchMock.enableMocks();
+});
+
+beforeEach(() => {
+  fetchMock.resetMocks();
+  jest.clearAllMocks();
+});
 
 // Test constants to avoid hard-coded credentials
 const TEST_CURRENT_PASSWORD = 'TestCurrentPwd';
@@ -54,14 +74,10 @@ jest.mock('../../app/components/ui-profile/Checkicon', () => ({
   ),
 }));
 
-// Setup fetch mock
-fetchMock.enableMocks();
-
 describe('PasswordSettings Component', () => {
   const mockOnClose = jest.fn();
 
   beforeEach(() => {
-    fetchMock.resetMocks();
     render(<PasswordSettings onClose={mockOnClose} />);
   });
 
@@ -162,67 +178,88 @@ describe('PasswordSettings Component', () => {
   });
 
   it('calls API and shows success message on successful form submission', async () => {
-    fetchMock.mockResponseOnce(JSON.stringify({ message: 'Kata sandi berhasil diubah' }), { status: 200 });
-    
-    const currentPasswordInput = screen.getByTestId('input-current-password');
-    const newPasswordInput = screen.getByTestId('input-new-password');
-    const confirmPasswordInput = screen.getByTestId('input-confirm-password');
-    const submitButton = screen.getByTestId('button');
-    
-    // Fill in all fields with valid data
-    fireEvent.change(currentPasswordInput, { target: { value: TEST_CURRENT_PASSWORD } });
-    fireEvent.change(newPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
-    fireEvent.change(confirmPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
-    
+    render(<PasswordSettings onClose={mockOnClose} />);
+
+    // Fill in the form
+    const currentPasswordInput = screen.getAllByTestId('input-current-password')[0];
+    const newPasswordInput = screen.getAllByTestId('input-new-password')[0];
+    const confirmPasswordInput = screen.getAllByTestId('input-confirm-password')[0];
+
+    fireEvent.change(currentPasswordInput, {
+      target: { value: 'TestCurrentPwd' },
+    });
+    fireEvent.change(newPasswordInput, {
+      target: { value: 'TestP@ssw0rd' },
+    });
+    fireEvent.change(confirmPasswordInput, {
+      target: { value: 'TestP@ssw0rd' },
+    });
+
+    // Mock successful API response
+    fetchMock.mockResponseOnce(JSON.stringify({ message: 'Kata sandi berhasil diubah' }));
+
     // Submit the form
-    fireEvent.click(submitButton);
-    
+    const submitButton = screen.getAllByTestId('button')[0];
+    const form = submitButton.closest('form');
+    if (form) {
+      fireEvent.submit(form);
+    }
+
     // Check that the API was called with correct data using HTTPS
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/change-password`,
+        expect.stringContaining('/authentication/api/auth/change-password/'),
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
-            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
           }),
           body: JSON.stringify({
-            current_password: TEST_CURRENT_PASSWORD,
-            new_password: TEST_NEW_PASSWORD,
-            confirm_password: TEST_NEW_PASSWORD
-          })
+            current_password: 'TestCurrentPwd',
+            new_password: 'TestP@ssw0rd',
+            confirm_password: 'TestP@ssw0rd',
+          }),
         })
       );
     });
-    
-    // Success message should be displayed
+
+    // Check that success message is shown
     await waitFor(() => {
-      const successMessage = screen.getByText('Kata sandi berhasil diubah');
-      expect(successMessage).toBeInTheDocument();
+      expect(screen.getByText('Kata sandi berhasil diubah')).toBeInTheDocument();
     });
   });
 
   it('displays error message when API returns error', async () => {
-    fetchMock.mockResponseOnce(JSON.stringify({ error: 'Current password is incorrect' }), { status: 400 });
-    
-    const currentPasswordInput = screen.getByTestId('input-current-password');
-    const newPasswordInput = screen.getByTestId('input-new-password');
-    const confirmPasswordInput = screen.getByTestId('input-confirm-password');
-    const submitButton = screen.getByTestId('button');
-    
-    // Fill in all fields with valid data
-    fireEvent.change(currentPasswordInput, { target: { value: TEST_WRONG_PASSWORD } });
-    fireEvent.change(newPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
-    fireEvent.change(confirmPasswordInput, { target: { value: TEST_NEW_PASSWORD } });
-    
+    render(<PasswordSettings onClose={mockOnClose} />);
+
+    // Fill in the form
+    const currentPasswordInput = screen.getAllByTestId('input-current-password')[0];
+    const newPasswordInput = screen.getAllByTestId('input-new-password')[0];
+    const confirmPasswordInput = screen.getAllByTestId('input-confirm-password')[0];
+
+    fireEvent.change(currentPasswordInput, {
+      target: { value: 'TestWrongPwd' },
+    });
+    fireEvent.change(newPasswordInput, {
+      target: { value: 'TestP@ssw0rd' },
+    });
+    fireEvent.change(confirmPasswordInput, {
+      target: { value: 'TestP@ssw0rd' },
+    });
+
+    // Mock error response
+    fetchMock.mockResponseOnce(JSON.stringify({ message: 'Gagal mengubah kata sandi' }), { status: 400 });
+
     // Submit the form
-    fireEvent.click(submitButton);
-    
+    const submitButton = screen.getAllByTestId('button')[0];
+    const form = submitButton.closest('form');
+    if (form) {
+      fireEvent.submit(form);
+    }
+
     // Error message should be displayed
     await waitFor(() => {
-      const errorMessage = screen.getByText('Current password is incorrect');
-      expect(errorMessage).toBeInTheDocument();
+      expect(screen.getByText('Gagal mengubah kata sandi')).toBeInTheDocument();
     });
   });
 

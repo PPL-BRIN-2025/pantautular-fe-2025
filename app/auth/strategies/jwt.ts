@@ -1,7 +1,7 @@
 // app/auth/strategies/jwt.ts
-import { authService } from "@/services/authService";
+import { authService } from "../../../services/authService";
 import { AuthStrategy } from "./base"
-import { TokenPayload, User } from "@/types";
+import { TokenPayload, User } from "../../../types";
 
 export class JWTStrategy implements AuthStrategy {
   private token: string | null = null;

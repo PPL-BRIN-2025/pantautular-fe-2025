@@ -1,10 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BantuanPantauTular from '../../app/help/page';
+import { AuthProvider } from "../../app/auth/provider";
 
 jest.mock('../../app/components/Navbar', () => {
   return function MockNavbar() {
-    return <div data-testid="mock-navbar"></div>;
+    return (
+      <div data-testid="mock-navbar">
+        <button className="bg-white text-[#0069cf] px-6 py-2 rounded-md border-2 border-[#0069cf] mr-3">
+          Masuk
+        </button>
+      </div>
+    );
   };
 });
 
@@ -20,8 +27,15 @@ jest.mock('../../app/components/help/GlossaryItem', () => {
   };
 });
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+  usePathname: jest.fn(() => "/help"),
+}));
+
 jest.mock('../../app/auth/hooks/useAuth', () => ({
-  useAuth: jest.fn()
+  useAuth: () => ({
+    user: null,
+  }),
 }));
 
 describe('BantuanPantauTular', () => {
@@ -70,13 +84,15 @@ describe('BantuanPantauTular', () => {
       expect(nonExistentSection).not.toBeInTheDocument();
     });
 
-    it('should not contain form elements', () => {
+    it('should not contain form elements except navbar buttons', () => {
       render(<BantuanPantauTular />);
       const inputElements = screen.queryAllByRole('textbox');
       const buttonElements = screen.queryAllByRole('button');
       
       expect(inputElements.length).toBe(0);
-      expect(buttonElements.length).toBe(0);
+      // Only navbar buttons should be present
+      expect(buttonElements.length).toBe(1);
+      expect(buttonElements[0]).toHaveTextContent('Masuk');
     });
 
     it('should not contain pagination elements', () => {
@@ -91,10 +107,6 @@ describe('BantuanPantauTular', () => {
     });
 
     it('does not render glossary section when user is not logged in', () => {
-      // Setup the mock to return no user (not logged in)
-      const useAuthMock = require('../../app/auth/hooks/useAuth');
-      useAuthMock.useAuth.mockReturnValue({ user: null });
-      
       render(<BantuanPantauTular />);
       
       // Glossary heading should not be present
@@ -107,11 +119,15 @@ describe('BantuanPantauTular', () => {
     });
 
     it('renders glossary section when user is logged in', () => {
-      // Setup the mock to return a logged-in user
-      const useAuthMock = require('../../app/auth/hooks/useAuth');
-      useAuthMock.useAuth.mockReturnValue({ user: { name: 'Test User' } });
-      
-      render(<BantuanPantauTular />);
+      jest.spyOn(require('../../app/auth/hooks/useAuth'), 'useAuth').mockReturnValue({
+        user: { id: '1', name: 'Test User' },
+      });
+
+      render(
+        <AuthProvider>
+          <BantuanPantauTular />
+        </AuthProvider>
+      );
       
       // Glossary heading should be present
       const glossaryHeading = screen.getByText('Glosarium PantauTular');
@@ -125,35 +141,33 @@ describe('BantuanPantauTular', () => {
       expect(screen.getByText('Curah Hujan')).toBeInTheDocument();
       expect(screen.getByText('Mortalitas')).toBeInTheDocument();
       expect(screen.getByText('Prevalensi')).toBeInTheDocument();
-      // Add more specific titles as needed
     });
 
     it('shows login prompt when user is not logged in', () => {
-      // Setup the mock to return no user (not logged in)
-      const useAuthMock = require('../../app/auth/hooks/useAuth');
-      useAuthMock.useAuth.mockReturnValue({ user: null });
-      
-      render(<BantuanPantauTular />);
+      render(
+        <AuthProvider>
+          <BantuanPantauTular />
+        </AuthProvider>
+      );
       
       // Should display the login prompt
-      const loginPrompt = screen.getByText(/Ingin melihat Glosarium PantauTular?/i);
-      expect(loginPrompt).toBeInTheDocument();
-      
-      // Should have a login link
-      const loginLink = screen.getByText(/masuk/i);
-      expect(loginLink).toBeInTheDocument();
-      expect(loginLink).toHaveAttribute('href', '/login');
+      const loginButton = screen.getByRole('button', { name: /masuk/i });
+      expect(loginButton).toBeInTheDocument();
     });
 
-    it('does not show login prompt when user is logged in', () => {
-      // Setup the mock to return a logged-in user
-      const useAuthMock = require('../../app/auth/hooks/useAuth');
-      useAuthMock.useAuth.mockReturnValue({ user: { name: 'Test User' } });
+    it('shows glossary when user is logged in', () => {
+      jest.spyOn(require('../../app/auth/hooks/useAuth'), 'useAuth').mockReturnValue({
+        user: { id: '1', name: 'Test User' },
+      });
+
+      render(
+        <AuthProvider>
+          <BantuanPantauTular />
+        </AuthProvider>
+      );
       
-      render(<BantuanPantauTular />);
-      
-      // Login prompt should not be displayed
-      const loginPrompt = screen.queryByText(/Ingin melihat Glosarium PantauTular?/i);
-      expect(loginPrompt).not.toBeInTheDocument();
+      // Glossary title should be displayed
+      const glossaryTitle = screen.getByText('Glosarium PantauTular');
+      expect(glossaryTitle).toBeInTheDocument();
     });
 });

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { AuthContext } from "./context"
 import { JWTStrategy } from "./strategies/jwt"
-import { LoginRequestBody, User } from "@/types"
+import { LoginRequestBody, User } from "../../types"
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
