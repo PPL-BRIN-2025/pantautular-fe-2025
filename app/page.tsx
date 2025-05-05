@@ -1,3 +1,5 @@
+'use client'
+
 import "../styles/globals.css";
 import Footer from "./components/Footer";
 import HeroSection from "./components/home/HeroSection";
