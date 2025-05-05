@@ -34,6 +34,7 @@ export function useIndonesiaMap(
       service.populateLocations(locations);
       service.populateProvinceHumidityData(provinceHumidityData);
       service.populateProvincePrecipitationData(provincePrecipitationData);
+      service.populateProvinceTemperatureData(provinceTemperatureData);
       service.populateProvinceSeverityData(provinceSeverityData);
       mapServiceRef.current = service;
       setMapService(service);
