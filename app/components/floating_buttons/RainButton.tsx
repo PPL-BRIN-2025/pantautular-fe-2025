@@ -39,8 +39,8 @@ export default function RainButton({
     /* istanbul ignore next */
     if (mapService) {
       /* istanbul ignore next */
-      if (isActive) mapService.showRainfallLayer()
-      else mapService.hideRainfallLayer()
+      // if (isActive) mapService.showRainfallLayer()
+      // else mapService.hideRainfallLayer()
     }
   }, [isActive, mapService])
 
