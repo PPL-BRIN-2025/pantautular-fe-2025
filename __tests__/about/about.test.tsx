@@ -4,12 +4,30 @@ import About from "../../app/about/page";
 
 jest.mock("../styles/globals.css", () => ({}));
 
+jest.mock('../../app/auth/hooks/useAuth', () => ({
+  useAuth: jest.fn().mockReturnValue({
+    user: {
+      id: '1',
+      email: 'test@example.com',
+      name: 'Test User',
+      role: 'user'
+    },
+    login: jest.fn(),
+    logout: jest.fn()
+  })
+}));
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+  usePathname: jest.fn(() => "/"),
+}));
+
 describe("About Page", () => {
   beforeEach(() => {
     render(<About />);
   });
 
-  const checkTextPresence = (text: string, method: 'should' | 'shouldNot' = 'should') => {
+  const checkTextPresence = (text: string | RegExp, method: 'should' | 'shouldNot' = 'should') => {
     if (method === 'should') {
       expect(screen.getByText(text)).toBeInTheDocument();
     } else {

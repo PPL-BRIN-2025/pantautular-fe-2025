@@ -13,8 +13,8 @@ export class MapChartService {
   private locationSeries: am5map.MapPointSeries | null = null;
   private basePolygonSeries: am5map.MapPolygonSeries | null = null;
   private highlightSeries: am5map.MapPolygonSeries | null = null;
-  private humiditySeries: am5map.MapPolygonSeries | null = null;
-  private humidityHeatLegend: am5.Container | null = null;
+  private precipitationSeries: am5map.MapPolygonSeries | null = null;
+  private precipitationHeatLegend: am5.Container | null = null;
   private readonly onError: ((message: string) => void) | null = null;
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
@@ -78,7 +78,6 @@ export class MapChartService {
 
   // Your method that updates the count of selected points
   private getPointsInSelection(): void {
-    // console.log('Runnnnn');
     const tl = this.chart?.invert({ x: 0, y: 0 });
     const br = this.chart?.invert({ x: this.chart.innerWidth(), y: this.chart.innerHeight() });
 
@@ -117,7 +116,6 @@ export class MapChartService {
     /* istanbul ignore next */
     // Set the countSelectedPoints using the private setter
     this.countSelectedPoints = selectedPoints.length;
-    // console.log(this._countSelectedPoints);
   }
 
   private setupPolygonSeries(): void {
@@ -141,7 +139,7 @@ export class MapChartService {
       });
 
       // Add colored province layer
-      this.humiditySeries = this.chart.series.push(
+      this.precipitationSeries = this.chart.series.push(
         am5map.MapPolygonSeries.new(root, {
           geoJSON: am5geodata_indonesiaLow,
           valueField: "value",
@@ -151,39 +149,27 @@ export class MapChartService {
       );
 
       // Set up the colored province layer
-      this.humiditySeries.mapPolygons.template.setAll({
+      this.precipitationSeries.mapPolygons.template.setAll({
         fill: am5.color("#FFFFFF"),
         stroke: am5.color("#CCCCCC"),
         strokeWidth: 0.5,
         fillOpacity: 0.8,
       });
 
-      this.humiditySeries.set("heatRules", [{
-        target: this.humiditySeries.mapPolygons.template,
+      this.precipitationSeries.set("heatRules", [{
+        target: this.precipitationSeries.mapPolygons.template,
         dataField: "value",
         customFunction: function(sprite: am5.Sprite, min, max, value) {
-          if (value <= 0) {
-            (sprite as am5.Graphics).set("fill", am5.color("#C41A0A"));
-          } else if (value <= 10) {
-            (sprite as am5.Graphics).set("fill", am5.color("#F4440B"));
-          } else if (value <= 20) {
-            (sprite as am5.Graphics).set("fill", am5.color("#F47A0B"));
-          } else if (value <= 30) {
-            (sprite as am5.Graphics).set("fill", am5.color("#F4B00B"));
-          } else if (value <= 40) {
-            (sprite as am5.Graphics).set("fill", am5.color("#F4E60B"));
-          } else if (value <= 50) {
-            (sprite as am5.Graphics).set("fill", am5.color("#D2EE3C"));
-          } else if (value <= 60) {
-            (sprite as am5.Graphics).set("fill", am5.color("#AFF474"));
-          } else if (value <= 70) {
-            (sprite as am5.Graphics).set("fill", am5.color("#A3D4FF"));
-          } else if (value <= 80) {
-            (sprite as am5.Graphics).set("fill", am5.color("#6DBCFF"));
-          } else if (value <= 90) {
-            (sprite as am5.Graphics).set("fill", am5.color("#1392FF"));
-          } else {
-            (sprite as am5.Graphics).set("fill", am5.color("#00528F"));
+          if (value == "Lokal") {
+            (sprite as am5.Graphics).set("fill", am5.color("#DC3545"));
+          } else if (value == "Multipattern") {
+            (sprite as am5.Graphics).set("fill", am5.color("#E35D6A"));
+          } else if (value == "Monsoon") {
+            (sprite as am5.Graphics).set("fill", am5.color("#FFC107"));
+          } else if (value == "Equatorial") {
+            (sprite as am5.Graphics).set("fill", am5.color("#3CB371"));
+          } else if (value == "Lainnya") {
+            (sprite as am5.Graphics).set("fill", am5.color("#B8B8B8"));
           }
         }
       }]);
@@ -224,17 +210,11 @@ export class MapChartService {
 
       // Define the colors and value ranges for each block
       const colorBlocks = [
-        { color: "#C41A0A", range: "0%" },
-        { color: "#F4440B", range: "10%" },
-        { color: "#F47A0B", range: "20%" },
-        { color: "#F4B00B", range: "30%" },
-        { color: "#F4E60B", range: "40%" },
-        { color: "#D2EE3C", range: "50%" },
-        { color: "#AFF474", range: "60%" },
-        { color: "#A3D4FF", range: "70%" },
-        { color: "#6DBCFF", range: "80%" },
-        { color: "#1392FF", range: "90%" },
-        { color: "#00528F", range: "100%" }
+        { color: "#DC3545", range: "Lokal" },
+        { color: "#E35D6A", range: "Multipattern" },
+        { color: "#FFC107", range: "Monsoon" },
+        { color: "#3CB371", range: "Equatorial" },
+        { color: "#B8B8B8", range: "Lainnya" },
       ];
 
       // Create a higher container for block styling
@@ -247,31 +227,31 @@ export class MapChartService {
         }));
 
         // Add the colored rectangle
-        let colorBlock = blockContainer.children.push(am5.Rectangle.new(root, {
+        blockContainer.children.push(am5.Rectangle.new(root, {
           width: am5.percent(100),
           height: 20,
           fill: am5.color(block.color),
         }));
 
         // Add the label inside the colored rectangle
-        let label = blockContainer.children.push(am5.Label.new(root, {
+        blockContainer.children.push(am5.Label.new(root, {
           text: block.range,
           fontSize: 11.5,
           fontWeight: "500",
           fill: am5.color(0xFFFFFF),
           // textAlign: "center",
-          centerX: am5.percent(-75),
+          centerX: am5.percent(-100),
           marginTop: -25,
         }));
       });
 
       // Store the legend for later use
-      this.humidityHeatLegend = legend;
+      this.precipitationHeatLegend = legend;
       
       /* istanbul ignore next */
-      // Initially hide the humidity layer
-      this.humiditySeries.hide();
-      this.humidityHeatLegend.hide()
+      // Initially hide the precipitation layer
+      this.precipitationSeries.hide();
+      this.precipitationHeatLegend.hide()
 
       // Add a second layer for highlighting
       this.highlightSeries = this.chart.series.push(
@@ -454,22 +434,41 @@ export class MapChartService {
     this.pointSeries.set("tooltip", tooltip);
   }
 
-  populateProvinceHumidityData(provinceHumidityData: ProvinceData[]): void {
-    if (!this.humiditySeries) return;
-    this.provinceHumidityData = provinceHumidityData;
-    this.humiditySeries.data.clear();
-    console.log(provinceHumidityData);
+  populateProvincePrecipitationData(provincePrecipitationData: ProvinceData[]): void {
+    if (!this.precipitationSeries) return;
+    this.provincePrecipitationData = provincePrecipitationData;
+    this.precipitationSeries.data.clear();
+    console.log(provincePrecipitationData);
 
-    provinceHumidityData.forEach(data => {
-      this.humiditySeries!.data.push({
+    provincePrecipitationData.forEach(data => {
+      // Classify precipitation pattern into 5 categories based on monthly data
+      const pattern = this.classifyPrecipitationPattern(data.value);
+      this.precipitationSeries!.data.push({
         id: data.id,
-        value: data.value
+        value: pattern
       });
     });
     
-    console.log(this.humiditySeries.data);   
+    console.log(this.precipitationSeries.data);   
   }
-  
+
+  classifyPrecipitationPattern(precipitationValue: string | number): string {
+    // Classify precipitation value into 5 precipitation pattern
+    const value = typeof precipitationValue === 'string' ? parseFloat(precipitationValue) : precipitationValue;
+    
+    if (value < 100) {
+      return "Lokal";
+    } else if (value >= 100 && value < 200) {
+      return "Multipattern";
+    } else if (value >= 200 && value < 300) {
+      return "Monsoon";
+    } else if (value >= 300 && value < 400) {
+      return "Equatorial";
+    } else {
+      return "Lainnya";
+    }
+  }
+
   populateLocations(locations: MapLocation[]): void {
     if (!this.pointSeries) return;
     this.locations = locations
@@ -617,10 +616,10 @@ export class MapChartService {
   // Add methods to control province layer visibility
     
   /* istanbul ignore next */
-  public showHumidityLayer(): void {
-    if (this.humiditySeries && this.humidityHeatLegend && this.root && this.chart) {
-      this.humiditySeries.show();
-      this.humidityHeatLegend.show();
+  public showPrecipitationLayer(): void {
+    if (this.precipitationSeries && this.precipitationHeatLegend && this.root && this.chart) {
+      this.precipitationSeries.show();
+      this.precipitationHeatLegend.show();
       
       // Remove any existing background and set the new 
       this.chart.get("background")?.set("fill", am5.color("#D0F4FC"))
@@ -629,17 +628,17 @@ export class MapChartService {
       this.chart.markDirty();
       
       // Make sure the legend is visible by bringing it to the front
-      if (this.humidityHeatLegend.parent) {
-        this.humidityHeatLegend.toFront();
+      if (this.precipitationHeatLegend.parent) {
+        this.precipitationHeatLegend.toFront();
       }
     }
   }
   
   /* istanbul ignore next */
-  public hideHumidityLayer(): void {
-    if (this.humiditySeries && this.humidityHeatLegend && this.root && this.chart) {
-      this.humiditySeries.hide();
-      this.humidityHeatLegend.hide();
+  public hidePrecipitationLayer(): void {
+    if (this.precipitationSeries && this.precipitationHeatLegend && this.root && this.chart) {
+      this.precipitationSeries.hide();
+      this.precipitationHeatLegend.hide();
       
       // Remove any existing background and set the new one
       this.chart.get("background")?.set("fill", am5.color("#E0E0E0"))
@@ -653,7 +652,7 @@ export class MapChartService {
   // Update the toggleLayers method to include province layer
     
   /* istanbul ignore next */
-  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showHumidity: boolean): void {
+  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean): void {
     if (showBase) {
       this.showBaseLayer();
     } else {
@@ -672,10 +671,10 @@ export class MapChartService {
       this.hidePointLayer();
     }
 
-    if (showHumidity) {
-      this.showHumidityLayer();
+    if (showPrecipitation) {
+      this.showPrecipitationLayer();
     } else {
-      this.hideHumidityLayer();
+      this.hidePrecipitationLayer();
     }
   }
 }

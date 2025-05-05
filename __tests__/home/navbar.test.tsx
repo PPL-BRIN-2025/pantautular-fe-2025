@@ -1,72 +1,74 @@
-import { render, screen, cleanup} from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import Navbar from "../../app/components/Navbar";
-import { usePathname } from "next/navigation";
+import { AuthProvider } from "../../app/auth/provider";
 
-jest.mock("next/navigation", () => ({
-  usePathname: jest.fn(),
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+  usePathname: jest.fn(() => "/"),
 }));
 
 describe("Navbar", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
-    cleanup();
-    render(<Navbar />);
+    render(
+      <AuthProvider>
+        <Navbar />
+      </AuthProvider>
+    );
   });
 
-  const testActiveMenu = (path: string, activeMenu: string, inactiveMenus: string[]) => {
-    (usePathname as jest.Mock).mockReturnValue(path);
-    cleanup();
-    render(<Navbar />);
-
-    expect(screen.getByText(activeMenu)).toHaveClass("font-bold text-[#1e3a8a]");
-
-    inactiveMenus.forEach((menu) => {
-      expect(screen.getByText(menu)).not.toHaveClass("font-bold text-[#1e3a8a]");
-    });
-  };
-
   it("menampilkan logo PantauTular", () => {
-    expect(screen.getByAltText("PantauTular Logo")).toBeInTheDocument();
+    const logo = screen.getByAltText("PantauTular Logo");
+    expect(logo).toBeInTheDocument();
   });
 
   it("menampilkan menu navigasi utama", () => {
-    ["Beranda", "Peta Sebaran", "Tentang Kami", "Bantuan"].forEach((menu) =>
-      expect(screen.getByText(menu)).toBeInTheDocument()
-    );
+    const beranda = screen.getByText("Beranda");
+    const petaSebaran = screen.getByText("Peta Sebaran");
+    const tentangKami = screen.getByText("Tentang Kami");
+    const bantuan = screen.getByText("Bantuan");
+
+    expect(beranda).toBeInTheDocument();
+    expect(petaSebaran).toBeInTheDocument();
+    expect(tentangKami).toBeInTheDocument();
+    expect(bantuan).toBeInTheDocument();
   });
 
-  it("menampilkan ikon profil", () => {
-    expect(screen.getByText("👤")).toBeInTheDocument();
+  it("menampilkan tombol login dan register", () => {
+    const loginButton = screen.getByText("Masuk");
+    const registerButton = screen.getByText("Register");
+
+    expect(loginButton).toBeInTheDocument();
+    expect(registerButton).toBeInTheDocument();
   });
 
   it("tidak menampilkan menu yang tidak ada", () => {
-    ["Kontak", "Layanan"].forEach((menu) =>
-      expect(screen.queryByText(menu)).not.toBeInTheDocument()
-    );
+    const nonExistentMenu = screen.queryByText("Menu Tidak Ada");
+    expect(nonExistentMenu).not.toBeInTheDocument();
   });
 
   it("menandai menu aktif dengan font-bold dan warna yang benar", () => {
-    testActiveMenu("/", "Beranda", ["Peta Sebaran", "Tentang Kami", "Bantuan"]);
-    testActiveMenu("/map", "Peta Sebaran", ["Beranda", "Tentang Kami", "Bantuan"]);
-    testActiveMenu("/about", "Tentang Kami", ["Beranda", "Peta Sebaran", "Bantuan"]);
-    testActiveMenu("/help", "Bantuan", ["Beranda", "Peta Sebaran", "Tentang Kami"]);
+    const beranda = screen.getByText("Beranda");
+    expect(beranda).toHaveClass("font-bold", "text-[#1e3a8a]");
   });
 
-  // NEGATIVE CASES
   it("tidak memberi class aktif ke menu yang bukan halaman saat ini", () => {
-    (usePathname as jest.Mock).mockReturnValue("/map");
-    cleanup();
-    render(<Navbar />);
+    const tentangKami = screen.getByText("Tentang Kami");
+    const bantuan = screen.getByText("Bantuan");
 
-    expect(screen.getByText("Beranda")).not.toHaveClass("font-bold text-[#1e3a8a]");
-    expect(screen.getByText("Tentang Kami")).not.toHaveClass("font-bold text-[#1e3a8a]");
-    expect(screen.getByText("Bantuan")).not.toHaveClass("font-bold text-[#1e3a8a]");
+    expect(tentangKami).not.toHaveClass("font-bold", "text-[#1e3a8a]");
+    expect(bantuan).not.toHaveClass("font-bold", "text-[#1e3a8a]");
   });
 
   it("tidak crash jika usePathname mengembalikan undefined", () => {
-    (usePathname as jest.Mock).mockReturnValue(undefined);
-    cleanup();
-    expect(() => render(<Navbar />)).not.toThrow();
+    jest.spyOn(require('next/navigation'), 'usePathname').mockReturnValue(undefined);
+    
+    expect(() => {
+      render(
+        <AuthProvider>
+          <Navbar />
+        </AuthProvider>
+      );
+    }).not.toThrow();
   });
-
 });

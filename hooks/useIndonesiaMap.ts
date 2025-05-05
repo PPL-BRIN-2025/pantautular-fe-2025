@@ -31,13 +31,12 @@ export function useIndonesiaMap(
     try {
       service.initialize(containerId, config);
       service.populateLocations(locations);
-      service.populateProvinceHumidityData(provinceHumidityData);
+      service.populateProvincePrecipitationData(provincePrecipitationData);
       mapServiceRef.current = service;
       setMapService(service);
       setMapServiceStore(service); // Update the Zustand store
     } catch (error) {
       console.error("Failed to initialize map:", error);
-      // onError("Failed to initialize the map. Please try again.");
     }
     
     return () => {

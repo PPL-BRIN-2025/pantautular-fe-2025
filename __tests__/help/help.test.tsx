@@ -1,6 +1,42 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BantuanPantauTular from '../../app/help/page';
+import { AuthProvider } from "../../app/auth/provider";
+
+jest.mock('../../app/components/Navbar', () => {
+  return function MockNavbar() {
+    return (
+      <div data-testid="mock-navbar">
+        <button className="bg-white text-[#0069cf] px-6 py-2 rounded-md border-2 border-[#0069cf] mr-3">
+          Masuk
+        </button>
+      </div>
+    );
+  };
+});
+
+jest.mock('../../app/components/help/GlossarySection', () => {
+  return function MockGlossarySection(props: any) {
+    return <div data-testid="glossary-section">{props.title}</div>;
+  };
+});
+
+jest.mock('../../app/components/help/GlossaryItem', () => {
+  return function MockGlossaryItem(props: any) {
+    return <div data-testid="glossary-item">{props.title}</div>;
+  };
+});
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+  usePathname: jest.fn(() => "/help"),
+}));
+
+jest.mock('../../app/auth/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: null,
+  }),
+}));
 
 describe('BantuanPantauTular', () => {
     it('renders the title', () => {
@@ -48,13 +84,15 @@ describe('BantuanPantauTular', () => {
       expect(nonExistentSection).not.toBeInTheDocument();
     });
 
-    it('should not contain form elements', () => {
+    it('should not contain form elements except navbar buttons', () => {
       render(<BantuanPantauTular />);
       const inputElements = screen.queryAllByRole('textbox');
       const buttonElements = screen.queryAllByRole('button');
       
       expect(inputElements.length).toBe(0);
-      expect(buttonElements.length).toBe(0);
+      // Only navbar buttons should be present
+      expect(buttonElements.length).toBe(1);
+      expect(buttonElements[0]).toHaveTextContent('Masuk');
     });
 
     it('should not contain pagination elements', () => {
@@ -66,5 +104,70 @@ describe('BantuanPantauTular', () => {
       expect(paginationElement).not.toBeInTheDocument();
       expect(nextPageElement).not.toBeInTheDocument();
       expect(prevPageElement).not.toBeInTheDocument();
+    });
+
+    it('does not render glossary section when user is not logged in', () => {
+      render(<BantuanPantauTular />);
+      
+      // Glossary heading should not be present
+      const glossaryHeading = screen.queryByText('Glosarium PantauTular');
+      expect(glossaryHeading).not.toBeInTheDocument();
+      
+      // No glossary sections should be rendered
+      const glossarySections = screen.queryAllByTestId('glossary-section');
+      expect(glossarySections.length).toBe(0);
+    });
+
+    it('renders glossary section when user is logged in', () => {
+      jest.spyOn(require('../../app/auth/hooks/useAuth'), 'useAuth').mockReturnValue({
+        user: { id: '1', name: 'Test User' },
+      });
+
+      render(
+        <AuthProvider>
+          <BantuanPantauTular />
+        </AuthProvider>
+      );
+      
+      // Glossary heading should be present
+      const glossaryHeading = screen.getByText('Glosarium PantauTular');
+      expect(glossaryHeading).toBeInTheDocument();
+      
+      // Glossary sections should be rendered
+      const glossarySections = screen.getAllByTestId('glossary-section');
+      expect(glossarySections.length).toBeGreaterThan(0);
+      
+      // Check for specific glossary section titles
+      expect(screen.getByText('Curah Hujan')).toBeInTheDocument();
+      expect(screen.getByText('Mortalitas')).toBeInTheDocument();
+      expect(screen.getByText('Prevalensi')).toBeInTheDocument();
+    });
+
+    it('shows login prompt when user is not logged in', () => {
+      render(
+        <AuthProvider>
+          <BantuanPantauTular />
+        </AuthProvider>
+      );
+      
+      // Should display the login prompt
+      const loginButton = screen.getByRole('button', { name: /masuk/i });
+      expect(loginButton).toBeInTheDocument();
+    });
+
+    it('shows glossary when user is logged in', () => {
+      jest.spyOn(require('../../app/auth/hooks/useAuth'), 'useAuth').mockReturnValue({
+        user: { id: '1', name: 'Test User' },
+      });
+
+      render(
+        <AuthProvider>
+          <BantuanPantauTular />
+        </AuthProvider>
+      );
+      
+      // Glossary title should be displayed
+      const glossaryTitle = screen.getByText('Glosarium PantauTular');
+      expect(glossaryTitle).toBeInTheDocument();
     });
 });

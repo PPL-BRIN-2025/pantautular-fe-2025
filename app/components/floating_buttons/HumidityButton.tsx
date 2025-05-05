@@ -2,7 +2,6 @@
 
 import { useMapStore } from "../../../store/store"
 import { useEffect } from "react"
-import { cn } from "../../../utils/tmg"
 
 interface HumidityButtonProps {
   onClick?: () => void
@@ -39,8 +38,8 @@ export default function HumidityButton({
     /* istanbul ignore next */
     if (mapService) {
       /* istanbul ignore next */
-      if (isActive) mapService.showHumidityLayer()
-      else mapService.hideHumidityLayer()
+      // if (isActive) mapService.showHumidityLayer()
+      // else mapService.hideHumidityLayer()
     }
   }, [isActive, mapService])
 
