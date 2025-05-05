@@ -168,16 +168,9 @@ jest.mock("@amcharts/amcharts5/map", () => {
       new: jest.fn().mockImplementation(() => commonTestSetup.createMockSeries()),
     },
     ClusteredPointSeries: {
-      new: jest.fn().mockImplementation((root, config) => ({
+      new: jest.fn().mockImplementation(() => ({
         ...commonTestSetup.createMockSeries(),
         zoomToCluster: jest.fn(),
-        config: {
-          groupIdField: "province",
-          minDistance: 20,
-          scatterDistance: 20,
-          scatterRadius: 20,
-          stopClusterZoom: 10
-        }
       })),
     },
     ZoomControl: {

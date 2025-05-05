@@ -212,4 +212,58 @@ export const severityApi = {
     fetchSeverityStats('/api/severity-stats/filter/', filter)
 };
 
+export const emailSubmitAPI = {
+  async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/authentication/password-reset-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
+        },
+        body: JSON.stringify({ email }),
+      });
 
+      if (response.ok) {
+        return { success: true };
+      } else {
+        const data = await response.json();
+        return { success: false, error: data.error ?? 'Terjadi kesalahan. Silakan coba lagi.' };
+      }
+    } catch (error) {
+      console.error('Error requesting password reset:', error);
+      return { success: false, error: 'Terjadi kesalahan jaringan. Coba lagi nanti.' };
+    }
+  }
+};
+
+export const resetPasswordApi = {
+  async resetPassword(uid: string, token: string, password: string, confirmPassword: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/authentication/password-reset-confirm/${uid}/${token}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          password: password,
+          "password-confirm": confirmPassword
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail ?? `Error: ${response.status}`);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  }
+};
