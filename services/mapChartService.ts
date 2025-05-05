@@ -17,12 +17,16 @@ export class MapChartService {
   private precipitationHeatLegend: am5.Container | null = null;
   private humiditySeries: am5map.MapPolygonSeries | null = null;
   private humidityHeatLegend: am5.Container | null = null;
+  private severitySeries: am5map.MapPolygonSeries | null = null;
+  private severityHeatLegend: am5.Container | null = null;
   private readonly onError: ((message: string) => void) | null = null;
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
   private provinceHumidityData: ProvinceData[] | null  = null;
   private provinceTemperatureData: ProvinceData[] | null = null;
   private provincePrecipitationData: ProvinceData[] | null = null;
+  private provinceSeverityData: ProvinceData[] | null = null;
+
 
   constructor(onError?: (message: string) => void) {
     this.onError = onError || null;
@@ -388,6 +392,118 @@ export class MapChartService {
       this.precipitationSeries.hide();
       this.precipitationHeatLegend.hide()
 
+      // Add colored province layer
+      this.severitySeries = this.chart.series.push(
+        am5map.MapPolygonSeries.new(root, {
+          geoJSON: am5geodata_indonesiaLow,
+          valueField: "value",
+          calculateAggregates: true,
+          exclude: ["AQ"], 
+        })
+      );
+
+      // Set up the colored province layer
+      this.severitySeries.mapPolygons.template.setAll({
+        fill: am5.color("#FFFFFF"),
+        stroke: am5.color("#CCCCCC"),
+        strokeWidth: 0.5,
+        fillOpacity: 0.8,
+      });
+
+      this.severitySeries.set("heatRules", [{
+        target: this.severitySeries.mapPolygons.template,
+        dataField: "value",
+        customFunction: function(sprite: am5.Sprite, min, max, value) {
+          if (value == "katastropik") {
+            (sprite as am5.Graphics).set("fill", am5.color("#DC3545"));
+          } else if (value == "bahaya") {
+            (sprite as am5.Graphics).set("fill", am5.color("#FD7E14"));
+          } else if (value == "biasa") {
+            (sprite as am5.Graphics).set("fill", am5.color("#FFC107"));
+          } else if (value == "minimal") {
+            (sprite as am5.Graphics).set("fill", am5.color("#CACBCB"));
+          } 
+        }
+      }]);
+
+      // Create custom legend - positioned at the bottom center
+      let severityLegend = this.chart.children.push(am5.Container.new(root, {
+        width: am5.percent(80),
+        height: 50,
+        layout: root.horizontalLayout,
+        position: "absolute",
+        x: am5.percent(50),
+        centerX: am5.percent(50),
+        y: am5.percent(100),
+        dy: -30,
+        paddingLeft: 10,
+        paddingRight: 10,
+        paddingTop: 5,
+        paddingBottom: 5
+      }));
+
+      // Create a container for the labels and color blocks
+      let severityLabelsContainer = severityLegend.children.push(am5.Container.new(root, {
+        width: am5.percent(100),
+        height: am5.percent(100),
+        layout: root.horizontalLayout,
+        centerY: am5.percent(50)
+      }));
+
+      // Create color blocks container
+      let severityBlocksContainer = severityLabelsContainer.children.push(am5.Container.new(root, {
+        width: am5.percent(60),
+        height: 20,
+        layout: root.horizontalLayout,
+        marginLeft: 10,
+        marginRight: 10,
+        centerY: am5.percent(50)
+      }));
+
+      // Define the colors and value ranges for each block
+      const severityColorBlocks = [
+        { color: "#DC3545", range: "Katastropik" },
+        { color: "#FD7E14", range: "Bahaya" },
+        { color: "#FFC107", range: "Biasa" },
+        { color: "#CACBCB", range: "Minimal" },
+      ];
+
+      // Create a higher container for block styling
+      severityColorBlocks.forEach(block => {
+        // Create a container for each block (to hold both rectangle and label)
+        let severityBlockContainer = severityBlocksContainer.children.push(am5.Container.new(root, {
+          width: am5.percent(100 / severityColorBlocks.length),
+          height: 25,
+          layout: root.verticalLayout
+        }));
+
+        // Add the colored rectangle
+        severityBlockContainer.children.push(am5.Rectangle.new(root, {
+          width: am5.percent(100),
+          height: 20,
+          fill: am5.color(block.color),
+        }));
+
+        // Add the label inside the colored rectangle
+        severityBlockContainer.children.push(am5.Label.new(root, {
+          text: block.range,
+          fontSize: 11.5,
+          fontWeight: "500",
+          fill: am5.color(0xFFFFFF),
+          // textAlign: "center",
+          centerX: am5.percent(-100),
+          marginTop: -25,
+        }));
+      });
+
+      // Store the legend for later use
+      this.severityHeatLegend = severityLegend;
+      
+      /* istanbul ignore next */
+      // Initially hide the severity layer
+      this.severitySeries.hide();
+      this.severityHeatLegend.hide()
+
       // Add a second layer for highlighting
       this.highlightSeries = this.chart.series.push(
         am5map.MapPolygonSeries.new(root, {
@@ -620,6 +736,22 @@ export class MapChartService {
     }
   }
 
+  populateProvinceSeverityData(provinceSeverityData: ProvinceData[]): void {
+    if (!this.severitySeries) return;
+    this.provinceSeverityData = provinceSeverityData;
+    this.severitySeries.data.clear();
+    console.log(provinceSeverityData);
+
+    provinceSeverityData.forEach(data => {
+      this.severitySeries!.data.push({
+        id: data.id,
+        value: data.status
+      });
+    });
+    
+    console.log(this.severitySeries.data);   
+  }
+
   populateLocations(locations: MapLocation[]): void {
     if (!this.pointSeries) return;
     this.locations = locations
@@ -834,10 +966,44 @@ export class MapChartService {
     }
   }
 
+   /* istanbul ignore next */
+   public showSeverityLayer(): void {
+    if (this.severitySeries && this.severityHeatLegend && this.root && this.chart) {
+      this.severitySeries.show();
+      this.severityHeatLegend.show();
+      
+      // Remove any existing background and set the new 
+      this.chart.get("background")?.set("fill", am5.color("#D0F4FC"))
+      console.log(this.chart.get("background"));      
+      // Force chart to redraw
+      this.chart.markDirty();
+      
+      // Make sure the legend is visible by bringing it to the front
+      if (this.severityHeatLegend.parent) {
+        this.severityHeatLegend.toFront();
+      }
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hideSeverityLayer(): void {
+    if (this.severitySeries && this.severityHeatLegend && this.root && this.chart) {
+      this.severitySeries.hide();
+      this.severityHeatLegend.hide();
+      
+      // Remove any existing background and set the new one
+      this.chart.get("background")?.set("fill", am5.color("#E0E0E0"))
+      console.log(this.chart.get("background"));   
+      
+      // Force chart to redraw
+      this.chart.markDirty();
+    }
+  }
+
   // Update the toggleLayers method to include province layer
     
   /* istanbul ignore next */
-  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean, showHumidity: boolean): void {
+  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean, showHumidity: boolean, showSeverity: boolean): void {
     if (showBase) {
       this.showBaseLayer();
     } else {
@@ -866,6 +1032,12 @@ export class MapChartService {
       this.showHumidityLayer();
     } else {
       this.hideHumidityLayer();
+    }
+
+    if (showSeverity) {
+      this.showSeverityLayer();
+    } else {
+      this.hideSeverityLayer();
     }
   }
 }
