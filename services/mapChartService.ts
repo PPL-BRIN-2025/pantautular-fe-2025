@@ -915,6 +915,19 @@ export class MapChartService {
     console.log(this.severitySeries.data);   
   }
 
+  populateProvinceTemperatureData(provinceTemperatureData: ProvinceData[]): void {
+    if (!this.temperatureSeries) return;
+    this.provinceTemperatureData = provinceTemperatureData;
+    this.temperatureSeries.data.clear();
+    
+    provinceTemperatureData.forEach(data => {
+      this.temperatureSeries!.data.push({
+        id: data.id,
+        value: data.value
+      });
+    });
+  }
+
   populateLocations(locations: MapLocation[]): void {
     if (!this.pointSeries) return;
     this.locations = locations
@@ -1119,6 +1132,40 @@ export class MapChartService {
     if (this.precipitationSeries && this.precipitationHeatLegend && this.root && this.chart) {
       this.precipitationSeries.hide();
       this.precipitationHeatLegend.hide();
+      
+      // Remove any existing background and set the new one
+      this.chart.get("background")?.set("fill", am5.color("#E0E0E0"))
+      console.log(this.chart.get("background"));   
+      
+      // Force chart to redraw
+      this.chart.markDirty();
+    }
+  }
+
+   /* istanbul ignore next */
+  public showTemperatureLayer(): void {
+    if (this.temperatureSeries && this.temperatureHeatLegend && this.root && this.chart) {
+      this.temperatureSeries.show();
+      this.temperatureHeatLegend.show();
+      
+      // Remove any existing background and set the new
+      this.chart.get("background")?.set("fill", am5.color("#D0F4FC"))
+      console.log(this.chart.get("background"));
+      // Force chart to redraw
+      this.chart.markDirty();
+      
+      // Make sure the legend is visible by bringing it to the front
+      if (this.temperatureHeatLegend.parent) {
+        this.temperatureHeatLegend.toFront();
+      }
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hideTemperatureLayer(): void {
+    if (this.temperatureSeries && this.temperatureHeatLegend && this.root && this.chart) {
+      this.temperatureSeries.hide();
+      this.temperatureHeatLegend.hide();
       
       // Remove any existing background and set the new one
       this.chart.get("background")?.set("fill", am5.color("#E0E0E0"))
