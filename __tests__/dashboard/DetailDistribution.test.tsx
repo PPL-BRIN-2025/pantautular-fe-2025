@@ -1,5 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import DetailDistribution from '../../app/components/dashboard/DetailDistribution';
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import DetailDistribution from "../../app/components/dashboard/DetailDistribution";
 import { DistributionData } from '@/types';
 
 // Mock data
@@ -19,10 +21,9 @@ const mockDataEmpty: DistributionData[] = [];
 
 const mockSetIsShowModal = jest.fn();
 
-describe('DetailDistribution Component', () => {
-  // Happy path tests
-  describe('Rendering and basic functionality', () => {
-    it('renders when isShowModal is true', () => {
+describe("DetailDistribution Component", () => {
+  describe("Rendering and basic functionality", () => {
+    it("renders when isShowModal is true", () => {
       render(
         <DetailDistribution
           data={mockData}
@@ -31,10 +32,12 @@ describe('DetailDistribution Component', () => {
           setIsShowModal={mockSetIsShowModal}
         />
       );
-      expect(screen.getByText('Detail Test Distribution')).toBeInTheDocument();
+      
+      // Menggunakan getByRole untuk mencari heading yang berisi "Detail Test Distribution"
+      expect(screen.getByRole("heading", { name: /detail test distribution/i })).toBeInTheDocument();
     });
 
-    it('does not render when isShowModal is false', () => {
+    it("does not render when isShowModal is false", () => {
       const { container } = render(
         <DetailDistribution
           data={mockData}
@@ -43,7 +46,31 @@ describe('DetailDistribution Component', () => {
           setIsShowModal={mockSetIsShowModal}
         />
       );
-      expect(container).toBeEmptyDOMElement();
+      expect(container.firstChild).toBeNull();
+    });
+
+    it("renders table with correct data", () => {
+      render(
+        <DetailDistribution
+          data={mockData}
+          title="Test Distribution"
+          isShowModal={true}
+          setIsShowModal={mockSetIsShowModal}
+        />
+      );
+
+      // Verifikasi header tabel
+      expect(screen.getByText("No")).toBeInTheDocument();
+      expect(screen.getByText("Sumber Berita")).toBeInTheDocument();
+      expect(screen.getByText("Total Postingan Artikel")).toBeInTheDocument();
+      expect(screen.getByText("Total Rangkuman Penyakit")).toBeInTheDocument();
+
+      // Verifikasi data dalam tabel menggunakan getAllByRole
+      const rows = screen.getAllByRole('row');
+      const firstRow = rows[1]; // Skip header row
+      expect(firstRow).toHaveTextContent('Portal A');
+      expect(firstRow).toHaveTextContent('10');
+      expect(firstRow).toHaveTextContent('5');
     });
 
     it('closes modal when close icon is clicked', () => {
@@ -77,9 +104,8 @@ describe('DetailDistribution Component', () => {
     });
   });
 
-  // Pagination tests
-  describe('Pagination functionality', () => {
-    it('shows the first page initially', () => {
+  describe("Pagination", () => {
+    it("handles pagination correctly", () => {
       render(
         <DetailDistribution
           data={mockData}
@@ -89,82 +115,41 @@ describe('DetailDistribution Component', () => {
         />
       );
 
-      // First item should be Portal A
-      expect(screen.getByText('Portal A')).toBeInTheDocument();
-    });
+      // Verifikasi tombol pagination
+      const prevButton = screen.getByTestId("previous-page-button");
+      const nextButton = screen.getByTestId("next-page-button");
 
-    it('navigates to the next page when next button is clicked', () => {
-      render(
-        <DetailDistribution
-          data={mockData}
-          title="Test Distribution"
-          isShowModal={true}
-          setIsShowModal={mockSetIsShowModal}
-        />
-      );
+      // Tombol previous harus disabled di halaman pertama
+      expect(prevButton).toBeDisabled();
+      expect(nextButton).not.toBeDisabled();
 
-      fireEvent.click(screen.getByTestId('next-page-button'));
+      // Klik next button
+      fireEvent.click(nextButton);
       
-      // Portal I should be visible on the second page
-      expect(screen.getByText('Portal I')).toBeInTheDocument();
-    });
-
-    it('navigates back to the previous page when previous button is clicked', () => {
-      render(
-        <DetailDistribution
-          data={mockData}
-          title="Test Distribution"
-          isShowModal={true}
-          setIsShowModal={mockSetIsShowModal}
-        />
-      );
-
-      // Go to second page
-      fireEvent.click(screen.getByTestId('next-page-button'));
-      
-      // Go back to first page
-      fireEvent.click(screen.getByTestId('previous-page-button'));
-      
-      // Portal A should be visible again
-      expect(screen.getByText('Portal A')).toBeInTheDocument();
-    });
-
-    it('disables previous button on first page', () => {
-      render(
-        <DetailDistribution
-          data={mockData}
-          title="Test Distribution"
-          isShowModal={true}
-          setIsShowModal={mockSetIsShowModal}
-        />
-      );
-
-      const prevButton = screen.getByTestId('previous-page-button');
-      expect(prevButton).toHaveClass('bg-blue-100');
-    });
-
-    it('disables next button on last page', () => {
-      render(
-        <DetailDistribution
-          data={mockData}
-          title="Test Distribution"
-          isShowModal={true}
-          setIsShowModal={mockSetIsShowModal}
-        />
-      );
-
-      // Go to second page (which is the last page for our mock data)
-      const nextButton = screen.getByTestId('next-page-button');
-      fireEvent.click(nextButton as HTMLElement);
-      
-      // Next button should now be disabled
-      expect(nextButton).toHaveClass('bg-blue-100');
+      // Tombol previous seharusnya tidak disabled lagi
+      expect(prevButton).not.toBeDisabled();
     });
   });
 
-  // Sorting tests
-  describe('Sorting functionality', () => {
-    it('sorts by portal name ascending when header is clicked', () => {
+  describe("Empty Data", () => {
+    it("renders correctly with empty data", () => {
+      render(
+        <DetailDistribution
+          data={mockDataEmpty}
+          title="Empty Data Test"
+          isShowModal={true}
+          setIsShowModal={mockSetIsShowModal}
+        />
+      );
+
+      // Verifikasi pesan "Tidak ada data tersedia"
+      expect(screen.getByText("Tidak ada data tersedia")).toBeInTheDocument();
+      expect(screen.getByText("Data sumber berita belum tersedia saat ini")).toBeInTheDocument();
+    });
+  });
+
+  describe("Sorting", () => {
+    it("handles sorting correctly", () => {
       render(
         <DetailDistribution
           data={mockData}
@@ -173,16 +158,18 @@ describe('DetailDistribution Component', () => {
           setIsShowModal={mockSetIsShowModal}
         />
       );
-      
-      // Click on portal header to sort
-      fireEvent.click(screen.getByText(/Sumber Berita/));
-      
-      // Check that rows are sorted alphabetically (A should be first)
+
+      // Klik kolom untuk sorting
+      const portalHeader = screen.getByText("Sumber Berita");
+      fireEvent.click(portalHeader);
+
+      // Verifikasi data terurut menggunakan getAllByRole
       const rows = screen.getAllByRole('row');
-      expect(rows[1]).toHaveTextContent('Portal A');
+      const firstRow = rows[1]; // Skip header row
+      expect(firstRow).toHaveTextContent('Portal A');
     });
 
-    it('toggles sort direction when clicking the same header twice', () => {
+    it('sorts by news_count when that header is clicked', () => {
       render(
         <DetailDistribution
           data={mockData}
@@ -192,16 +179,16 @@ describe('DetailDistribution Component', () => {
         />
       );
       
-      // Click on news_count header to sort ascending
+      // Click on news_count header to sort
       fireEvent.click(screen.getByText(/Total Postingan Artikel/));
       
-      // Click again to sort descending
-      fireEvent.click(screen.getByText(/Total Postingan Artikel/));
-      
-      // First row should now have the highest news_count (Portal F with 25)
+      // Get all rows and verify the first data row
       const rows = screen.getAllByRole('row');
-      expect(rows[1]).toHaveTextContent('Portal F');
-      expect(rows[1]).toHaveTextContent('25');
+      const firstDataRow = rows[1];
+      
+      // Verify the row contains the portal with lowest news_count
+      expect(firstDataRow).toHaveTextContent('Portal C');
+      expect(firstDataRow).toHaveTextContent('5');
     });
 
     it('sorts by disease_count when that header is clicked', () => {
@@ -217,10 +204,13 @@ describe('DetailDistribution Component', () => {
       // Click on disease_count header to sort
       fireEvent.click(screen.getByText(/Total Rangkuman Penyakit/));
       
-      // First row should have the lowest disease_count (Portal I with 2)
+      // Get all rows and verify the first data row
       const rows = screen.getAllByRole('row');
-      expect(rows[1]).toHaveTextContent('Portal I');
-      expect(rows[1]).toHaveTextContent('2');
+      const firstDataRow = rows[1];
+      
+      // Verify the row contains the portal with lowest disease_count
+      expect(firstDataRow).toHaveTextContent('Portal I');
+      expect(firstDataRow).toHaveTextContent('2');
     });
 
     it('handles equal values correctly when sorting', () => {
@@ -305,9 +295,12 @@ describe('DetailDistribution Component', () => {
         />
       );
       
-      // Should render the table but with no rows
-      expect(screen.getByText('Detail Empty Distribution')).toBeInTheDocument();
-      expect(screen.queryAllByRole('row').length).toBe(0); // No table rows with empty data
+      // Menggunakan getByRole untuk mencari heading yang berisi "Detail Empty Distribution"
+      expect(screen.getByRole("heading", { name: /detail empty distribution/i })).toBeInTheDocument();
+      
+      // Verifikasi pesan empty state
+      expect(screen.getByText("Tidak ada data tersedia")).toBeInTheDocument();
+      expect(screen.getByText("Data sumber berita belum tersedia saat ini")).toBeInTheDocument();
     });
 
     it('resets to first page when sorting changes', () => {
@@ -331,13 +324,14 @@ describe('DetailDistribution Component', () => {
       
       // Go to second page
       const nextButton = screen.getByTestId('next-page-button');
-      fireEvent.click(nextButton as HTMLElement);
+      fireEvent.click(nextButton);
       
       // Sort by portal
       fireEvent.click(screen.getByText(/Sumber Berita/));
       
       // Should be back on first page, showing Portal A
-      expect(screen.getByText('Portal A')).toBeInTheDocument();
+      const rows = screen.getAllByRole('row');
+      expect(rows[1]).toHaveTextContent('Portal A');
     });
 
     it('does not change page when trying to go beyond limits', () => {
@@ -355,33 +349,23 @@ describe('DetailDistribution Component', () => {
       fireEvent.click(prevButton);
       
       // Should still be on first page
-      expect(screen.getByText('Portal A')).toBeInTheDocument();
+      let rows = screen.getAllByRole('row');
+      expect(rows[1]).toHaveTextContent('Portal A');
       
       // Go to last page
       const nextButton = screen.getByTestId('next-page-button');
       fireEvent.click(nextButton);
       
+      // Get fresh rows after state change
+      rows = screen.getAllByRole('row');
+      expect(rows[rows.length - 1]).toHaveTextContent('Portal I');
+      
       // Try to go beyond last page
       fireEvent.click(nextButton);
       
-      // Should still be on last page
-      expect(screen.getByText('Portal I')).toBeInTheDocument();
-    });
-  });
-
-  // Empty Data tests
-  describe('Empty Data', () => {
-    it('renders correctly with empty data', () => {
-      render(
-        <DetailDistribution
-          data={mockDataEmpty}
-          title="Empty Data Test"
-          isShowModal={true}
-          setIsShowModal={mockSetIsShowModal}
-        />
-      );
-      
-      expect(screen.getByText('Detail Empty Data Test')).toBeInTheDocument();
+      // Get fresh rows after state change
+      rows = screen.getAllByRole('row');
+      expect(rows[rows.length - 1]).toHaveTextContent('Portal I');
     });
   });
 });

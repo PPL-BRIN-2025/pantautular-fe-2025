@@ -37,7 +37,6 @@ export function useIndonesiaMap(
       setMapServiceStore(service); // Update the Zustand store
     } catch (error) {
       console.error("Failed to initialize map:", error);
-      // onError("Failed to initialize the map. Please try again.");
     }
     
     return () => {

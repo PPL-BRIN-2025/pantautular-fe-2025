@@ -2,7 +2,6 @@
 
 import { useMapStore } from "../../../store/store"
 import { useEffect } from "react"
-import { cn } from "../../../utils/tmg"
 
 interface HumidityButtonProps {
   onClick?: () => void

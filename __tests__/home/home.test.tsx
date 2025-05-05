@@ -7,6 +7,19 @@ jest.mock("../../app/layout", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+jest.mock('../../app/auth/hooks/useAuth', () => ({
+  useAuth: jest.fn().mockReturnValue({
+    user: {
+      id: '1',
+      email: 'test@example.com',
+      name: 'Test User',
+      role: 'user'
+    },
+    login: jest.fn(),
+    logout: jest.fn()
+  })
+}));
+
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),

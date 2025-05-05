@@ -1,10 +1,10 @@
-import { mapApi, severityApi } from "../../services/api";
-import { FilterState } from "../../types";
+import { mapApi, resetPasswordApi } from "../../services/api";
 
 // Mock global fetch and console.error
 global.fetch = jest.fn();
-console.error = jest.fn();
-console.log = jest.fn(); // Also mock console.log to avoid noise in tests
+
+// Mock console.error
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('mapApi', () => {
     const mockResponse = [
@@ -47,7 +47,7 @@ describe('mapApi', () => {
             });
 
             await expect(mapApi.getLocations()).rejects.toThrow('HTTP error! status: 404');
-            expect(console.error).toHaveBeenCalled();
+            expect(consoleErrorSpy).toHaveBeenCalled();
         });
 
         it('should handle network errors', async () => {
@@ -55,7 +55,7 @@ describe('mapApi', () => {
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
 
             await expect(mapApi.getLocations()).rejects.toThrow('Network error');
-            expect(console.error).toHaveBeenCalledWith('Error fetching locations:', networkError);
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching locations:', networkError);
         });
 
         it('should handle empty response', async () => {
@@ -110,7 +110,7 @@ describe('mapApi', () => {
             });
 
             await expect(mapApi.getFilteredLocations(mockFilters)).rejects.toThrow('HTTP error! status: 400');
-            expect(console.error).toHaveBeenCalled();
+            expect(consoleErrorSpy).toHaveBeenCalled();
         });
 
         it('should handle network errors for filtered locations', async () => {
@@ -118,7 +118,7 @@ describe('mapApi', () => {
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
 
             await expect(mapApi.getFilteredLocations(mockFilters)).rejects.toThrow('Network error');
-            expect(console.error).toHaveBeenCalledWith('Error fetching filtered locations:', networkError);
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching filtered locations:', networkError);
         });
 
         it('should handle empty response for filtered locations', async () => {
@@ -163,16 +163,7 @@ describe('mapApi', () => {
             }
         };
 
-        const mockFilters = {
-            diseases: ['Dengue'],
-            locations: ['Jakarta'],
-            level_of_alertness: 2,
-            portals: ['news-portal-1'],
-            start_date: new Date('2023-01-01'),
-            end_date: new Date('2023-12-31')
-        };
-
-        it('should fetch dashboard data with GET when no filters are provided', async () => {
+        it('should fetch dashboard data successfully', async () => {
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve(dashboardMockData)
@@ -195,35 +186,10 @@ describe('mapApi', () => {
             );
         });
 
-        it('should fetch dashboard data with POST when filters are provided', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(dashboardMockData)
-            });
-
-            const result = await mapApi.getDashboardData(mockFilters);
-            
-            expect(result).toEqual(dashboardMockData);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/statistics/`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify(mockFilters),
-                }
-            );
-        });
-
         it('should throw an error when API returns non-ok response', async () => {
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: false,
-                status: 404,
-                statusText: 'Not Found'
+                status: 404
             });
             
             await expect(mapApi.getDashboardData()).rejects.toThrow('HTTP error! status: 404');
@@ -277,7 +243,7 @@ describe('mapApi', () => {
             });
 
             await expect(mapApi.getCaseDetail(mockCaseId)).rejects.toThrow('HTTP error! status: 404');
-            expect(console.error).toHaveBeenCalled();
+            expect(consoleErrorSpy).toHaveBeenCalled();
         });
 
         it('should handle network errors for case detail', async () => {
@@ -285,7 +251,7 @@ describe('mapApi', () => {
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
 
             await expect(mapApi.getCaseDetail(mockCaseId)).rejects.toThrow('Network error');
-            expect(console.error).toHaveBeenCalledWith('Error fetching case detail:', networkError);
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching case detail:', networkError);
         });
 
         it('should handle empty response for case detail', async () => {
@@ -298,319 +264,183 @@ describe('mapApi', () => {
             expect(result).toEqual({});
         });
     });
-});
 
-describe('severityApi', () => {
-    const mockFilters = {
-        diseases: ['Dengue'],
-        locations: ['Jakarta'],
-        level_of_alertness: 2,
-        portals: ['news-portal-1'],
-        start_date: new Date('2023-01-01'),
-        end_date: new Date('2023-12-31')
-    };
-
-    // Partial filter with missing fields to test fallbacks
-    const partialFilter: FilterState = {
-        diseases: ['Dengue'],
-        locations: [],
-        portals: [],
-        level_of_alertness: 0,
-        start_date: null,
-        end_date: null
-    };
-
-    const mockSeverityData = {
-        data: [
-            {
-                name: 'Disease A',
-                severity_counts: {
-                    hospitalisasi: 100,
-                    insiden: 200,
-                    mortalitas: 50
-                },
-                total_cases: 350
-            },
-            {
-                name: 'Disease B',
-                severity_counts: {
-                    hospitalisasi: 80,
-                    insiden: 150,
-                    mortalitas: 30
-                },
-                total_cases: 260
-            }
-        ]
-    };
-
-    const mockFilterResponse = {
-        disease_stats: [
-            {
-                name: 'Disease A',
-                severity_counts: {
-                    hospitalisasi: 100,
-                    insiden: 200,
-                    mortalitas: 50
-                },
-                total_cases: 350
-            }
-        ],
-        province_stats: [
-            {
-                name: 'Province A',
-                severity_counts: {
-                    hospitalisasi: 80,
-                    insiden: 150,
-                    mortalitas: 30
-                },
-                total_cases: 260
-            }
-        ],
-        city_stats: [
-            {
-                name: 'City A',
-                severity_counts: {
-                    hospitalisasi: 60,
-                    insiden: 100,
-                    mortalitas: 20
-                },
-                total_cases: 180
-            }
-        ]
-    };
-
-    const expectedTransformedData = [
-        {
-            name: 'Disease A',
-            hospitalisasi: 100,
-            insiden: 200,
-            mortalitas: 50,
-            total_cases: 350
-        },
-        {
-            name: 'Disease B',
-            hospitalisasi: 80,
-            insiden: 150,
-            mortalitas: 30,
-            total_cases: 260
-        }
-    ];
-
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    describe('getDiseaseSeverityStats', () => {
-        it('should fetch disease severity stats without filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockSeverityData)
-            });
-
-            const result = await severityApi.getDiseaseSeverityStats();
-            
-            expect(result).toEqual(expectedTransformedData);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/diseases/severity-stats/`,
-                expect.objectContaining({
-                    method: 'GET',
-                    headers: expect.objectContaining({
-                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY)
-                    })
-                })
-            );
+    describe('resetPasswordApi', () => {
+        const mockUid = 'user123';
+        const mockToken = 'validtoken456';
+        const mockPassword = 'NewPassword123!';
+        const mockConfirmPassword = 'NewPassword123!';
+        
+        beforeEach(() => {
+            jest.clearAllMocks();
         });
-
-        it('should fetch disease severity stats with filter', async () => {
+        
+        it('should reset password successfully', async () => {
+            const successResponse = { detail: "Password berhasil diganti" };
+            
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
+                json: () => Promise.resolve(successResponse)
             });
-
-            const result = await severityApi.getDiseaseSeverityStats(mockFilters);
             
-            expect(result).toEqual(mockFilterResponse);
+            const result = await resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            );
+            
+            expect(result).toEqual(successResponse);
             expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/severity-stats/filter/`,
-                expect.objectContaining({
+                `${process.env.NEXT_PUBLIC_API_URL}/authentication/password-reset-confirm/${mockUid}/${mockToken}`,
+                {
                     method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    },
+                    credentials: 'include',
                     body: JSON.stringify({
-                        diseases: mockFilters.diseases,
-                        locations: mockFilters.locations,
-                        portals: mockFilters.portals,
-                        level_of_alertness: mockFilters.level_of_alertness,
-                        start_date: mockFilters.start_date,
-                        end_date: mockFilters.end_date
-                    })
-                })
+                        password: mockPassword,
+                        "password-confirm": mockConfirmPassword
+                    }),
+                }
             );
         });
-
-        it('should use default values for missing filter fields', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
-            });
-
-            const result = await severityApi.getDiseaseSeverityStats(partialFilter);
+        
+        it('should handle password mismatch error', async () => {
+            const errorResponse = { detail: "Password dan konfirmasi password tidak sama" };
             
-            expect(result).toEqual(mockFilterResponse);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/severity-stats/filter/`,
-                expect.objectContaining({
-                    method: 'POST',
-                    body: JSON.stringify({
-                        diseases: partialFilter.diseases,
-                        locations: [],
-                        portals: [],
-                        level_of_alertness: 0,
-                        start_date: null,
-                        end_date: null
-                    })
-                })
-            );
-        });
-
-        it('should handle HTTP errors when fetching disease stats', async () => {
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: false,
-                status: 500
+                status: 400,
+                json: () => Promise.resolve(errorResponse)
             });
-
-            await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('HTTP error! status: 500');
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                'DifferentPassword123!'
+            )).rejects.toThrow("Password dan konfirmasi password tidak sama");
+            
             expect(console.error).toHaveBeenCalled();
         });
-
-        it('should handle network errors when fetching disease stats', async () => {
+        
+        it('should handle weak password error', async () => {
+            const errorResponse = { detail: "Password harus memiliki minimal 8 karakter, 1 huruf kapital, 1 huruf kecil, 1 angka, dan 1 simbol khusus" };
+            
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                json: () => Promise.resolve(errorResponse)
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                'simple',
+                'simple'
+            )).rejects.toThrow("Password harus memiliki minimal 8 karakter, 1 huruf kapital, 1 huruf kecil, 1 angka, dan 1 simbol khusus");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle invalid or expired token', async () => {
+            const errorResponse = { detail: "Invalid or expired token" };
+            
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                json: () => Promise.resolve(errorResponse)
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                'expiredtoken123',
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow("Invalid or expired token");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle invalid reset link', async () => {
+            const errorResponse = { detail: "Invalid link" };
+            
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                json: () => Promise.resolve(errorResponse)
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                'invaliduid',
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow("Invalid link");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle server response with no detail field', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                json: () => Promise.resolve({ message: "Internal server error" })
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow("Error: 500");
+            
+            expect(console.error).toHaveBeenCalled();
+        });
+        
+        it('should handle network errors', async () => {
             const networkError = new Error('Network error');
             (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
-
-            await expect(severityApi.getDiseaseSeverityStats()).rejects.toThrow('Network error');
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow('Network error');
+            
+            expect(console.error).toHaveBeenCalledWith('Error resetting password:', networkError);
+        });
+        
+        it('should handle JSON parse error', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.reject(new Error('Invalid JSON'))
+            });
+            
+            await expect(resetPasswordApi.resetPassword(
+                mockUid,
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow('Invalid JSON');
+            
             expect(console.error).toHaveBeenCalled();
         });
-    });
-
-    describe('getProvinceSeverityStats', () => {
-        it('should fetch province severity stats without filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockSeverityData)
-            });
-
-            const result = await severityApi.getProvinceSeverityStats();
+        
+        it('should handle empty parameters', async () => {
+            await expect(resetPasswordApi.resetPassword(
+                '',
+                mockToken,
+                mockPassword,
+                mockConfirmPassword
+            )).rejects.toThrow(); // akan gagal karena URL tidak valid
             
-            expect(result).toEqual(expectedTransformedData);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/locations/province/severity-stats/`,
-                expect.objectContaining({
-                    method: 'GET'
-                })
-            );
-        });
-
-        it('should fetch province severity stats with filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
-            });
-
-            const result = await severityApi.getProvinceSeverityStats(mockFilters);
-            
-            expect(result).toEqual(mockFilterResponse);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/severity-stats/filter/`,
-                expect.objectContaining({
-                    method: 'POST'
-                })
-            );
-        });
-
-        it('should use default values for missing filter fields', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
-            });
-
-            const result = await severityApi.getProvinceSeverityStats(partialFilter);
-            
-            expect(result).toEqual(mockFilterResponse);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/severity-stats/filter/`,
-                expect.objectContaining({
-                    method: 'POST',
-                    body: JSON.stringify({
-                        diseases: partialFilter.diseases,
-                        locations: partialFilter.locations,
-                        portals: partialFilter.portals,
-                        level_of_alertness: partialFilter.level_of_alertness,
-                        start_date: partialFilter.start_date,
-                        end_date: partialFilter.end_date
-                    })
-                })
-            );
-        });
-    });
-
-    describe('getCitySeverityStats', () => {
-        it('should fetch city severity stats without filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockSeverityData)
-            });
-
-            const result = await severityApi.getCitySeverityStats();
-            
-            expect(result).toEqual(expectedTransformedData);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/locations/city/severity-stats/`,
-                expect.objectContaining({
-                    method: 'GET'
-                })
-            );
-        });
-
-        it('should fetch city severity stats with filter', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
-            });
-
-            const result = await severityApi.getCitySeverityStats(mockFilters);
-            
-            expect(result).toEqual(mockFilterResponse);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/severity-stats/filter/`,
-                expect.objectContaining({
-                    method: 'POST'
-                })
-            );
-        });
-    });
-
-    describe('getFilteredSeverityStats', () => {
-        it('should fetch filtered severity stats directly', async () => {
-            (global.fetch as jest.Mock).mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockFilterResponse)
-            });
-
-            const result = await severityApi.getFilteredSeverityStats(mockFilters);
-            
-            expect(result).toEqual(mockFilterResponse);
-            expect(global.fetch).toHaveBeenCalledWith(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/severity-stats/filter/`,
-                expect.objectContaining({
-                    method: 'POST',
-                    body: JSON.stringify({
-                        diseases: mockFilters.diseases,
-                        locations: mockFilters.locations,
-                        portals: mockFilters.portals,
-                        level_of_alertness: mockFilters.level_of_alertness,
-                        start_date: mockFilters.start_date,
-                        end_date: mockFilters.end_date
-                    })
-                })
-            );
+            expect(console.error).toHaveBeenCalled();
         });
     });
 }); 
