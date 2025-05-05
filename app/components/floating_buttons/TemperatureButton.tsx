@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { useMapStore } from "../../../store/store"
 
 const sizeClasses = {
@@ -25,7 +26,7 @@ export default function TemperatureButton({
   className = "", 
   size = "md" 
 }: Readonly<TemperatureButtonProps>) {
-  const { activeButton, setActiveButton } = useMapStore()
+  const { mapService, activeButton, setActiveButton } = useMapStore()
   const isActive = activeButton === 'temperature'
 
   const handleClick = () => {
@@ -33,6 +34,15 @@ export default function TemperatureButton({
     setActiveButton(newActiveState ? 'temperature' : null)
     if (onClick) onClick()
   }
+
+  useEffect(() => {
+    /* istanbul ignore next */
+    if (mapService) {
+      /* istanbul ignore next */
+      if (isActive) mapService.showTemperatureLayer() 
+      else mapService.hideTemperatureLayer()
+    }
+  }, [isActive, mapService])
 
   return (
     <button
