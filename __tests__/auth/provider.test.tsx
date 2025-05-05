@@ -5,12 +5,18 @@ import React from "react"
 import userEvent from "@testing-library/user-event"
 import { JWTStrategy } from "../../app/auth/strategies/jwt"
 
+// Test constants
+const TEST_CREDENTIALS = {
+  email: 'test@example.com',
+  password: 'test123'
+} as const;
+
 // Mock JWTStrategy
 jest.mock("../../app/auth/strategies/jwt", () => ({
   JWTStrategy: jest.fn().mockImplementation(() => ({
     getUser: jest.fn().mockResolvedValue({
       id: '1',
-      email: 'test@example.com',
+      email: TEST_CREDENTIALS.email,
       name: 'testUser',
       role: 'user'
     }),
@@ -35,7 +41,7 @@ const MockComponent = () => {
   return (
     <div>
       <span data-testid="username">{user ? user.name : "Guest"}</span>
-      <button onClick={() => login({ email: 'test@example.com', password: 'password' })} data-testid="login-button">Login</button>
+      <button onClick={() => login(TEST_CREDENTIALS)} data-testid="login-button">Login</button>
       <button onClick={logout} data-testid="logout-button">Logout</button>
     </div>
   )

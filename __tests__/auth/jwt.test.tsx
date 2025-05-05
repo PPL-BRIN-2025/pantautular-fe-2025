@@ -22,11 +22,17 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+// Test constants
+const TEST_CREDENTIALS = {
+  email: 'test@example.com',
+  password: 'test123'
+} as const;
+
 describe('JWTStrategy', () => {
   let jwt: JWTStrategy;
   const mockUser = {
     id: 1,
-    email: 'test@example.com',
+    email: TEST_CREDENTIALS.email,
     name: 'Test User',
     role: 'user'
   };
@@ -48,7 +54,7 @@ describe('JWTStrategy', () => {
   });
 
   it('logs in successfully', async () => {
-    await jwt.login({ email: 'test@example.com', password: 'test123' });
+    await jwt.login(TEST_CREDENTIALS);
     expect(localStorage.setItem).toHaveBeenCalledWith('accessToken', mockToken);
     expect(localStorage.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
   });
