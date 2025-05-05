@@ -2,6 +2,28 @@ import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BantuanPantauTular from '../../app/help/page';
 
+jest.mock('../../app/components/Navbar', () => {
+  return function MockNavbar() {
+    return <div data-testid="mock-navbar"></div>;
+  };
+});
+
+jest.mock('../../app/components/help/GlossarySection', () => {
+  return function MockGlossarySection(props: any) {
+    return <div data-testid="glossary-section">{props.title}</div>;
+  };
+});
+
+jest.mock('../../app/components/help/GlossaryItem', () => {
+  return function MockGlossaryItem(props: any) {
+    return <div data-testid="glossary-item">{props.title}</div>;
+  };
+});
+
+jest.mock('../../app/auth/hooks/useAuth', () => ({
+  useAuth: jest.fn()
+}));
+
 describe('BantuanPantauTular', () => {
     it('renders the title', () => {
       render(<BantuanPantauTular />);
@@ -66,5 +88,72 @@ describe('BantuanPantauTular', () => {
       expect(paginationElement).not.toBeInTheDocument();
       expect(nextPageElement).not.toBeInTheDocument();
       expect(prevPageElement).not.toBeInTheDocument();
+    });
+
+    it('does not render glossary section when user is not logged in', () => {
+      // Setup the mock to return no user (not logged in)
+      const useAuthMock = require('../../app/auth/hooks/useAuth');
+      useAuthMock.useAuth.mockReturnValue({ user: null });
+      
+      render(<BantuanPantauTular />);
+      
+      // Glossary heading should not be present
+      const glossaryHeading = screen.queryByText('Glosarium PantauTular');
+      expect(glossaryHeading).not.toBeInTheDocument();
+      
+      // No glossary sections should be rendered
+      const glossarySections = screen.queryAllByTestId('glossary-section');
+      expect(glossarySections.length).toBe(0);
+    });
+
+    it('renders glossary section when user is logged in', () => {
+      // Setup the mock to return a logged-in user
+      const useAuthMock = require('../../app/auth/hooks/useAuth');
+      useAuthMock.useAuth.mockReturnValue({ user: { name: 'Test User' } });
+      
+      render(<BantuanPantauTular />);
+      
+      // Glossary heading should be present
+      const glossaryHeading = screen.getByText('Glosarium PantauTular');
+      expect(glossaryHeading).toBeInTheDocument();
+      
+      // Glossary sections should be rendered
+      const glossarySections = screen.getAllByTestId('glossary-section');
+      expect(glossarySections.length).toBeGreaterThan(0);
+      
+      // Check for specific glossary section titles
+      expect(screen.getByText('Curah Hujan')).toBeInTheDocument();
+      expect(screen.getByText('Mortalitas')).toBeInTheDocument();
+      expect(screen.getByText('Prevalensi')).toBeInTheDocument();
+      // Add more specific titles as needed
+    });
+
+    it('shows login prompt when user is not logged in', () => {
+      // Setup the mock to return no user (not logged in)
+      const useAuthMock = require('../../app/auth/hooks/useAuth');
+      useAuthMock.useAuth.mockReturnValue({ user: null });
+      
+      render(<BantuanPantauTular />);
+      
+      // Should display the login prompt
+      const loginPrompt = screen.getByText(/Ingin melihat Glosarium PantauTular?/i);
+      expect(loginPrompt).toBeInTheDocument();
+      
+      // Should have a login link
+      const loginLink = screen.getByText(/masuk/i);
+      expect(loginLink).toBeInTheDocument();
+      expect(loginLink).toHaveAttribute('href', '/login');
+    });
+
+    it('does not show login prompt when user is logged in', () => {
+      // Setup the mock to return a logged-in user
+      const useAuthMock = require('../../app/auth/hooks/useAuth');
+      useAuthMock.useAuth.mockReturnValue({ user: { name: 'Test User' } });
+      
+      render(<BantuanPantauTular />);
+      
+      // Login prompt should not be displayed
+      const loginPrompt = screen.queryByText(/Ingin melihat Glosarium PantauTular?/i);
+      expect(loginPrompt).not.toBeInTheDocument();
     });
 });
