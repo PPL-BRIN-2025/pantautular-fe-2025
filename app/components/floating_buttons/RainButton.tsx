@@ -36,7 +36,12 @@ export default function RainButton({
   }
 
   useEffect(() => {
-    
+    /* istanbul ignore next */
+    if (mapService) {
+      /* istanbul ignore next */
+      if (isActive) mapService.showRainfallLayer()
+      else mapService.hideRainfallLayer()
+    }
   }, [isActive, mapService])
 
   return (
