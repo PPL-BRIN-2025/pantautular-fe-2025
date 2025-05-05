@@ -4,9 +4,11 @@ import { useAuth } from "../../app/auth/hooks/useAuth"
 import React from "react"
 import userEvent from "@testing-library/user-event"
 
-// Test constants
+// Test constants - clearly marked as test data
 const TEST_CREDENTIALS = {
+  // Test data only - not real credentials
   email: 'test@example.com',
+  // Using a simple test password that is clearly not a real password
   password: 'test123'
 } as const;
 
