@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useUserLocation } from "../../hooks/useUserLocation";
 import { useIndonesiaMap } from "../../hooks/useIndonesiaMap";
-import { MapLocation, MapConfig } from "../../types";
+import { MapLocation, MapConfig, ProvinceData } from "../../types";
 import { LocationError } from "../../services/LocationService";
 import LocationPermissionPopup from "./LocationPermissionPopup";
 import LocationErrorPopup from "./LocationErrorPopup"
@@ -19,10 +19,16 @@ interface IndonesiaMapProps {
   onError: (message: string) => void;
   isFilterVisible?: boolean;
   onFilterToggle?: () => void;
+  provinceHumidityData: ProvinceData[];
+  provinceTemperatureData: ProvinceData[];
+  provincePrecipitationData: ProvinceData[];
 }
 
 export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
   locations,
+  provinceHumidityData,
+  provinceTemperatureData,
+  provincePrecipitationData,
   config = {},
   height = "100vh",
   width = "100vw",
@@ -43,7 +49,10 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
   const { mapService } = useIndonesiaMap(
     mapContainerId, 
     locations, 
-    fullConfig, 
+    fullConfig,
+    provinceHumidityData,
+    provinceTemperatureData,
+    provincePrecipitationData,
     onError,
     mapInitialized.current
   );
