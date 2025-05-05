@@ -3,7 +3,6 @@ import { AuthProvider } from "../../app/auth/provider"
 import { useAuth } from "../../app/auth/hooks/useAuth"
 import React from "react"
 import userEvent from "@testing-library/user-event"
-import { JWTStrategy } from "../../app/auth/strategies/jwt"
 
 // Test constants
 const TEST_CREDENTIALS = {

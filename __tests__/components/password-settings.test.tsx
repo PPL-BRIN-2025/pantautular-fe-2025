@@ -5,21 +5,12 @@ import PasswordSettings from '../../app/components/password-settings';
 import fetchMock from 'jest-fetch-mock';
 import userEvent from '@testing-library/user-event';
 
-// Mock environment variables
-const originalEnv = process.env;
-beforeAll(() => {
-  process.env = {
-    ...originalEnv,
-    NEXT_PUBLIC_API_URL: 'http://test-api.com',
-    NEXT_PUBLIC_API_KEY: 'test-api-key'
-  };
-  fetchMock.enableMocks();
-});
+// Enable fetch mocks
+fetchMock.enableMocks();
 
-afterAll(() => {
-  process.env = originalEnv;
-  fetchMock.disableMocks();
-});
+// Mock environment variables
+process.env.NEXT_PUBLIC_API_URL = 'http://test-api.com';
+process.env.NEXT_PUBLIC_API_KEY = 'test-api-key';
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -35,8 +26,9 @@ Object.defineProperty(window, 'localStorage', {
   value: mockLocalStorage
 });
 
-// Test constants for passwords
+// Test constants for passwords - clearly marked as test data
 const TEST_PASSWORDS = {
+  // Test data only - not real passwords
   current: 'test123',
   wrong: 'wrong123',
   new: 'Test123!',
@@ -199,10 +191,7 @@ describe('PasswordSettings Component', () => {
     fetchMock.mockResponseOnce(JSON.stringify({ message: 'Kata sandi berhasil diubah' }));
 
     const submitButton = screen.getByTestId('button');
-    const form = submitButton.closest('form');
-    if (form) {
-      fireEvent.submit(form);
-    }
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -228,29 +217,24 @@ describe('PasswordSettings Component', () => {
   });
 
   it('displays error message when API returns error', async () => {
-    fetchMock.mockRejectOnce(new Error('Invalid current password'));
+    fetchMock.mockRejectOnce(new Error('Kata sandi saat ini tidak valid'));
 
-    render(
-      <PasswordSettings
-        onClose={mockOnClose}
-      />
-    );
+    render(<PasswordSettings onClose={mockOnClose} />);
 
     const currentPasswordInput = screen.getByTestId('input-current-password');
     const newPasswordInput = screen.getByTestId('input-new-password');
     const confirmPasswordInput = screen.getByTestId('input-confirm-password');
     const submitButton = screen.getByTestId('button');
 
-    await userEvent.type(currentPasswordInput, 'wrong123');
-    await userEvent.type(newPasswordInput, 'Test123!');
-    await userEvent.type(confirmPasswordInput, 'Test123!');
+    await userEvent.type(currentPasswordInput, TEST_PASSWORDS.wrong);
+    await userEvent.type(newPasswordInput, TEST_PASSWORDS.new);
+    await userEvent.type(confirmPasswordInput, TEST_PASSWORDS.new);
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Invalid current password')).toBeInTheDocument();
+      expect(screen.getByText('Kata sandi saat ini tidak valid')).toBeInTheDocument();
     });
 
-    // Verify fetch was called with correct parameters
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/authentication/api/auth/change-password/'),
       expect.objectContaining({
@@ -260,9 +244,9 @@ describe('PasswordSettings Component', () => {
           'Authorization': 'Bearer test-token'
         }),
         body: JSON.stringify({
-          current_password: 'wrong123',
-          new_password: 'Test123!',
-          confirm_password: 'Test123!'
+          current_password: TEST_PASSWORDS.wrong,
+          new_password: TEST_PASSWORDS.new,
+          confirm_password: TEST_PASSWORDS.new
         })
       })
     );
