@@ -1142,7 +1142,7 @@ export class MapChartService {
     }
   }
 
-   /* istanbul ignore next */
+  /* istanbul ignore next */
   public showTemperatureLayer(): void {
     if (this.temperatureSeries && this.temperatureHeatLegend && this.root && this.chart) {
       this.temperatureSeries.show();
@@ -1213,7 +1213,7 @@ export class MapChartService {
   // Update the toggleLayers method to include province layer
     
   /* istanbul ignore next */
-  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean, showHumidity: boolean, showSeverity: boolean): void {
+  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean, showHumidity: boolean, showTemperature: boolean, showSeverity: boolean): void {
     if (showBase) {
       this.showBaseLayer();
     } else {
@@ -1242,6 +1242,13 @@ export class MapChartService {
       this.showHumidityLayer();
     } else {
       this.hideHumidityLayer();
+    }
+
+    if (showTemperature) {
+      console.log("showTemperatureLayer called")
+      this.showTemperatureLayer();
+    } else {
+      this.hideTemperatureLayer();
     }
 
     if (showSeverity) {
