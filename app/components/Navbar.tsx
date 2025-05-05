@@ -15,7 +15,7 @@ export default function Navbar() {
   );
 }
 
-const ProfileIcon = ({ logout }: { logout: () => void }) => {
+export const ProfileIcon = ({ logout }: { logout: () => void }) => {
   const [showSettings, setShowSettings] = useState(false);
   
   return (
@@ -57,14 +57,24 @@ function NavbarContent() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
+  const handleLogin = () => {
+    console.log('Login clicked');
+    router.push('/login');
+  };
+
+  const handleRegister = () => {
+    console.log('Register clicked');
+    router.push('/register');
+  };
+
   return (
-    <nav className="fixed top-0 left-0 w-full z-10 flex items-center justify-between px-16 py-6 bg-white shadow-[0_5px_15px_rgba(0,0,0,0.3)] h-20">
+    <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-16 py-6 bg-white shadow-[0_5px_15px_rgba(0,0,0,0.3)] h-20">
       <div className="flex items-center h-20">
         <Image src="/logo-pantautular.svg" alt="PantauTular Logo" width={120} height={30} />
       </div>
 
-      <div className="hidden md:flex items-center gap-8 h-20">
-        <div className="flex items-center gap-20">
+      <div className="flex items-center gap-8 h-20">
+        <div className="hidden md:flex items-center gap-20">
           <NavLink href="/" label="Beranda" />
           <NavLink href="/map" label="Peta Sebaran" />
           <NavLink href="/about" label="Tentang Kami" />
@@ -75,14 +85,16 @@ function NavbarContent() {
         ) : (
             <div className="flex items-center gap-4 pl-4">
               <button
-                className="bg-white text-[#0069cf] px-6 py-2 rounded-md border-2 border-[#0069cf] mr-3"
-                onClick={() => router.push("/login")}
+                type="button"
+                className="bg-white text-[#0069cf] px-6 py-2 rounded-md border-2 border-[#0069cf] mr-3 hover:bg-[#0069cf] hover:text-white transition-colors"
+                onClick={handleLogin}
               >
                 Masuk
               </button>
               <button
-                className="bg-[#0069cf] text-white px-6 py-2 rounded-md border-2 border-transparent"
-                onClick={() => router.push("/register")}
+                type="button"
+                className="bg-[#0069cf] text-white px-6 py-2 rounded-md border-2 border-transparent hover:bg-[#0056b3] transition-colors"
+                onClick={handleRegister}
               >
                 Register
               </button>

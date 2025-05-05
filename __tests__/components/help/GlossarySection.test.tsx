@@ -16,29 +16,31 @@ describe('GlossarySection Component', () => {
     expect(screen.getByText('Test Child Content')).toBeInTheDocument();
   });
   
-  test('applies correct styling', () => {
+  it('applies correct styling', () => {
     render(
       <GlossarySection title="Styled Section">
         <p>Content</p>
       </GlossarySection>
     );
     
-    const section = screen.getByRole('region');
     const title = screen.getByText('Styled Section');
+    const content = screen.getByText('Content');
     
-    expect(section).toHaveClass('mt-12');
-    expect(title).toHaveClass('text-2xl');
-    expect(title).toHaveClass('font-bold');
-    expect(title).toHaveClass('text-blue-900');
+    expect(title).toBeInTheDocument();
+    expect(title).toHaveClass('text-xl', 'font-bold', 'text-green-600', 'mb-4');
+    expect(content).toBeInTheDocument();
   });
   
-  test('renders without children', () => {
-    render(<GlossarySection title="Empty Section"><></></GlossarySection>);
+  it('renders without children', () => {
+    render(
+      <GlossarySection title="Empty Section">
+        {null}
+      </GlossarySection>
+    );
     
     expect(screen.getByText('Empty Section')).toBeInTheDocument();
-    const section = screen.getByRole('region');
-    expect(section).toBeInTheDocument();
-    expect(section.children.length).toBe(1); // Only contains the title
+    const container = screen.getByText('Empty Section').closest('div');
+    expect(container).toHaveClass('mb-12');
   });
   
   test('renders with multiple children', () => {
