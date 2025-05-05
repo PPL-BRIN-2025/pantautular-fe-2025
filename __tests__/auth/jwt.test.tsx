@@ -48,7 +48,7 @@ describe('JWTStrategy', () => {
   });
 
   it('logs in successfully', async () => {
-    await jwt.login({ email: 'test@example.com', password: 'password' });
+    await jwt.login({ email: 'test@example.com', password: 'test123' });
     expect(localStorage.setItem).toHaveBeenCalledWith('accessToken', mockToken);
     expect(localStorage.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
   });
