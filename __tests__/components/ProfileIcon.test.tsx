@@ -15,7 +15,24 @@ jest.mock('@radix-ui/react-dropdown-menu', () => ({
       aria-expanded="false"
       aria-label="User menu"
     >
-      {children}
+      <svg
+        className="lucide lucide-user h-6 w-6"
+        fill="none"
+        height="24"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width="24"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        role="img"
+        aria-label="User icon"
+      >
+        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
     </button>
   ),
   Content: ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -37,7 +54,7 @@ jest.mock('@radix-ui/react-dropdown-menu', () => ({
       {children}
     </button>
   ),
-  Portal: ({ children }: { children: React.ReactNode }) => <div role="presentation">{children}</div>,
+  Portal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe('ProfileIcon Component', () => {
