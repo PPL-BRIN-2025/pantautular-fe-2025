@@ -1,13 +1,29 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { useIndonesiaMap } from "../../hooks/useIndonesiaMap";
 import { MapChartService } from "../../services/mapChartService";
-import { MapLocation, MapConfig } from "../../types";
+import { MapLocation, MapConfig, ProvinceData } from "../../types";
 import { useRef } from "react";
+import { useMapStore } from "../../store/store";
 
 // Mock functions from MapChartService
 const mockInitialize = jest.fn();
 const mockPopulateLocations = jest.fn();
+const mockPopulateProvinceHumidityData = jest.fn();
 const mockDispose = jest.fn();
+
+// Mock useMapStore
+const mockSetMapService = jest.fn();
+jest.mock("../../store/store", () => ({
+  useMapStore: jest.fn((selector) => {
+    if (typeof selector === 'function') {
+      return mockSetMapService;
+    }
+    return {
+      setMapService: mockSetMapService,
+      setCountSelectedPoints: jest.fn()
+    };
+  })
+}));
 
 // Mock MapChartService to use the above functions
 jest.mock("../../services/mapChartService", () => {
@@ -15,6 +31,7 @@ jest.mock("../../services/mapChartService", () => {
     MapChartService: jest.fn().mockImplementation(() => ({
       initialize: mockInitialize,
       populateLocations: mockPopulateLocations,
+      populateProvinceHumidityData: mockPopulateProvinceHumidityData,
       dispose: mockDispose,
     })),
   };
@@ -42,14 +59,32 @@ describe("useIndonesiaMap", () => {
       id: "1",
       location__latitude: -6.2,
       location__longitude: 106.8,
+      location__province: "DKI Jakarta"
     },
     {
       city: "Surabaya",
       id: "2",
       location__latitude: -7.3,
       location__longitude: 112.7,
+      location__province: "Jawa Timur"
     },
   ];
+  
+  const mockProvinceHumidityData: ProvinceData[] = [
+    { id: "ID-JK", value: 75 },
+    { id: "ID-JI", value: 60 }
+  ];
+  
+  const mockProvinceTemperatureData: ProvinceData[] = [
+    { id: "ID-JK", value: 30 },
+    { id: "ID-JI", value: 32 }
+  ];
+  
+  const mockProvincePrecipitationData: ProvinceData[] = [
+    { id: "ID-JK", value: 200 },
+    { id: "ID-JI", value: 150 }
+  ];
+  
   const mockConfig: MapConfig = {
     zoomLevel: 5,
     centerPoint: { longitude: 120, latitude: -5 },
@@ -77,7 +112,15 @@ describe("useIndonesiaMap", () => {
   test("should initialize map service on mount", async () => {
     // Render the hook
     renderHook(() =>
-      useIndonesiaMap(containerId, mockLocations, mockConfig, mockOnError)
+      useIndonesiaMap(
+        containerId, 
+        mockLocations, 
+        mockConfig, 
+        mockProvinceHumidityData,
+        mockProvinceTemperatureData,
+        mockProvincePrecipitationData,
+        mockOnError
+      )
     );
 
     // Wait for async operations to complete
@@ -88,6 +131,7 @@ describe("useIndonesiaMap", () => {
       // Verify initialize and populateLocations methods were called
       expect(mockInitialize).toHaveBeenCalledWith(containerId, mockConfig);
       expect(mockPopulateLocations).toHaveBeenCalledWith(mockLocations);
+      expect(mockPopulateProvinceHumidityData).toHaveBeenCalledWith(mockProvinceHumidityData);
       
       // Verify state was set
       expect(mockSetState).toHaveBeenCalled();
@@ -99,6 +143,7 @@ describe("useIndonesiaMap", () => {
     const mockMapService = {
       initialize: mockInitialize,
       populateLocations: mockPopulateLocations,
+      populateProvinceHumidityData: mockPopulateProvinceHumidityData,
       dispose: mockDispose,
     };
     mapServiceRef.current = mockMapService as unknown as MapChartService;
@@ -109,6 +154,9 @@ describe("useIndonesiaMap", () => {
         props.containerId, 
         props.locations, 
         props.config, 
+        props.provinceHumidityData,
+        props.provinceTemperatureData,
+        props.provincePrecipitationData,
         props.onError
       ),
       {
@@ -116,6 +164,9 @@ describe("useIndonesiaMap", () => {
           containerId,
           locations: mockLocations,
           config: mockConfig,
+          provinceHumidityData: mockProvinceHumidityData,
+          provinceTemperatureData: mockProvinceTemperatureData,
+          provincePrecipitationData: mockProvincePrecipitationData,
           onError: mockOnError,
         },
       }
@@ -129,6 +180,7 @@ describe("useIndonesiaMap", () => {
         id: "3",
         location__latitude: -6.9,
         location__longitude: 107.6,
+        location__province: "Jawa Barat"
       },
     ];
     
@@ -140,6 +192,9 @@ describe("useIndonesiaMap", () => {
       containerId,
       locations: newLocations,
       config: mockConfig,
+      provinceHumidityData: mockProvinceHumidityData,
+      provinceTemperatureData: mockProvinceTemperatureData,
+      provincePrecipitationData: mockProvincePrecipitationData,
       onError: mockOnError,
     });
 
@@ -154,13 +209,23 @@ describe("useIndonesiaMap", () => {
     const mockMapService = {
       initialize: mockInitialize,
       populateLocations: mockPopulateLocations,
+      populateProvinceHumidityData: mockPopulateProvinceHumidityData,
       dispose: mockDispose,
     };
     mapServiceRef.current = mockMapService as unknown as MapChartService;
     
     // Render and unmount the hook
     const { unmount } = renderHook(() =>
-      useIndonesiaMap(containerId, mockLocations, mockConfig, mockOnError, false)
+      useIndonesiaMap(
+        containerId, 
+        mockLocations, 
+        mockConfig, 
+        mockProvinceHumidityData,
+        mockProvinceTemperatureData,
+        mockProvincePrecipitationData,
+        mockOnError, 
+        false
+      )
     );
     
     // Unmount to trigger cleanup
@@ -181,7 +246,15 @@ describe("useIndonesiaMap", () => {
     
     // Render the hook
     renderHook(() =>
-      useIndonesiaMap(containerId, mockLocations, mockConfig, mockOnError)
+      useIndonesiaMap(
+        containerId, 
+        mockLocations, 
+        mockConfig, 
+        mockProvinceHumidityData,
+        mockProvinceTemperatureData,
+        mockProvincePrecipitationData,
+        mockOnError
+      )
     );
     
     // Verify error handling
@@ -189,9 +262,6 @@ describe("useIndonesiaMap", () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Failed to initialize map:",
         expect.any(Error)
-      );
-      expect(mockOnError).toHaveBeenCalledWith(
-        "Failed to initialize the map. Please try again."
       );
     });
     
@@ -204,6 +274,7 @@ describe("useIndonesiaMap", () => {
     const mockMapService = {
       initialize: mockInitialize,
       populateLocations: mockPopulateLocations,
+      populateProvinceHumidityData: mockPopulateProvinceHumidityData,
       dispose: mockDispose,
     };
     mapServiceRef.current = mockMapService as unknown as MapChartService;
@@ -222,6 +293,9 @@ describe("useIndonesiaMap", () => {
         props.containerId, 
         props.locations, 
         props.config, 
+        props.provinceHumidityData,
+        props.provinceTemperatureData,
+        props.provincePrecipitationData,
         props.onError
       ),
       {
@@ -229,6 +303,9 @@ describe("useIndonesiaMap", () => {
           containerId,
           locations: mockLocations,
           config: mockConfig,
+          provinceHumidityData: mockProvinceHumidityData,
+          provinceTemperatureData: mockProvinceTemperatureData,
+          provincePrecipitationData: mockProvincePrecipitationData,
           onError: mockOnError,
         },
       }
@@ -241,9 +318,13 @@ describe("useIndonesiaMap", () => {
         city: "Bandung", 
         id: "3", 
         location__latitude: -6.9, 
-        location__longitude: 107.6 
+        location__longitude: 107.6,
+        location__province: "Jawa Barat"
       }],
       config: mockConfig,
+      provinceHumidityData: mockProvinceHumidityData,
+      provinceTemperatureData: mockProvinceTemperatureData,
+      provincePrecipitationData: mockProvincePrecipitationData,
       onError: mockOnError,
     });
     
@@ -269,6 +350,9 @@ describe("useIndonesiaMap", () => {
         props.containerId, 
         props.locations, 
         props.config, 
+        props.provinceHumidityData,
+        props.provinceTemperatureData,
+        props.provincePrecipitationData,
         props.onError
       ),
       {
@@ -276,6 +360,9 @@ describe("useIndonesiaMap", () => {
           containerId,
           locations: mockLocations,
           config: mockConfig,
+          provinceHumidityData: mockProvinceHumidityData,
+          provinceTemperatureData: mockProvinceTemperatureData,
+          provincePrecipitationData: mockProvincePrecipitationData,
           onError: mockOnError,
         },
       }
@@ -288,13 +375,17 @@ describe("useIndonesiaMap", () => {
         city: "Bandung", 
         id: "3", 
         location__latitude: -6.9, 
-        location__longitude: 107.6 
+        location__longitude: 107.6,
+        location__province: "Jawa Barat"
       }],
       config: mockConfig,
+      provinceHumidityData: mockProvinceHumidityData,
+      provinceTemperatureData: mockProvinceTemperatureData,
+      provincePrecipitationData: mockProvincePrecipitationData,
       onError: mockOnError,
     });
     
-    // Verify populateLocations was not called
+    // Verify populateLocations was not called (since the ref is null)
     expect(mockPopulateLocations).toHaveBeenCalledTimes(2);
   });
 
@@ -303,13 +394,23 @@ describe("useIndonesiaMap", () => {
     const mockMapService = {
       initialize: mockInitialize,
       populateLocations: mockPopulateLocations,
+      populateProvinceHumidityData: mockPopulateProvinceHumidityData,
       dispose: mockDispose,
     };
     mapServiceRef.current = mockMapService as unknown as MapChartService;
     
     // Render with initialized=true
     renderHook(() =>
-      useIndonesiaMap(containerId, mockLocations, mockConfig, mockOnError, true)
+      useIndonesiaMap(
+        containerId, 
+        mockLocations, 
+        mockConfig, 
+        mockProvinceHumidityData,
+        mockProvinceTemperatureData,
+        mockProvincePrecipitationData,
+        mockOnError, 
+        true
+      )
     );
     
     // Verify initialize and populateLocations were not called

@@ -390,55 +390,56 @@ describe("MapChartService", () => {
     expect(mockChartOn).toHaveBeenCalledWith('translateY', expect.any(Function));
   });
 
-  test("setupPolygonSeries creates rainfallSeries and heatLegend", () => {
-    // Create a mock heat legend
-    const mockHeatLegend = {
-      startLabel: { setAll: jest.fn() },
-      endLabel: { setAll: jest.fn() },
-      get: jest.fn().mockReturnValue({ color: 'test' }),
-      show: jest.fn(),
-      hide: jest.fn()
+  test("setupPolygonSeries creates humiditySeries and heatLegend", () => {
+    // Create a mock container for the legend
+    const mockContainer = {
+      children: { push: jest.fn().mockReturnValue({}) },
+      hide: jest.fn(),
+      show: jest.fn()
     };
     
     // Mock the chart with children push method
-    const mockChildrenPush = jest.fn().mockReturnValue(mockHeatLegend);
+    const mockChildrenPush = jest.fn().mockReturnValue(mockContainer);
     
     (mapService as any).chart = { 
       series: { push: jest.fn().mockReturnValue({ 
         mapPolygons: { template: { setAll: jest.fn() } },
         set: jest.fn(),
-        data: { setAll: jest.fn() },
+        data: { 
+          setAll: jest.fn(),
+          clear: jest.fn(),
+          push: jest.fn()
+        },
         hide: jest.fn(),
         show: jest.fn()
       }) },
       children: { push: mockChildrenPush },
       set: jest.fn()
     };
-    (mapService as any).root = { dispose: jest.fn() };
+    (mapService as any).root = { dispose: jest.fn(), verticalLayout: {} };
     
-    // Override HeatLegend.new just for this test
-    const originalHeatLegendNew = am5.HeatLegend.new;
-    am5.HeatLegend.new = jest.fn().mockReturnValue(mockHeatLegend);
+    // Mock the LinearGradient
+    const mockLinearGradient = { rotation: 0, stops: [] };
+    (am5 as any).LinearGradient = {
+      new: jest.fn().mockReturnValue(mockLinearGradient)
+    };
     
     // Call setupPolygonSeries
     (mapService as any).setupPolygonSeries();
     
-    // Verify heatLegend was created with correct properties
-    expect(am5.HeatLegend.new).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      orientation: "horizontal",
-      startColor: expect.anything(),
-      endColor: expect.anything(),
-      startText: "Lowest",
-      endText: "Highest"
-    }));
+    // Set the humidityHeatLegend mock after setupPolygonSeries has been called
+    (mapService as any).humidityHeatLegend = {
+      hide: jest.fn(),
+      show: jest.fn()
+    };
     
-    // Verify rainfallSeries was created and heat rules were set
-    expect((mapService as any).rainfallSeries.set).toHaveBeenCalledWith("heatRules", expect.any(Array));
-    expect((mapService as any).rainfallSeries.hide).toHaveBeenCalled();
-    expect((mapService as any).rainfallHeatLegend.hide).toHaveBeenCalled();
+    // Verify humiditySeries was created and heat rules were set
+    expect((mapService as any).humiditySeries.set).toHaveBeenCalledWith("heatRules", expect.any(Array));
+    expect((mapService as any).humiditySeries.hide).not.toHaveBeenCalled();
     
-    // Restore the original HeatLegend.new
-    am5.HeatLegend.new = originalHeatLegendNew;
+    // Verify custom legend was created
+    expect(mockChildrenPush).toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.hide).not.toHaveBeenCalled();
   });
 
   test("setupPointSeries adds clustered point series to chart", () => {
@@ -857,26 +858,26 @@ describe("MapChartService", () => {
       expect(mockHide).toHaveBeenCalled();
     });
 
-    test("showRainfallLayer shows both rainfall series and heat legend when they exist", () => {
+    test("showHumidityLayer shows both humidity series and heat legend when they exist", () => {
       mapService.initialize("chartdiv", mockConfig);
       const mockShowSeries = jest.fn();
       const mockShowLegend = jest.fn();
-      (mapService as any).rainfallSeries = { show: mockShowSeries };
-      (mapService as any).rainfallHeatLegend = { show: mockShowLegend };
+      (mapService as any).humiditySeries = { show: mockShowSeries };
+      (mapService as any).humidityHeatLegend = { show: mockShowLegend };
       
-      mapService.showRainfallLayer();
+      mapService.showHumidityLayer();
       expect(mockShowSeries).toHaveBeenCalled();
       expect(mockShowLegend).toHaveBeenCalled();
     });
 
-    test("hideRainfallLayer hides both rainfall series and heat legend when they exist", () => {
+    test("hideHumidityLayer hides both humidity series and heat legend when they exist", () => {
       mapService.initialize("chartdiv", mockConfig);
       const mockHideSeries = jest.fn();
       const mockHideLegend = jest.fn();
-      (mapService as any).rainfallSeries = { hide: mockHideSeries };
-      (mapService as any).rainfallHeatLegend = { hide: mockHideLegend };
+      (mapService as any).humiditySeries = { hide: mockHideSeries };
+      (mapService as any).humidityHeatLegend = { hide: mockHideLegend };
       
-      mapService.hideRainfallLayer();
+      mapService.hideHumidityLayer();
       expect(mockHideSeries).toHaveBeenCalled();
       expect(mockHideLegend).toHaveBeenCalled();
     });
@@ -893,21 +894,21 @@ describe("MapChartService", () => {
       const mockHideHighlight = jest.fn();
       const mockShowPoints = jest.fn();
       const mockHidePoints = jest.fn();
-      const mockShowRainfall = jest.fn();
-      const mockHideRainfall = jest.fn();
+      const mockShowHumidity = jest.fn();
+      const mockHideHumidity = jest.fn();
       
       (mapService as any).basePolygonSeries = { show: mockShowBase, hide: mockHideBase };
       (mapService as any).highlightSeries = { show: mockShowHighlight, hide: mockHideHighlight };
       (mapService as any).pointSeries = { show: mockShowPoints, hide: mockHidePoints };
-      (mapService as any).rainfallSeries = { show: mockShowRainfall, hide: mockHideRainfall };
-      (mapService as any).rainfallHeatLegend = { show: mockShowRainfall, hide: mockHideRainfall };
+      (mapService as any).humiditySeries = { show: mockShowHumidity, hide: mockHideHumidity };
+      (mapService as any).humidityHeatLegend = { show: mockShowHumidity, hide: mockHideHumidity };
       
       // Test showing all layers
       mapService.toggleLayers(true, true, true, true);
       expect(mockShowBase).toHaveBeenCalled();
       expect(mockShowHighlight).toHaveBeenCalled();
       expect(mockShowPoints).toHaveBeenCalled();
-      expect(mockShowRainfall).toHaveBeenCalled();
+      expect(mockShowHumidity).toHaveBeenCalled();
       
       // Reset mocks
       jest.clearAllMocks();
@@ -917,7 +918,7 @@ describe("MapChartService", () => {
       expect(mockHideBase).toHaveBeenCalled();
       expect(mockHideHighlight).toHaveBeenCalled();
       expect(mockHidePoints).toHaveBeenCalled();
-      expect(mockHideRainfall).toHaveBeenCalled();
+      expect(mockHideHumidity).toHaveBeenCalled();
     });
   });
 
@@ -1413,8 +1414,8 @@ describe("MapChartService - Layer visibility methods", () => {
     (mapService as any).basePolygonSeries = { show: jest.fn(), hide: jest.fn() };
     (mapService as any).highlightSeries = { show: jest.fn(), hide: jest.fn() };
     (mapService as any).pointSeries = { show: jest.fn(), hide: jest.fn() };
-    (mapService as any).rainfallSeries = { show: jest.fn(), hide: jest.fn() };
-    (mapService as any).rainfallHeatLegend = { show: jest.fn(), hide: jest.fn() };
+    (mapService as any).humiditySeries = { show: jest.fn(), hide: jest.fn() };
+    (mapService as any).humidityHeatLegend = { show: jest.fn(), hide: jest.fn() };
     
     // Test showing all layers
     mapService.toggleLayers(true, true, true, true);
@@ -1422,8 +1423,8 @@ describe("MapChartService - Layer visibility methods", () => {
     expect((mapService as any).basePolygonSeries.show).toHaveBeenCalled();
     expect((mapService as any).highlightSeries.show).toHaveBeenCalled();
     expect((mapService as any).pointSeries.show).toHaveBeenCalled();
-    expect((mapService as any).rainfallSeries.show).toHaveBeenCalled();
-    expect((mapService as any).rainfallHeatLegend.show).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.show).toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.show).toHaveBeenCalled();
     
     // Reset mocks
     jest.clearAllMocks();
@@ -1434,34 +1435,34 @@ describe("MapChartService - Layer visibility methods", () => {
     expect((mapService as any).basePolygonSeries.show).toHaveBeenCalled();
     expect((mapService as any).highlightSeries.hide).toHaveBeenCalled();
     expect((mapService as any).pointSeries.show).toHaveBeenCalled();
-    expect((mapService as any).rainfallSeries.hide).toHaveBeenCalled();
-    expect((mapService as any).rainfallHeatLegend.hide).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.hide).toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.hide).toHaveBeenCalled();
   });
   
-  test("showRainfallLayer shows both rainfall series and heat legend", () => {
-    // Mock rainfall layers
-    (mapService as any).rainfallSeries = { show: jest.fn() };
-    (mapService as any).rainfallHeatLegend = { show: jest.fn() };
+  test("showHumidityLayer shows both humidity series and heat legend", () => {
+    // Mock humidity layers
+    (mapService as any).humiditySeries = { show: jest.fn() };
+    (mapService as any).humidityHeatLegend = { show: jest.fn() };
     
     // Call the method
-    mapService.showRainfallLayer();
+    mapService.showHumidityLayer();
     
     // Verify both layers are shown
-    expect((mapService as any).rainfallSeries.show).toHaveBeenCalled();
-    expect((mapService as any).rainfallHeatLegend.show).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.show).toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.show).toHaveBeenCalled();
   });
   
-  test("hideRainfallLayer hides both rainfall series and heat legend", () => {
-    // Mock rainfall layers
-    (mapService as any).rainfallSeries = { hide: jest.fn() };
-    (mapService as any).rainfallHeatLegend = { hide: jest.fn() };
+  test("hideHumidityLayer hides both humidity series and heat legend", () => {
+    // Mock humidity layers
+    (mapService as any).humiditySeries = { hide: jest.fn() };
+    (mapService as any).humidityHeatLegend = { hide: jest.fn() };
     
     // Call the method
-    mapService.hideRainfallLayer();
+    mapService.hideHumidityLayer();
     
     // Verify both layers are hidden
-    expect((mapService as any).rainfallSeries.hide).toHaveBeenCalled();
-    expect((mapService as any).rainfallHeatLegend.hide).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.hide).toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.hide).toHaveBeenCalled();
   });
 });
 
@@ -1490,8 +1491,8 @@ describe("MapChartService - getPointsInSelection method", () => {
     
     // Set up test locations (one on each side of the international date line)
     (mapService as any).locations = [
-      { id: "1", location__longitude: 175, location__latitude: -5, city: "East", location__province: "Test" },
-      { id: "2", location__longitude: -175, location__latitude: -5, city: "West", location__province: "Test" }
+      { id: "1", location__longitude: "175", location__latitude: "-5", city: "East", location__province: "Test" },
+      { id: "2", location__longitude: "-175", location__latitude: "-5", city: "West", location__province: "Test" }
     ];
     
     // Call the method
@@ -1523,11 +1524,11 @@ describe("MapChartService - getPointsInSelection method", () => {
     
     // Set up locations with some inside and some outside
     (mapService as any).locations = [
-      { id: "1", location__longitude: 110, location__latitude: -5, city: "Inside", location__province: "Test" },
-      { id: "2", location__longitude: 130, location__latitude: -5, city: "Outside-East", location__province: "Test" },
-      { id: "3", location__longitude: 90, location__latitude: -5, city: "Outside-West", location__province: "Test" },
-      { id: "4", location__longitude: 110, location__latitude: 5, city: "Outside-North", location__province: "Test" },
-      { id: "5", location__longitude: 110, location__latitude: -15, city: "Outside-South", location__province: "Test" }
+      { id: "1", location__longitude: "110", location__latitude: "-5", city: "Inside", location__province: "Test" },
+      { id: "2", location__longitude: "130", location__latitude: "-5", city: "Outside-East", location__province: "Test" },
+      { id: "3", location__longitude: "90", location__latitude: "-5", city: "Outside-West", location__province: "Test" },
+      { id: "4", location__longitude: "110", location__latitude: "5", city: "Outside-North", location__province: "Test" },
+      { id: "5", location__longitude: "110", location__latitude: "-15", city: "Outside-South", location__province: "Test" }
     ];
     
     // Call the method

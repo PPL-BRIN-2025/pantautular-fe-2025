@@ -6,7 +6,8 @@ import { MapLocation, FilterState } from '../../types';
 // Mock the API module
 jest.mock('../../services/api', () => ({
   mapApi: {
-    getFilteredLocations: jest.fn()
+    getFilteredLocations: jest.fn(),
+    getProvinceData: jest.fn().mockResolvedValue([])
   }
 }));
 
@@ -35,8 +36,8 @@ describe('useLocations', () => {
   // Positive case: Successful data fetch
   it('should fetch and set locations data successfully', async () => {
     const mockLocations: MapLocation[] = [
-      { id: '1', city: 'Location 1', location__latitude: 1.0, location__longitude: 1.0 },
-      { id: '2', city: 'Location 2', location__latitude: 2.0, location__longitude: 2.0 }
+      { id: '1', city: 'Location 1', location__latitude: 1.0, location__longitude: 1.0, location__province: 'Province 1' },
+      { id: '2', city: 'Location 2', location__latitude: 2.0, location__longitude: 2.0, location__province: 'Province 2' }
     ];
 
     (mapApi.getFilteredLocations as jest.Mock).mockResolvedValueOnce(mockLocations);
@@ -105,7 +106,7 @@ describe('useLocations', () => {
   // Corner case: Multiple rapid calls
   it('should handle multiple rapid calls correctly', async () => {
     const mockLocations: MapLocation[] = [
-      { id: '1', city: 'Location 1', location__latitude: 1.0, location__longitude: 1.0 }
+      { id: '1', city: 'Location 1', location__latitude: 1.0, location__longitude: 1.0, location__province: 'Province 1' }
     ];
     (mapApi.getFilteredLocations as jest.Mock).mockResolvedValueOnce(mockLocations);
 
@@ -122,11 +123,11 @@ describe('useLocations', () => {
   // New test: Filter state changes trigger data refetch
   it('should refetch data when filter state changes', async () => {
     const initialMockLocations: MapLocation[] = [
-      { id: '1', city: 'Location 1', location__latitude: 1.0, location__longitude: 1.0 },
+      { id: '1', city: 'Location 1', location__latitude: 1.0, location__longitude: 1.0, location__province: 'Province 1' },
     ];
     
     const updatedMockLocations: MapLocation[] = [
-      { id: '2', city: 'Location 2', location__latitude: 2.0, location__longitude: 2.0 },
+      { id: '2', city: 'Location 2', location__latitude: 2.0, location__longitude: 2.0, location__province: 'Province 2' },
     ];
 
     (mapApi.getFilteredLocations as jest.Mock).mockResolvedValueOnce(initialMockLocations);
