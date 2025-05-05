@@ -5,7 +5,7 @@ interface GlossarySectionProps {
   children: React.ReactNode
 }
 
-export default function GlossarySection({ title, children }: GlossarySectionProps) {
+export default function GlossarySection({ title, children }: Readonly<GlossarySectionProps>) {
   return (
     <div className="mb-12">
       <h3 className="text-xl font-bold text-green-600 mb-4">{title}</h3>
