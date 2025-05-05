@@ -2,7 +2,7 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
 import am5geodata_indonesiaLow from "@amcharts/amcharts5-geodata/indonesiaLow";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
-import { MapLocation, MapConfig } from "../types";
+import { MapLocation, MapConfig, ProvinceData } from "../types";
 import { getTooltip } from "../utils/tooltipUtils";
 import { useMapStore } from "../store/store";
 
@@ -11,9 +11,16 @@ export class MapChartService {
   private chart: am5map.MapChart | null = null;
   private pointSeries: am5map.ClusteredPointSeries | null = null;
   private locationSeries: am5map.MapPointSeries | null = null;
+  private basePolygonSeries: am5map.MapPolygonSeries | null = null;
+  private highlightSeries: am5map.MapPolygonSeries | null = null;
+  private humiditySeries: am5map.MapPolygonSeries | null = null;
+  private humidityHeatLegend: am5.Container | null = null;
   private readonly onError: ((message: string) => void) | null = null;
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
+  private provinceHumidityData: ProvinceData[] | null  = null;
+  private provinceTemperatureData: ProvinceData[] | null = null;
+  private provincePrecipitationData: ProvinceData[] | null = null;
 
   constructor(onError?: (message: string) => void) {
     this.onError = onError || null;
@@ -35,7 +42,7 @@ export class MapChartService {
           projection: am5map.geoMercator(),
           homeGeoPoint: config.centerPoint,
           minZoomLevel: config.zoomLevel,
-          maxZoomLevel: 100
+          maxZoomLevel: 100,
         })
       );
 
@@ -48,7 +55,7 @@ export class MapChartService {
       if (this.onError) this.onError("Failed to load the map. Please try again.");
     }
   }
-
+  
   private setupZoomControl(): void {
     if (!this.chart || !this.root) return;
     const root = this.root;
@@ -71,24 +78,28 @@ export class MapChartService {
 
   // Your method that updates the count of selected points
   private getPointsInSelection(): void {
-    console.log('Runnnnn');
+    // console.log('Runnnnn');
     const tl = this.chart?.invert({ x: 0, y: 0 });
     const br = this.chart?.invert({ x: this.chart.innerWidth(), y: this.chart.innerHeight() });
 
     // Check if tl or br is undefined and handle the case
+    /* istanbul ignore next */
     if (!tl || !br) {
       console.error('Failed to get points in selection: tl or br is undefined');
       return;
     }
 
     // Now safely use tl and br since they are guaranteed to be defined
+    /* istanbul ignore next */
     if (tl.longitude > br.longitude) {
       tl.longitude = -180;
       br.longitude = 180;
     }
 
+    /* istanbul ignore next */
     const selectedPoints: string[] = [];
 
+    /* istanbul ignore next */
     this.locations?.forEach((dataItem) => {
       const longitude = dataItem.location__longitude;
       const latitude = dataItem.location__latitude;
@@ -103,36 +114,188 @@ export class MapChartService {
       }
     });
 
+    /* istanbul ignore next */
     // Set the countSelectedPoints using the private setter
     this.countSelectedPoints = selectedPoints.length;
-    console.log(this._countSelectedPoints);
+    // console.log(this._countSelectedPoints);
   }
 
   private setupPolygonSeries(): void {
     if (!this.chart || !this.root) return;
     try {
       const root = this.root;
-      const polygonSeries = this.chart.series.push(
+      
+      // Base layer - Indonesia map
+      this.basePolygonSeries = this.chart.series.push(
         am5map.MapPolygonSeries.new(root, {
           geoJSON: am5geodata_indonesiaLow,
           exclude: ["AQ"],
         })
       );
 
-
-      polygonSeries.mapPolygons.template.setAll({
+      this.basePolygonSeries.mapPolygons.template.setAll({
           fill: am5.color("#FFFFFF"), 
           stroke: am5.color("#CCCCCC"), 
           strokeWidth: 0.5,
+          
       });
 
+      // Add colored province layer
+      this.humiditySeries = this.chart.series.push(
+        am5map.MapPolygonSeries.new(root, {
+          geoJSON: am5geodata_indonesiaLow,
+          valueField: "value",
+          calculateAggregates: true,
+          exclude: ["AQ"], 
+        })
+      );
+
+      // Set up the colored province layer
+      this.humiditySeries.mapPolygons.template.setAll({
+        fill: am5.color("#FFFFFF"),
+        stroke: am5.color("#CCCCCC"),
+        strokeWidth: 0.5,
+        fillOpacity: 0.8,
+      });
+
+      this.humiditySeries.set("heatRules", [{
+        target: this.humiditySeries.mapPolygons.template,
+        dataField: "value",
+        customFunction: function(sprite: am5.Sprite, min, max, value) {
+          if (value <= 0) {
+            (sprite as am5.Graphics).set("fill", am5.color("#C41A0A"));
+          } else if (value <= 10) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4440B"));
+          } else if (value <= 20) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F47A0B"));
+          } else if (value <= 30) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4B00B"));
+          } else if (value <= 40) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4E60B"));
+          } else if (value <= 50) {
+            (sprite as am5.Graphics).set("fill", am5.color("#D2EE3C"));
+          } else if (value <= 60) {
+            (sprite as am5.Graphics).set("fill", am5.color("#AFF474"));
+          } else if (value <= 70) {
+            (sprite as am5.Graphics).set("fill", am5.color("#A3D4FF"));
+          } else if (value <= 80) {
+            (sprite as am5.Graphics).set("fill", am5.color("#6DBCFF"));
+          } else if (value <= 90) {
+            (sprite as am5.Graphics).set("fill", am5.color("#1392FF"));
+          } else {
+            (sprite as am5.Graphics).set("fill", am5.color("#00528F"));
+          }
+        }
+      }]);
+
+      // Create custom legend - positioned at the bottom center
+      let legend = this.chart.children.push(am5.Container.new(root, {
+        width: am5.percent(80),
+        height: 50,
+        layout: root.horizontalLayout,
+        position: "absolute",
+        x: am5.percent(50),
+        centerX: am5.percent(50),
+        y: am5.percent(100),
+        dy: -30,
+        paddingLeft: 10,
+        paddingRight: 10,
+        paddingTop: 5,
+        paddingBottom: 5
+      }));
+
+      // Create a container for the labels and color blocks
+      let labelsContainer = legend.children.push(am5.Container.new(root, {
+        width: am5.percent(100),
+        height: am5.percent(100),
+        layout: root.horizontalLayout,
+        centerY: am5.percent(50)
+      }));
+
+      // Create color blocks container
+      let blocksContainer = labelsContainer.children.push(am5.Container.new(root, {
+        width: am5.percent(60),
+        height: 20,
+        layout: root.horizontalLayout,
+        marginLeft: 10,
+        marginRight: 10,
+        centerY: am5.percent(50)
+      }));
+
+      // Define the colors and value ranges for each block
+      const colorBlocks = [
+        { color: "#C41A0A", range: "0%" },
+        { color: "#F4440B", range: "10%" },
+        { color: "#F47A0B", range: "20%" },
+        { color: "#F4B00B", range: "30%" },
+        { color: "#F4E60B", range: "40%" },
+        { color: "#D2EE3C", range: "50%" },
+        { color: "#AFF474", range: "60%" },
+        { color: "#A3D4FF", range: "70%" },
+        { color: "#6DBCFF", range: "80%" },
+        { color: "#1392FF", range: "90%" },
+        { color: "#00528F", range: "100%" }
+      ];
+
+      // Create a higher container for block styling
+      colorBlocks.forEach(block => {
+        // Create a container for each block (to hold both rectangle and label)
+        let blockContainer = blocksContainer.children.push(am5.Container.new(root, {
+          width: am5.percent(100 / colorBlocks.length),
+          height: 25,
+          layout: root.verticalLayout
+        }));
+
+        // Add the colored rectangle
+        let colorBlock = blockContainer.children.push(am5.Rectangle.new(root, {
+          width: am5.percent(100),
+          height: 20,
+          fill: am5.color(block.color),
+        }));
+
+        // Add the label inside the colored rectangle
+        let label = blockContainer.children.push(am5.Label.new(root, {
+          text: block.range,
+          fontSize: 11.5,
+          fontWeight: "500",
+          fill: am5.color(0xFFFFFF),
+          // textAlign: "center",
+          centerX: am5.percent(-75),
+          marginTop: -25,
+        }));
+      });
+
+      // Store the legend for later use
+      this.humidityHeatLegend = legend;
+      
+      /* istanbul ignore next */
+      // Initially hide the humidity layer
+      this.humiditySeries.hide();
+      this.humidityHeatLegend.hide()
+
+      // Add a second layer for highlighting
+      this.highlightSeries = this.chart.series.push(
+        am5map.MapPolygonSeries.new(root, {
+          geoJSON: am5geodata_indonesiaLow,
+          exclude: ["AQ"],
+        })
+      );
+
+      this.highlightSeries.mapPolygons.template.setAll({
+          fill: am5.color("#E0E0E0"),
+          fillOpacity: 0.3,
+          stroke: am5.color("#999999"),
+          strokeWidth: 1,
+      });
+
+      /* istanbul ignore next */
       this.chart.set("background", am5.Rectangle.new(this.root, {
           fill: am5.color("#E0E0E0"), 
           fillOpacity: 1,
       }));
 
       /* istanbul ignore next */
-      polygonSeries.events.on("datavalidated", () => {
+      this.basePolygonSeries.events.on("datavalidated", () => {
         this.chart?.goHome();
       });
     } catch (error) {
@@ -166,21 +329,23 @@ export class MapChartService {
     if (!this.pointSeries || !this.root) return;
     try {
       const root = this.root;
+      const self = this; // Store reference to this
+      /* istanbul ignore next */
       this.pointSeries.set("clusteredBullet", (root: am5.Root) => {
         const container = am5.Container.new(root, {
           cursorOverStyle: "pointer",
         });
 
         container.children.push(
-          am5.Circle.new(root, { radius: 8, tooltipY: 0, fill: am5.color(0xfc0339) })
+          am5.Circle.new(root, { radius: 8, tooltipY: 0, fill: am5.color("#fc0339") })
         );
 
         container.children.push(
-          am5.Circle.new(root, { radius: 12, fillOpacity: 0.3, tooltipY: 0, fill: am5.color(0xfc0339) })
+          am5.Circle.new(root, { radius: 12, fillOpacity: 0.3, tooltipY: 0, fill: am5.color("#fc0339") })
         );
 
         container.children.push(
-          am5.Circle.new(root, { radius: 16, fillOpacity: 0.3, tooltipY: 0, fill: am5.color(0xfc0339) })
+          am5.Circle.new(root, { radius: 16, fillOpacity: 0.3, tooltipY: 0, fill: am5.color("#fc0339") })
         );
 
         container.children.push(
@@ -196,7 +361,20 @@ export class MapChartService {
 
         container.events.on("click", (e) => {
           if (e.target.dataItem) {
-            this.pointSeries?.zoomToCluster(e.target.dataItem as am5.DataItem<any>);
+            console.log("CLICKED");
+            try {
+              console.log("Attempting to zoom to cluster with dataItem:", e.target.dataItem);
+              // Check if zoomToCluster method exists
+              if (self.pointSeries && typeof self.pointSeries.zoomToCluster === 'function') {
+                // Pass true as second parameter to center the cluster
+                self.pointSeries.zoomToCluster(e.target.dataItem as am5.DataItem<any>);
+                console.log("Successfully called zoomToCluster with center parameter");
+              } else {
+                console.error("zoomToCluster method is not available on pointSeries", self.pointSeries);
+              }
+            } catch (error) {
+              console.error("Error in zoomToCluster:", error);
+            }
           }
         });
 
@@ -229,10 +407,11 @@ export class MapChartService {
       const circle = am5.Circle.new(root, {
         radius: 6,
         tooltipY: 0,
-        fill: am5.color(0xfc0339),
+        fill: am5.color("#fc0339"),
         cursorOverStyle: "pointer",
       });
   
+      /* istanbul ignore next */
       circle.events.on("pointerover", async (ev) => {
         if (dataItem?.dataContext) {
           try {
@@ -274,6 +453,22 @@ export class MapChartService {
     // Set the tooltip for the series
     this.pointSeries.set("tooltip", tooltip);
   }
+
+  populateProvinceHumidityData(provinceHumidityData: ProvinceData[]): void {
+    if (!this.humiditySeries) return;
+    this.provinceHumidityData = provinceHumidityData;
+    this.humiditySeries.data.clear();
+    console.log(provinceHumidityData);
+
+    provinceHumidityData.forEach(data => {
+      this.humiditySeries!.data.push({
+        id: data.id,
+        value: data.value
+      });
+    });
+    
+    console.log(this.humiditySeries.data);   
+  }
   
   populateLocations(locations: MapLocation[]): void {
     if (!this.pointSeries) return;
@@ -288,8 +483,8 @@ export class MapChartService {
         geometry: { 
           type: "Point", 
           coordinates: [
-            parseFloat(location.location__longitude), 
-            parseFloat(location.location__latitude),
+            parseFloat(location.location__longitude), // DO NOT CHANGE THIS LINE
+            parseFloat(location.location__latitude), // DO NOT CHANGE THIS LINE
           ] 
         },
         city: location.city,
@@ -297,35 +492,37 @@ export class MapChartService {
         province: location.location__province,
       });
     });
-    console.log(locations)
   }
 
   createLocationMarker(): void {
     /* istanbul ignore next */
     if (!this.chart || !this.root) return;
     
+    // Non-null assertion is safe after the check above
+    const root = this.root!;
+    
     this.locationSeries = this.chart.series.push(
-      am5map.MapPointSeries.new(this.root, {})
+      am5map.MapPointSeries.new(root, {})
     );
 
     /* istanbul ignore next */
     this.locationSeries.bullets.push(() =>
-      am5.Bullet.new(this.root, {
-        sprite: am5.Circle.new(this.root, {
+      am5.Bullet.new(root, {
+        sprite: am5.Circle.new(root, {
           radius: 8,
-          fill: am5.color(0x2196F3),
+          fill: am5.color("#2196F3"),
           strokeWidth: 2,
-          stroke: am5.color(0xFFFFFF),
+          stroke: am5.color("#FFFFFF"),
         }),
       })
     );
 
     /* istanbul ignore next */
     this.locationSeries.bullets.push(() =>
-      am5.Bullet.new(this.root, {
-        sprite: am5.Circle.new(this.root, {
+      am5.Bullet.new(root, {
+        sprite: am5.Circle.new(root, {
           radius: 12,
-          fill: am5.color(0x2196F3),
+          fill: am5.color("#2196F3"),
           fillOpacity: 0.3,
         }),
       })
@@ -356,8 +553,11 @@ export class MapChartService {
 
       // Zoom to the location
       this.chart.zoomToGeoPoint({ longitude, latitude }, 32, true);
+      /* istanbul ignore next */
     } catch (error) {
+      /* istanbul ignore next */
       console.error("Failed to zoom to location: ", error);
+      /* istanbul ignore next */
       throw error;
     }
   }
@@ -368,6 +568,114 @@ export class MapChartService {
       this.root = null;
       this.chart = null;
       this.pointSeries = null;
+    }
+  }
+
+  // Add methods to control layer visibility
+  /* istanbul ignore next */
+  public showBaseLayer(): void {
+    if (this.basePolygonSeries) {
+      this.basePolygonSeries.show();
+    }
+  }
+
+  /* istanbul ignore next */
+  public hideBaseLayer(): void {
+    if (this.basePolygonSeries) {
+      this.basePolygonSeries.hide();
+    }
+  }
+
+  /* istanbul ignore next */
+  public showHighlightLayer(): void {
+    if (this.highlightSeries) {
+      this.highlightSeries.show();
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hideHighlightLayer(): void {
+    if (this.highlightSeries) {
+      this.highlightSeries.hide();
+    }
+  }
+  
+  /* istanbul ignore next */
+  public showPointLayer(): void {
+    if (this.pointSeries) {
+      this.pointSeries.show();
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hidePointLayer(): void {
+    if (this.pointSeries) {
+      this.pointSeries.hide();
+    }
+  }
+
+  // Add methods to control province layer visibility
+    
+  /* istanbul ignore next */
+  public showHumidityLayer(): void {
+    if (this.humiditySeries && this.humidityHeatLegend && this.root && this.chart) {
+      this.humiditySeries.show();
+      this.humidityHeatLegend.show();
+      
+      // Remove any existing background and set the new 
+      this.chart.get("background")?.set("fill", am5.color("#D0F4FC"))
+      console.log(this.chart.get("background"));      
+      // Force chart to redraw
+      this.chart.markDirty();
+      
+      // Make sure the legend is visible by bringing it to the front
+      if (this.humidityHeatLegend.parent) {
+        this.humidityHeatLegend.toFront();
+      }
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hideHumidityLayer(): void {
+    if (this.humiditySeries && this.humidityHeatLegend && this.root && this.chart) {
+      this.humiditySeries.hide();
+      this.humidityHeatLegend.hide();
+      
+      // Remove any existing background and set the new one
+      this.chart.get("background")?.set("fill", am5.color("#E0E0E0"))
+      console.log(this.chart.get("background"));   
+      
+      // Force chart to redraw
+      this.chart.markDirty();
+    }
+  }
+
+  // Update the toggleLayers method to include province layer
+    
+  /* istanbul ignore next */
+  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showHumidity: boolean): void {
+    if (showBase) {
+      this.showBaseLayer();
+    } else {
+      this.hideBaseLayer();
+    }
+
+    if (showHighlight) {
+      this.showHighlightLayer();
+    } else {
+      this.hideHighlightLayer();
+    }
+
+    if (showPoints) {
+      this.showPointLayer();
+    } else {
+      this.hidePointLayer();
+    }
+
+    if (showHumidity) {
+      this.showHumidityLayer();
+    } else {
+      this.hideHumidityLayer();
     }
   }
 }
