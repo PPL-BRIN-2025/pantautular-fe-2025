@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event';
 fetchMock.enableMocks();
 
 // Mock environment variables
-process.env.NEXT_PUBLIC_API_URL = 'http://test-api.com';
+process.env.NEXT_PUBLIC_API_URL = 'https://test-api.com';
 process.env.NEXT_PUBLIC_API_KEY = 'test-api-key';
 
 // Mock localStorage
