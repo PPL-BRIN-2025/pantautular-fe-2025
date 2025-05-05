@@ -15,6 +15,8 @@ export class MapChartService {
   private highlightSeries: am5map.MapPolygonSeries | null = null;
   private precipitationSeries: am5map.MapPolygonSeries | null = null;
   private precipitationHeatLegend: am5.Container | null = null;
+  private humiditySeries: am5map.MapPolygonSeries | null = null;
+  private humidityHeatLegend: am5.Container | null = null;
   private readonly onError: ((message: string) => void) | null = null;
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
@@ -148,6 +150,139 @@ export class MapChartService {
         })
       );
 
+      // Add colored province layer
+      this.humiditySeries = this.chart.series.push(
+        am5map.MapPolygonSeries.new(root, {
+          geoJSON: am5geodata_indonesiaLow,
+          valueField: "value",
+          calculateAggregates: true,
+          exclude: ["AQ"], 
+        })
+      );
+
+      // Set up the colored province layer
+      this.humiditySeries.mapPolygons.template.setAll({
+        fill: am5.color("#FFFFFF"),
+        stroke: am5.color("#CCCCCC"),
+        strokeWidth: 0.5,
+        fillOpacity: 0.8,
+      });
+
+      this.humiditySeries.set("heatRules", [{
+        target: this.humiditySeries.mapPolygons.template,
+        dataField: "value",
+        customFunction: function(sprite: am5.Sprite, min, max, value) {
+          if (value <= 0) {
+            (sprite as am5.Graphics).set("fill", am5.color("#C41A0A"));
+          } else if (value <= 10) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4440B"));
+          } else if (value <= 20) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F47A0B"));
+          } else if (value <= 30) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4B00B"));
+          } else if (value <= 40) {
+            (sprite as am5.Graphics).set("fill", am5.color("#F4E60B"));
+          } else if (value <= 50) {
+            (sprite as am5.Graphics).set("fill", am5.color("#D2EE3C"));
+          } else if (value <= 60) {
+            (sprite as am5.Graphics).set("fill", am5.color("#AFF474"));
+          } else if (value <= 70) {
+            (sprite as am5.Graphics).set("fill", am5.color("#A3D4FF"));
+          } else if (value <= 80) {
+            (sprite as am5.Graphics).set("fill", am5.color("#6DBCFF"));
+          } else if (value <= 90) {
+            (sprite as am5.Graphics).set("fill", am5.color("#1392FF"));
+          } else {
+            (sprite as am5.Graphics).set("fill", am5.color("#00528F"));
+          }
+        }
+      }]);
+
+      // Create custom legend - positioned at the bottom center
+      let humidityLegend = this.chart.children.push(am5.Container.new(root, {
+        width: am5.percent(80),
+        height: 50,
+        layout: root.horizontalLayout,
+        position: "absolute",
+        x: am5.percent(50),
+        centerX: am5.percent(50),
+        y: am5.percent(100),
+        dy: -30,
+        paddingLeft: 10,
+        paddingRight: 10,
+        paddingTop: 5,
+        paddingBottom: 5
+      }));
+
+      // Create a container for the labels and color blocks
+      let humidityLabelsContainer = humidityLegend.children.push(am5.Container.new(root, {
+        width: am5.percent(100),
+        height: am5.percent(100),
+        layout: root.horizontalLayout,
+        centerY: am5.percent(50)
+      }));
+
+      // Create color blocks container
+      let humidityBlocksContainer = humidityLabelsContainer.children.push(am5.Container.new(root, {
+        width: am5.percent(60),
+        height: 20,
+        layout: root.horizontalLayout,
+        marginLeft: 10,
+        marginRight: 10,
+        centerY: am5.percent(50)
+      }));
+
+      // Define the colors and value ranges for each block
+      const humidityColorBlocks = [
+        { color: "#C41A0A", range: "0%" },
+        { color: "#F4440B", range: "10%" },
+        { color: "#F47A0B", range: "20%" },
+        { color: "#F4B00B", range: "30%" },
+        { color: "#F4E60B", range: "40%" },
+        { color: "#D2EE3C", range: "50%" },
+        { color: "#AFF474", range: "60%" },
+        { color: "#A3D4FF", range: "70%" },
+        { color: "#6DBCFF", range: "80%" },
+        { color: "#1392FF", range: "90%" },
+        { color: "#00528F", range: "100%" }
+      ];
+
+      // Create a higher container for block styling
+      humidityColorBlocks.forEach(block => {
+        // Create a container for each block (to hold both rectangle and label)
+        let humidityBlockContainer = humidityBlocksContainer.children.push(am5.Container.new(root, {
+          width: am5.percent(100 / humidityColorBlocks.length),
+          height: 25,
+          layout: root.verticalLayout
+        }));
+
+        // Add the colored rectangle
+        humidityBlockContainer.children.push(am5.Rectangle.new(root, {
+          width: am5.percent(100),
+          height: 20,
+          fill: am5.color(block.color),
+        }));
+
+        // Add the label inside the colored rectangle
+        humidityBlockContainer.children.push(am5.Label.new(root, {
+          text: block.range,
+          fontSize: 11.5,
+          fontWeight: "500",
+          fill: am5.color(0xFFFFFF),
+          // textAlign: "center",
+          centerX: am5.percent(-75),
+          marginTop: -25,
+        }));
+      });
+
+      // Store the legend for later use
+      this.humidityHeatLegend = humidityLegend;
+      
+      /* istanbul ignore next */
+      // Initially hide the humidity layer
+      this.humiditySeries.hide();
+      this.humidityHeatLegend.hide()
+
       // Set up the colored province layer
       this.precipitationSeries.mapPolygons.template.setAll({
         fill: am5.color("#FFFFFF"),
@@ -175,7 +310,7 @@ export class MapChartService {
       }]);
 
       // Create custom legend - positioned at the bottom center
-      let legend = this.chart.children.push(am5.Container.new(root, {
+      let percipitationLegend = this.chart.children.push(am5.Container.new(root, {
         width: am5.percent(80),
         height: 50,
         layout: root.horizontalLayout,
@@ -191,7 +326,7 @@ export class MapChartService {
       }));
 
       // Create a container for the labels and color blocks
-      let labelsContainer = legend.children.push(am5.Container.new(root, {
+      let precipitationLabelsContainer = percipitationLegend.children.push(am5.Container.new(root, {
         width: am5.percent(100),
         height: am5.percent(100),
         layout: root.horizontalLayout,
@@ -199,7 +334,7 @@ export class MapChartService {
       }));
 
       // Create color blocks container
-      let blocksContainer = labelsContainer.children.push(am5.Container.new(root, {
+      let precipitationBlocksContainer = precipitationLabelsContainer.children.push(am5.Container.new(root, {
         width: am5.percent(60),
         height: 20,
         layout: root.horizontalLayout,
@@ -209,7 +344,7 @@ export class MapChartService {
       }));
 
       // Define the colors and value ranges for each block
-      const colorBlocks = [
+      const precipitationColorBlocks = [
         { color: "#DC3545", range: "Lokal" },
         { color: "#E35D6A", range: "Multipattern" },
         { color: "#FFC107", range: "Monsoon" },
@@ -218,23 +353,23 @@ export class MapChartService {
       ];
 
       // Create a higher container for block styling
-      colorBlocks.forEach(block => {
+      precipitationColorBlocks.forEach(block => {
         // Create a container for each block (to hold both rectangle and label)
-        let blockContainer = blocksContainer.children.push(am5.Container.new(root, {
-          width: am5.percent(100 / colorBlocks.length),
+        let precipitationBlockContainer = precipitationBlocksContainer.children.push(am5.Container.new(root, {
+          width: am5.percent(100 / precipitationColorBlocks.length),
           height: 25,
           layout: root.verticalLayout
         }));
 
         // Add the colored rectangle
-        blockContainer.children.push(am5.Rectangle.new(root, {
+        precipitationBlockContainer.children.push(am5.Rectangle.new(root, {
           width: am5.percent(100),
           height: 20,
           fill: am5.color(block.color),
         }));
 
         // Add the label inside the colored rectangle
-        blockContainer.children.push(am5.Label.new(root, {
+        precipitationBlockContainer.children.push(am5.Label.new(root, {
           text: block.range,
           fontSize: 11.5,
           fontWeight: "500",
@@ -246,7 +381,7 @@ export class MapChartService {
       });
 
       // Store the legend for later use
-      this.precipitationHeatLegend = legend;
+      this.precipitationHeatLegend = percipitationLegend;
       
       /* istanbul ignore next */
       // Initially hide the precipitation layer
@@ -434,6 +569,22 @@ export class MapChartService {
     this.pointSeries.set("tooltip", tooltip);
   }
 
+  populateProvinceHumidityData(provinceHumidityData: ProvinceData[]): void {
+    if (!this.humiditySeries) return;
+    this.provinceHumidityData = provinceHumidityData;
+    this.humiditySeries.data.clear();
+    console.log(provinceHumidityData);
+
+    provinceHumidityData.forEach(data => {
+      this.humiditySeries!.data.push({
+        id: data.id,
+        value: data.value
+      });
+    });
+    
+    console.log(this.humiditySeries.data);   
+  }
+
   populateProvincePrecipitationData(provincePrecipitationData: ProvinceData[]): void {
     if (!this.precipitationSeries) return;
     this.provincePrecipitationData = provincePrecipitationData;
@@ -614,6 +765,40 @@ export class MapChartService {
   }
 
   // Add methods to control province layer visibility
+
+  /* istanbul ignore next */
+  public showHumidityLayer(): void {
+    if (this.humiditySeries && this.humidityHeatLegend && this.root && this.chart) {
+      this.humiditySeries.show();
+      this.humidityHeatLegend.show();
+      
+      // Remove any existing background and set the new 
+      this.chart.get("background")?.set("fill", am5.color("#D0F4FC"))
+      console.log(this.chart.get("background"));      
+      // Force chart to redraw
+      this.chart.markDirty();
+      
+      // Make sure the legend is visible by bringing it to the front
+      if (this.humidityHeatLegend.parent) {
+        this.humidityHeatLegend.toFront();
+      }
+    }
+  }
+  
+  /* istanbul ignore next */
+  public hideHumidityLayer(): void {
+    if (this.humiditySeries && this.humidityHeatLegend && this.root && this.chart) {
+      this.humiditySeries.hide();
+      this.humidityHeatLegend.hide();
+      
+      // Remove any existing background and set the new one
+      this.chart.get("background")?.set("fill", am5.color("#E0E0E0"))
+      console.log(this.chart.get("background"));   
+      
+      // Force chart to redraw
+      this.chart.markDirty();
+    }
+  }
     
   /* istanbul ignore next */
   public showPrecipitationLayer(): void {
@@ -652,7 +837,7 @@ export class MapChartService {
   // Update the toggleLayers method to include province layer
     
   /* istanbul ignore next */
-  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean): void {
+  public toggleLayers(showBase: boolean, showHighlight: boolean, showPoints: boolean, showPrecipitation: boolean, showHumidity: boolean): void {
     if (showBase) {
       this.showBaseLayer();
     } else {
@@ -675,6 +860,12 @@ export class MapChartService {
       this.showPrecipitationLayer();
     } else {
       this.hidePrecipitationLayer();
+    }
+
+    if (showHumidity) {
+      this.showHumidityLayer();
+    } else {
+      this.hideHumidityLayer();
     }
   }
 }
