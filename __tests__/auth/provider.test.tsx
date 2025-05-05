@@ -4,10 +4,19 @@ import { useAuth } from "../../app/auth/hooks/useAuth"
 import React from "react"
 import userEvent from "@testing-library/user-event"
 
+// Test constants for passwords - clearly marked as test data
+const TEST_PASSWORDS = {
+  // Test data only - not real passwords
+  current: 'test123',
+  wrong: 'wrong123',
+  new: 'Test123!',
+  different: 'Test456!'
+} as const;
+
 // Test data
 const TEST_DATA = {
   email: 'test@example.com',
-  password: 'Test@123' // Using a more secure test password format
+  password: TEST_PASSWORDS.current
 } as const;
 
 // Mock JWTStrategy
@@ -15,7 +24,7 @@ jest.mock("../../app/auth/strategies/jwt", () => ({
   JWTStrategy: jest.fn().mockImplementation(() => ({
     getUser: jest.fn().mockResolvedValue({
       id: '1',
-      email: TEST_DATA.email,
+      email: 'test@example.com',
       name: 'testUser',
       role: 'user'
     }),

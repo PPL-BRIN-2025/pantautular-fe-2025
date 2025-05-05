@@ -22,10 +22,19 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+// Test constants for passwords - clearly marked as test data
+const TEST_PASSWORDS = {
+  // Test data only - not real passwords
+  current: 'test123',
+  wrong: 'wrong123',
+  new: 'Test123!',
+  different: 'Test456!'
+} as const;
+
 // Test data
 const TEST_DATA = {
   email: 'test@example.com',
-  password: 'Test@123' // Using a more secure test password format
+  password: TEST_PASSWORDS.current
 } as const;
 
 describe('JWTStrategy', () => {
