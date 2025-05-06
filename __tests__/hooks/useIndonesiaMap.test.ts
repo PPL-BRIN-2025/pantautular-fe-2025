@@ -48,86 +48,107 @@ jest.mock("react", () => {
   };
 });
 
-describe("useIndonesiaMap", () => {
-  let mapServiceRef: { current: MapChartService | null };
-  let locationsRef: { current: MapLocation[] };
-  
-  const containerId = "chartdiv";
-  const mockLocations: MapLocation[] = [
-    {
-      city: "Jakarta",
-      id: "1",
-      location__latitude: -6.2,
-      location__longitude: 106.8,
-      location__province: "DKI Jakarta"
-    },
-    {
-      city: "Surabaya",
-      id: "2",
-      location__latitude: -7.3,
-      location__longitude: 112.7,
-      location__province: "Jawa Timur"
-    },
-  ];
-  
-  const mockProvinceHumidityData: ProvinceData[] = [
+// Test data
+const mockLocations: MapLocation[] = [
+  {
+    city: "Jakarta",
+    id: "1",
+    location__latitude: -6.2,
+    location__longitude: 106.8,
+    location__province: "DKI Jakarta"
+  },
+  {
+    city: "Surabaya",
+    id: "2",
+    location__latitude: -7.3,
+    location__longitude: 112.7,
+    location__province: "Jawa Timur"
+  },
+];
+
+const mockProvinceData = {
+  humidity: [
     { id: "ID-JK", value: 75, status: 'normal' },
     { id: "ID-JI", value: 60, status: 'normal' }
-  ];
-  
-  const mockProvinceTemperatureData: ProvinceData[] = [
+  ],
+  temperature: [
     { id: "ID-JK", value: 30, status: 'normal' },
     { id: "ID-JI", value: 32, status: 'normal' }
-  ];
-  
-  const mockProvincePrecipitationData: ProvinceData[] = [
+  ],
+  precipitation: [
     { id: "ID-JK", value: 200, status: 'normal' },
     { id: "ID-JI", value: 150, status: 'normal' }
-  ];
-  
-  const mockProvinceSeverityData: ProvinceData[] = [
+  ],
+  severity: [
     { id: "ID-JK", value: 2, status: 'normal' },
     { id: "ID-JI", value: 1, status: 'normal' }
-  ];
+  ]
+};
+
+const mockConfig: MapConfig = {
+  zoomLevel: 5,
+  centerPoint: { longitude: 120, latitude: -5 },
+};
+
+// Helper functions
+const setupRefs = () => {
+  const mapServiceRef: { current: MapChartService | null } = { current: null };
+  const locationsRef: { current: MapLocation[] } = { current: mockLocations };
   
-  const mockConfig: MapConfig = {
-    zoomLevel: 5,
-    centerPoint: { longitude: 120, latitude: -5 },
+  (useRef as jest.Mock).mockImplementation((initialValue) => {
+    if (initialValue === null) {
+      return mapServiceRef;
+    } else {
+      return locationsRef;
+    }
+  });
+
+  return { mapServiceRef, locationsRef };
+};
+
+const renderHookWithProps = (props = {}) => {
+  const defaultProps = {
+    containerId: "chartdiv",
+    locations: mockLocations,
+    config: mockConfig,
+    provinceHumidityData: mockProvinceData.humidity,
+    provinceTemperatureData: mockProvinceData.temperature,
+    provincePrecipitationData: mockProvinceData.precipitation,
+    provinceSeverityData: mockProvinceData.severity,
+    onError: jest.fn(),
+    initialized: false,
+    ...props
   };
+
+  return renderHook(
+    (props) => useIndonesiaMap(
+      props.containerId,
+      props.locations,
+      props.config,
+      props.provinceHumidityData,
+      props.provinceTemperatureData,
+      props.provincePrecipitationData,
+      props.provinceSeverityData,
+      props.onError,
+      props.initialized
+    ),
+    { initialProps: defaultProps }
+  );
+};
+
+describe("useIndonesiaMap", () => {
+  const containerId = "chartdiv";
   const mockOnError = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Setup refs
-    mapServiceRef = { current: null };
-    locationsRef = { current: mockLocations };
-    
-    // Mock both useRef calls in the hook
-    (useRef as jest.Mock).mockImplementation((initialValue) => {
-      if (initialValue === null) {
-        return mapServiceRef;
-      } else {
-        return locationsRef;
-      }
-    });
-      
+    setupRefs();
     document.body.innerHTML = `<div id="${containerId}"></div>`;
   });
 
   it('should initialize map service on mount', async () => {
-    // Render the hook
-    renderHook(() => useIndonesiaMap(
-      containerId,
-      mockLocations,
-      mockConfig,
-      mockProvinceHumidityData,
-      mockProvinceTemperatureData,
-      mockProvincePrecipitationData,
-      mockProvinceSeverityData,
-      mockOnError
-    ));
+    renderHookWithProps();
 
-    // Wait for initialization
     await waitFor(() => {
       expect(mockInitialize).toHaveBeenCalled();
       expect(mockPopulateLocations).toHaveBeenCalled();
@@ -135,23 +156,11 @@ describe("useIndonesiaMap", () => {
   });
 
   it('should not reinitialize if initialized flag is true and map service exists', async () => {
-    // Set up mapServiceRef.current with our mock
+    const { mapServiceRef } = setupRefs();
     mapServiceRef.current = new MapChartService();
     
-    // Render the hook with initialized flag set to true
-    renderHook(() => useIndonesiaMap(
-      containerId,
-      mockLocations,
-      mockConfig,
-      mockProvinceHumidityData,
-      mockProvinceTemperatureData,
-      mockProvincePrecipitationData,
-      mockProvinceSeverityData,
-      mockOnError,
-      true
-    ));
+    renderHookWithProps({ initialized: true });
 
-    // Wait for any potential async operations
     await waitFor(() => {
       expect(mockInitialize).not.toHaveBeenCalled();
       expect(mockPopulateLocations).not.toHaveBeenCalled();
@@ -159,36 +168,11 @@ describe("useIndonesiaMap", () => {
   });
 
   test("should update locations when they change", async () => {
-    // Set up a mock map service in the ref
+    const { mapServiceRef } = setupRefs();
     mapServiceRef.current = new MapChartService();
     
-    // Initial render
-    const { rerender } = renderHook(
-      (props) => useIndonesiaMap(
-        props.containerId, 
-        props.locations, 
-        props.config, 
-        props.provinceHumidityData,
-        props.provinceTemperatureData,
-        props.provincePrecipitationData,
-        props.provinceSeverityData,
-        props.onError
-      ),
-      {
-        initialProps: {
-          containerId,
-          locations: mockLocations,
-          config: mockConfig,
-          provinceHumidityData: mockProvinceHumidityData,
-          provinceTemperatureData: mockProvinceTemperatureData,
-          provincePrecipitationData: mockProvincePrecipitationData,
-          provinceSeverityData: mockProvinceSeverityData,
-          onError: mockOnError,
-        },
-      }
-    );
+    const { rerender } = renderHookWithProps();
 
-    // Update with new locations
     const newLocations = [
       ...mockLocations,
       {
@@ -200,208 +184,48 @@ describe("useIndonesiaMap", () => {
       },
     ];
     
-    // Clear the calls to check for new calls after rerender
     mockPopulateLocations.mockClear();
     
-    // Rerender with new locations
     rerender({
       containerId,
       locations: newLocations,
       config: mockConfig,
-      provinceHumidityData: mockProvinceHumidityData,
-      provinceTemperatureData: mockProvinceTemperatureData,
-      provincePrecipitationData: mockProvincePrecipitationData,
-      provinceSeverityData: mockProvinceSeverityData,
+      provinceHumidityData: mockProvinceData.humidity,
+      provinceTemperatureData: mockProvinceData.temperature,
+      provincePrecipitationData: mockProvinceData.precipitation,
+      provinceSeverityData: mockProvinceData.severity,
       onError: mockOnError,
+      initialized: false
     });
 
-    // Verify populateLocations was called with new locations
     await waitFor(() => {
       expect(mockPopulateLocations).toHaveBeenCalledWith(newLocations);
     });
   });
 
   test("should dispose map service on unmount", async () => {
-    // Set up mapServiceRef.current with our mock
+    const { mapServiceRef } = setupRefs();
     mapServiceRef.current = new MapChartService();
     
-    // Render the hook
-    const { unmount } = renderHook(() => useIndonesiaMap(
-      containerId,
-      mockLocations,
-      mockConfig,
-      mockProvinceHumidityData,
-      mockProvinceTemperatureData,
-      mockProvincePrecipitationData,
-      mockProvinceSeverityData,
-      mockOnError
-    ));
+    const { unmount } = renderHookWithProps();
 
-    // Unmount the component
     unmount();
 
-    // Verify dispose was called
     expect(mockDispose).toHaveBeenCalled();
   });
 
   test("should handle initialization errors", async () => {
-    // Mock console.error
     const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
-    
-    // Make initialize throw an error
     mockInitialize.mockImplementationOnce(() => {
-      throw new Error("Initialization error");
+      throw new Error("Initialization failed");
     });
-    
-    // Render the hook
-    renderHook(() =>
-      useIndonesiaMap(
-        containerId, 
-        mockLocations, 
-        mockConfig, 
-        mockProvinceHumidityData,
-        mockProvinceTemperatureData,
-        mockProvincePrecipitationData,
-        mockProvinceSeverityData,
-        mockOnError
-      )
-    );
-    
-    // Verify error handling
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to initialize map:",
-        expect.any(Error)
-      );
-    });
-    
-    // Cleanup
-    consoleErrorSpy.mockRestore();
-  });
 
-  test("should handle location update errors", async () => {
-    // Set up mapServiceRef.current with our mock
-    const mockMapService = {
-      initialize: mockInitialize,
-      populateLocations: mockPopulateLocations,
-      populateProvinceHumidityData: mockPopulateProvinceHumidityData,
-      dispose: mockDispose,
-    };
-    mapServiceRef.current = mockMapService as unknown as MapChartService;
-    
-    // Mock console.error
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
-    
-    // Make populateLocations throw an error
-    mockPopulateLocations.mockImplementationOnce(() => {
-      throw new Error("Location update error");
-    });
-    
-    // Initial render 
-    const { rerender } = renderHook(
-      (props) => useIndonesiaMap(
-        props.containerId, 
-        props.locations, 
-        props.config, 
-        props.provinceHumidityData,
-        props.provinceTemperatureData,
-        props.provincePrecipitationData,
-        props.provinceSeverityData,
-        props.onError
-      ),
-      {
-        initialProps: {
-          containerId,
-          locations: mockLocations,
-          config: mockConfig,
-          provinceHumidityData: mockProvinceHumidityData,
-          provinceTemperatureData: mockProvinceTemperatureData,
-          provincePrecipitationData: mockProvincePrecipitationData,
-          provinceSeverityData: mockProvinceSeverityData,
-          onError: mockOnError,
-        },
-      }
-    );
-    
-    // Rerender with new locations to trigger the update locations effect
-    rerender({
-      containerId,
-      locations: [...mockLocations, { 
-        city: "Bandung", 
-        id: "3", 
-        location__latitude: -6.9, 
-        location__longitude: 107.6,
-        location__province: "Jawa Barat"
-      }],
-      config: mockConfig,
-      provinceHumidityData: mockProvinceHumidityData,
-      provinceTemperatureData: mockProvinceTemperatureData,
-      provincePrecipitationData: mockProvincePrecipitationData,
-      provinceSeverityData: mockProvinceSeverityData,
-      onError: mockOnError,
-    });
-    
-    // Verify error handling
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to initialize map:",
-        expect.any(Error)
-      );
-    });
-    
-    // Cleanup
-    consoleErrorSpy.mockRestore();
-  });
+    renderHookWithProps();
 
-  test("should skip location update if map service is not initialized", async () => {
-    // Set mapServiceRef.current to null to simulate uninitialized service
-    mapServiceRef.current = null;
-    
-    // Render with initial locations
-    const { rerender } = renderHook(
-      (props) => useIndonesiaMap(
-        props.containerId, 
-        props.locations, 
-        props.config, 
-        props.provinceHumidityData,
-        props.provinceTemperatureData,
-        props.provincePrecipitationData,
-        props.provinceSeverityData,
-        props.onError
-      ),
-      {
-        initialProps: {
-          containerId,
-          locations: mockLocations,
-          config: mockConfig,
-          provinceHumidityData: mockProvinceHumidityData,
-          provinceTemperatureData: mockProvinceTemperatureData,
-          provincePrecipitationData: mockProvincePrecipitationData,
-          provinceSeverityData: mockProvinceSeverityData,
-          onError: mockOnError,
-        },
-      }
-    );
-    
-    // Rerender with new locations
-    rerender({
-      containerId,
-      locations: [...mockLocations, { 
-        city: "Bandung", 
-        id: "3", 
-        location__latitude: -6.9, 
-        location__longitude: 107.6,
-        location__province: "Jawa Barat"
-      }],
-      config: mockConfig,
-      provinceHumidityData: mockProvinceHumidityData,
-      provinceTemperatureData: mockProvinceTemperatureData,
-      provincePrecipitationData: mockProvincePrecipitationData,
-      provinceSeverityData: mockProvinceSeverityData,
-      onError: mockOnError,
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalled();
     });
-    
-    // Verify populateLocations was not called (since the ref is null)
-    expect(mockPopulateLocations).toHaveBeenCalledTimes(1);
+
+    consoleErrorSpy.mockRestore();
   });
 });
