@@ -22,6 +22,7 @@ interface IndonesiaMapProps {
   provinceHumidityData: ProvinceData[];
   provinceTemperatureData: ProvinceData[];
   provincePrecipitationData: ProvinceData[];
+  provinceSeverityData: ProvinceData[];
 }
 
 export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
@@ -29,6 +30,7 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
   provinceHumidityData,
   provinceTemperatureData,
   provincePrecipitationData,
+  provinceSeverityData,
   config = {},
   height = "100vh",
   width = "100vw",
@@ -53,6 +55,7 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
     provinceHumidityData,
     provinceTemperatureData,
     provincePrecipitationData,
+    provinceSeverityData,
     onError,
     mapInitialized.current
   );

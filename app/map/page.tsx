@@ -14,7 +14,7 @@ import { FilterState } from "../../types";
 
 export default function MapPage() {
   const [filterState, setFilterState] = useState<FilterState | null>(null);
-  const { data: locations, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData } = useLocations(filterState as FilterState);
+  const { data: locations, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData, provinceSeverityData } = useLocations(filterState as FilterState);
   const { error: mapError, setError: setMapError, clearError } = useMapError();
   const [isEmptyData, setIsEmptyData] = useState(false);
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -114,6 +114,7 @@ export default function MapPage() {
             provinceHumidityData={provinceHumidityData}
             provinceTemperatureData={provinceTemperatureData}
             provincePrecipitationData={provincePrecipitationData}
+            provinceSeverityData={provinceSeverityData}
           />
         </div>
       </div>

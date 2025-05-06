@@ -40,7 +40,11 @@ export default function GearToggleButton({
 
   // Add useEffect to respond to activeButton changes
   useEffect(() => {
-    
+    if (isActive) {
+      mapService?.showSeverityLayer();
+    } else {
+      mapService?.hideSeverityLayer();
+    }
   }, [isActive, mapService])
 
   return (

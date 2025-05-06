@@ -9,6 +9,7 @@ export const useLocations = (filterState: FilterState) => {
   const [provinceHumidityData, setProvinceHumidityData] = useState<any>(null);
   const [provinceTemperatureData, setProvinceTemperatureData] = useState<any>(null);
   const [provincePrecipitationData, setProvincePrecipitationData] = useState<any>(null);
+  const [provinceSeverityData, setProvinceSeverityData] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,11 +20,12 @@ export const useLocations = (filterState: FilterState) => {
         const provinceHumidityData = await mapApi.getProvinceData('humidity');
         const provinceTemperatureData = await mapApi.getProvinceData('temperature');
         const provincePrecipitationData = await mapApi.getProvinceData('precipitation');
+        const provinceSeverityData = await mapApi.getProvinceData('weighted-severity');
         setData(locations);
         setProvinceHumidityData(provinceHumidityData);
         setProvinceTemperatureData(provinceTemperatureData);
         setProvincePrecipitationData(provincePrecipitationData);
-
+        setProvinceSeverityData(provinceSeverityData);
       } catch (err) {
         console.error('Error in useLocations:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch locations'));
@@ -37,5 +39,5 @@ export const useLocations = (filterState: FilterState) => {
     fetchData();
   }, [filterState]);
 
-  return { data, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData };
+  return { data, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData, provinceSeverityData };
 };
