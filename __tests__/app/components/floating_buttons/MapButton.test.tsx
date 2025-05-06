@@ -51,7 +51,6 @@ jest.mock('../../../../app/components/floating_buttons/RainButton', () => ({
 
 describe('MapButton', () => {
   const mockPush = jest.fn();
-  const mockPathname = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();

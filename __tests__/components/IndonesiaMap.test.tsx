@@ -153,7 +153,7 @@ jest.mock('../../app/components/floating_buttons/MapButton', () => ({
   }
 }));
 
-// Test data
+// Mock data
 const mockLocations: MapLocation[] = [
   { id: '1', city: 'Jakarta', location__latitude: -6.2, location__longitude: 106.8, location__province: 'DKI Jakarta' },
   { id: '2', city: 'Surabaya', location__latitude: -7.3, location__longitude: 112.7, location__province: 'Jawa Timur' },
@@ -177,6 +177,18 @@ const mockProvinceData = {
     { id: 'ID-JI', value: 1, status: 'normal' }
   ]
 };
+
+// Add interface for useIndonesiaMap parameters
+interface UseIndonesiaMapParams {
+  containerId: string;
+  locations: MapLocation[];
+  config: any;
+  humidityData: any[];
+  tempData: any[];
+  precipData: any[];
+  severityData: any[];
+  onError: (message: string) => void;
+}
 
 // Helper functions
 const renderIndonesiaMap = (props = {}) => {
@@ -217,6 +229,15 @@ const setupMocks = () => {
   };
 };
 
+const setupLocationPermissionTest = async () => {
+  await act(async () => {
+    renderIndonesiaMap();
+  });
+
+  const locationButton = screen.getByTestId("location-button");
+  fireEvent.click(locationButton);
+};
+
 describe("IndonesiaMap Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -242,9 +263,8 @@ describe("IndonesiaMap Component", () => {
     const mockOnError = jest.fn();
     jest.spyOn(console, "error").mockImplementation(() => {});
     
-    // Mock useIndonesiaMap to simulate initialization error
-    (useIndonesiaMap as jest.Mock).mockImplementation((containerId, locations, config, humidityData, tempData, precipData, severityData, onError) => {
-      // Call onError directly to simulate error handling
+    (useIndonesiaMap as jest.Mock).mockImplementation((...args) => {
+      const onError = args[7];
       onError("Map initialization failed");
       return { mapService: null };
     });
@@ -257,25 +277,13 @@ describe("IndonesiaMap Component", () => {
   });
 
   test("handles location permission popup", async () => {
-    await act(async () => {
-      renderIndonesiaMap();
-    });
-
-    const locationButton = screen.getByTestId("location-button");
-    fireEvent.click(locationButton);
-
+    await setupLocationPermissionTest();
     expect(screen.getByTestId("permission-popup")).toBeInTheDocument();
   });
 
   test("handles location permission allow", async () => {
     const { mockHandleAllow } = setupMocks();
-
-    await act(async () => {
-      renderIndonesiaMap();
-    });
-
-    const locationButton = screen.getByTestId("location-button");
-    fireEvent.click(locationButton);
+    await setupLocationPermissionTest();
 
     const allowButton = screen.getByTestId("allow-button");
     fireEvent.click(allowButton);
@@ -285,13 +293,7 @@ describe("IndonesiaMap Component", () => {
 
   test("handles location permission deny", async () => {
     const { mockHandleDeny } = setupMocks();
-
-    await act(async () => {
-      renderIndonesiaMap();
-    });
-
-    const locationButton = screen.getByTestId("location-button");
-    fireEvent.click(locationButton);
+    await setupLocationPermissionTest();
 
     const denyButton = screen.getByTestId("deny-button");
     fireEvent.click(denyButton);

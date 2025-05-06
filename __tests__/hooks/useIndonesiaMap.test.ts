@@ -105,19 +105,21 @@ const setupRefs = () => {
   return { mapServiceRef, locationsRef };
 };
 
+const createDefaultProps = (props = {}) => ({
+  containerId: "chartdiv",
+  locations: mockLocations,
+  config: mockConfig,
+  provinceHumidityData: mockProvinceData.humidity,
+  provinceTemperatureData: mockProvinceData.temperature,
+  provincePrecipitationData: mockProvinceData.precipitation,
+  provinceSeverityData: mockProvinceData.severity,
+  onError: jest.fn(),
+  initialized: false,
+  ...props
+});
+
 const renderHookWithProps = (props = {}) => {
-  const defaultProps = {
-    containerId: "chartdiv",
-    locations: mockLocations,
-    config: mockConfig,
-    provinceHumidityData: mockProvinceData.humidity,
-    provinceTemperatureData: mockProvinceData.temperature,
-    provincePrecipitationData: mockProvinceData.precipitation,
-    provinceSeverityData: mockProvinceData.severity,
-    onError: jest.fn(),
-    initialized: false,
-    ...props
-  };
+  const defaultProps = createDefaultProps(props);
 
   return renderHook(
     (props) => useIndonesiaMap(
@@ -135,14 +137,20 @@ const renderHookWithProps = (props = {}) => {
   );
 };
 
-describe("useIndonesiaMap", () => {
+const setupTestEnvironment = () => {
   const containerId = "chartdiv";
   const mockOnError = jest.fn();
+  
+  jest.clearAllMocks();
+  setupRefs();
+  document.body.innerHTML = `<div id="${containerId}"></div>`;
+  
+  return { containerId, mockOnError };
+};
 
+describe("useIndonesiaMap", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    setupRefs();
-    document.body.innerHTML = `<div id="${containerId}"></div>`;
+    setupTestEnvironment();
   });
 
   it('should initialize map service on mount', async () => {
@@ -185,17 +193,9 @@ describe("useIndonesiaMap", () => {
     
     mockPopulateLocations.mockClear();
     
-    rerender({
-      containerId,
-      locations: newLocations,
-      config: mockConfig,
-      provinceHumidityData: mockProvinceData.humidity,
-      provinceTemperatureData: mockProvinceData.temperature,
-      provincePrecipitationData: mockProvinceData.precipitation,
-      provinceSeverityData: mockProvinceData.severity,
-      onError: mockOnError,
-      initialized: false
-    });
+    rerender(createDefaultProps({
+      locations: newLocations
+    }));
 
     await waitFor(() => {
       expect(mockPopulateLocations).toHaveBeenCalledWith(newLocations);
