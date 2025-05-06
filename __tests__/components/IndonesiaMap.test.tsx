@@ -3,7 +3,7 @@ import "@testing-library/jest-dom";
 import { IndonesiaMap } from "../../app/components/IndonesiaMap";
 import { useIndonesiaMap } from '../../hooks/useIndonesiaMap';
 import { useUserLocation } from '../../hooks/useUserLocation';
-import { MapLocation } from '../../types';
+import { mockLocations, mockProvinceData } from "../../__mocks__/mapData";
 
 // Mock functions
 const mockSetThemes = jest.fn();
@@ -152,43 +152,6 @@ jest.mock('../../app/components/floating_buttons/MapButton', () => ({
     return <button data-testid="map-button">Map</button>;
   }
 }));
-
-// Mock data
-const mockLocations: MapLocation[] = [
-  { id: '1', city: 'Jakarta', location__latitude: -6.2, location__longitude: 106.8, location__province: 'DKI Jakarta' },
-  { id: '2', city: 'Surabaya', location__latitude: -7.3, location__longitude: 112.7, location__province: 'Jawa Timur' },
-];
-
-const mockProvinceData = {
-  humidity: [
-    { id: 'ID-JK', value: 75, status: 'normal' },
-    { id: 'ID-JI', value: 60, status: 'normal' }
-  ],
-  temperature: [
-    { id: 'ID-JK', value: 30, status: 'normal' },
-    { id: 'ID-JI', value: 32, status: 'normal' }
-  ],
-  precipitation: [
-    { id: 'ID-JK', value: 200, status: 'normal' },
-    { id: 'ID-JI', value: 150, status: 'normal' }
-  ],
-  severity: [
-    { id: 'ID-JK', value: 2, status: 'normal' },
-    { id: 'ID-JI', value: 1, status: 'normal' }
-  ]
-};
-
-// Add interface for useIndonesiaMap parameters
-interface UseIndonesiaMapParams {
-  containerId: string;
-  locations: MapLocation[];
-  config: any;
-  humidityData: any[];
-  tempData: any[];
-  precipData: any[];
-  severityData: any[];
-  onError: (message: string) => void;
-}
 
 // Helper functions
 const renderIndonesiaMap = (props = {}) => {

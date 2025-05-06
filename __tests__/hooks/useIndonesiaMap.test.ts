@@ -1,8 +1,8 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { useIndonesiaMap } from "../../hooks/useIndonesiaMap";
 import { MapChartService } from "../../services/mapChartService";
-import { MapLocation, MapConfig } from "../../types";
 import { useRef } from "react";
+import { mockLocations, mockProvinceData, mockConfig, createNewLocation } from "../../__mocks__/mapData";
 
 // Mock functions from MapChartService
 const mockInitialize = jest.fn();
@@ -25,16 +25,14 @@ jest.mock("../../store/store", () => ({
 }));
 
 // Mock MapChartService
-jest.mock("../../services/mapChartService", () => {
-  return {
-    MapChartService: jest.fn().mockImplementation(() => ({
-      initialize: mockInitialize,
-      populateLocations: mockPopulateLocations,
-      populateProvinceHumidityData: mockPopulateProvinceHumidityData,
-      dispose: mockDispose,
-    })),
-  };
-});
+jest.mock("../../services/mapChartService", () => ({
+  MapChartService: jest.fn().mockImplementation(() => ({
+    initialize: mockInitialize,
+    populateLocations: mockPopulateLocations,
+    populateProvinceHumidityData: mockPopulateProvinceHumidityData,
+    dispose: mockDispose,
+  })),
+}));
 
 // Mock React's useState and useRef
 const mockSetState = jest.fn();
@@ -47,52 +45,10 @@ jest.mock("react", () => {
   };
 });
 
-// Test data
-const mockLocations: MapLocation[] = [
-  {
-    city: "Jakarta",
-    id: "1",
-    location__latitude: -6.2,
-    location__longitude: 106.8,
-    location__province: "DKI Jakarta"
-  },
-  {
-    city: "Surabaya",
-    id: "2",
-    location__latitude: -7.3,
-    location__longitude: 112.7,
-    location__province: "Jawa Timur"
-  },
-];
-
-const mockProvinceData = {
-  humidity: [
-    { id: "ID-JK", value: 75, status: 'normal' },
-    { id: "ID-JI", value: 60, status: 'normal' }
-  ],
-  temperature: [
-    { id: "ID-JK", value: 30, status: 'normal' },
-    { id: "ID-JI", value: 32, status: 'normal' }
-  ],
-  precipitation: [
-    { id: "ID-JK", value: 200, status: 'normal' },
-    { id: "ID-JI", value: 150, status: 'normal' }
-  ],
-  severity: [
-    { id: "ID-JK", value: 2, status: 'normal' },
-    { id: "ID-JI", value: 1, status: 'normal' }
-  ]
-};
-
-const mockConfig: MapConfig = {
-  zoomLevel: 5,
-  centerPoint: { longitude: 120, latitude: -5 },
-};
-
 // Helper functions
 const setupRefs = () => {
   const mapServiceRef: { current: MapChartService | null } = { current: null };
-  const locationsRef: { current: MapLocation[] } = { current: mockLocations };
+  const locationsRef: { current: typeof mockLocations } = { current: mockLocations };
   
   (useRef as jest.Mock).mockImplementation((initialValue) => {
     if (initialValue === null) {
@@ -182,13 +138,7 @@ describe("useIndonesiaMap", () => {
 
     const newLocations = [
       ...mockLocations,
-      {
-        city: "Bandung",
-        id: "3",
-        location__latitude: -6.9,
-        location__longitude: 107.6,
-        location__province: "Jawa Barat"
-      },
+      createNewLocation("Bandung", "3", -6.9, 107.6, "Jawa Barat")
     ];
     
     mockPopulateLocations.mockClear();
