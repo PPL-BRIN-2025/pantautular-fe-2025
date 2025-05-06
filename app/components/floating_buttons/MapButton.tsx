@@ -6,7 +6,7 @@ import SeverityButton from "./SeverityButton"
 import TemperatureButton from "./TemperatureButton"
 import HumidityButton from "./HumidityButton"
 import RainButton from "./RainButton"
-import { useAuth } from "@/app/auth/hooks/useAuth"
+import { useAuth } from "../../../app/auth/hooks/useAuth"
 
 interface MapButtonProps {
   className?: string
