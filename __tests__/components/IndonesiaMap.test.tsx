@@ -1,10 +1,9 @@
-import React from "react";
 import { render, screen, act, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { IndonesiaMap } from "../../app/components/IndonesiaMap";
 import { useIndonesiaMap } from '../../hooks/useIndonesiaMap';
 import { useUserLocation } from '../../hooks/useUserLocation';
-import { MapLocation, ProvinceData } from '../../types';
+import { MapLocation } from '../../types';
 
 // Mock functions
 const mockSetThemes = jest.fn();

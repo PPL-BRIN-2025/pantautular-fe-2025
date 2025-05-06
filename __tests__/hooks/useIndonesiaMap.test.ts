@@ -1,9 +1,8 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { useIndonesiaMap } from "../../hooks/useIndonesiaMap";
 import { MapChartService } from "../../services/mapChartService";
-import { MapLocation, MapConfig, ProvinceData } from "../../types";
+import { MapLocation, MapConfig } from "../../types";
 import { useRef } from "react";
-import React from "react";
 
 // Mock functions from MapChartService
 const mockInitialize = jest.fn();
