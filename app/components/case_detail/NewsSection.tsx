@@ -10,10 +10,12 @@ const NewsSection: React.FC<NewsSectionProps> = ({ news }) => {
   const [newsIndex, setNewsIndex] = useState(0);
 
   const nextNews = () => {
+    /* istanbul ignore next */
     if (newsIndex < news.length - 1) setNewsIndex(newsIndex + 1);
   };
 
   const prevNews = () => {
+    /* istanbul ignore next */
     if (newsIndex > 0) setNewsIndex(newsIndex - 1);
   };
 

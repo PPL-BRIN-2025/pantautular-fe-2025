@@ -6,6 +6,7 @@ import SeverityButton from "./SeverityButton"
 import TemperatureButton from "./TemperatureButton"
 import HumidityButton from "./HumidityButton"
 import RainButton from "./RainButton"
+import { useAuth } from "../../../app/auth/hooks/useAuth"
 
 interface MapButtonProps {
   className?: string
@@ -20,6 +21,7 @@ export const MapButton = ({
   const router = useRouter()
   const [showAdditionalButtons, setShowAdditionalButtons] = useState(false)
   const isActive = pathname === "/map"
+  const { user } = useAuth()
 
   // Size mapping for the button and SVG
   const sizeMap = {
@@ -69,7 +71,7 @@ export const MapButton = ({
         </svg>
       </button>
 
-      {showAdditionalButtons && (
+      {showAdditionalButtons && user && (
         <div
           className="absolute top-[3.5rem] flex flex-col gap-2 items-center"
         >
