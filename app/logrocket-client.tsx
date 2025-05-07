@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useContext } from 'react';
+import { useEffect} from 'react';
 import { useAuth } from "../app/auth/hooks/useAuth"
 import { initLogRocket } from '../utils/logrocket';
 import LogRocket from 'logrocket';
