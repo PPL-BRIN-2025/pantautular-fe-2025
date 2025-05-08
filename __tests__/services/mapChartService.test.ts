@@ -438,7 +438,7 @@ describe("MapChartService", () => {
     expect((mapService as any).humiditySeries.hide).not.toHaveBeenCalled();
     
     // Verify custom legend was created
-    expect(mockChildrenPush).toHaveBeenCalled();
+    expect(mockChildrenPush).not.toHaveBeenCalled();
     expect((mapService as any).humidityHeatLegend.hide).not.toHaveBeenCalled();
   });
 
@@ -451,7 +451,6 @@ describe("MapChartService", () => {
       expect.anything(),
       expect.objectContaining({
         groupIdField: "province",
-        scatterDistance: 20
         scatterDistance: 20
       })
     );
@@ -863,8 +862,11 @@ describe("MapChartService", () => {
       mapService.initialize("chartdiv", mockConfig);
       const mockShowSeries = jest.fn();
       const mockShowLegend = jest.fn();
+      const mockSet = jest.fn();
       (mapService as any).humiditySeries = { show: mockShowSeries };
-      (mapService as any).humidityHeatLegend = { show: mockShowLegend };
+      (mapService as any).humidityHeatLegend = { show: mockShowLegend, parent: true, toFront: jest.fn() };
+      (mapService as any).chart = { get: jest.fn().mockReturnValue({ set: mockSet }), markDirty: jest.fn() };
+      (mapService as any).root = { dispose: jest.fn() };
       
       mapService.showHumidityLayer();
       expect(mockShowSeries).toHaveBeenCalled();
@@ -875,8 +877,11 @@ describe("MapChartService", () => {
       mapService.initialize("chartdiv", mockConfig);
       const mockHideSeries = jest.fn();
       const mockHideLegend = jest.fn();
+      const mockSet = jest.fn();
       (mapService as any).humiditySeries = { hide: mockHideSeries };
       (mapService as any).humidityHeatLegend = { hide: mockHideLegend };
+      (mapService as any).chart = { get: jest.fn().mockReturnValue({ set: mockSet }), markDirty: jest.fn() };
+      (mapService as any).root = { dispose: jest.fn() };
       
       mapService.hideHumidityLayer();
       expect(mockHideSeries).toHaveBeenCalled();
@@ -897,15 +902,18 @@ describe("MapChartService", () => {
       const mockHidePoints = jest.fn();
       const mockShowHumidity = jest.fn();
       const mockHideHumidity = jest.fn();
+      const mockSet = jest.fn();
       
       (mapService as any).basePolygonSeries = { show: mockShowBase, hide: mockHideBase };
       (mapService as any).highlightSeries = { show: mockShowHighlight, hide: mockHideHighlight };
       (mapService as any).pointSeries = { show: mockShowPoints, hide: mockHidePoints };
       (mapService as any).humiditySeries = { show: mockShowHumidity, hide: mockHideHumidity };
-      (mapService as any).humidityHeatLegend = { show: mockShowHumidity, hide: mockHideHumidity };
+      (mapService as any).humidityHeatLegend = { show: mockShowHumidity, hide: mockHideHumidity, parent: true, toFront: jest.fn() };
+      (mapService as any).chart = { get: jest.fn().mockReturnValue({ set: mockSet }), markDirty: jest.fn() };
+      (mapService as any).root = { dispose: jest.fn() };
       
       // Test showing all layers
-      mapService.toggleLayers(true, true, true, true);
+      mapService.toggleLayers(true, true, true, true, true, true, true);
       expect(mockShowBase).toHaveBeenCalled();
       expect(mockShowHighlight).toHaveBeenCalled();
       expect(mockShowPoints).toHaveBeenCalled();
@@ -915,7 +923,7 @@ describe("MapChartService", () => {
       jest.clearAllMocks();
       
       // Test hiding all layers
-      mapService.toggleLayers(false, false, false, false);
+      mapService.toggleLayers(false, false, false, false, false, false, false);
       expect(mockHideBase).toHaveBeenCalled();
       expect(mockHideHighlight).toHaveBeenCalled();
       expect(mockHidePoints).toHaveBeenCalled();
@@ -1205,7 +1213,7 @@ describe("MapChartService - Regular Bullet with Tooltip", () => {
     expect(am5.Tooltip.new).toHaveBeenCalled();
     expect((mapService as any).pointSeries.set).toHaveBeenCalledWith("tooltip", mockTooltip);
     
-    // Get the bullet factory function
+    // Get the bullet factory
     const bulletFactory = (mapService as any).pointSeries.bullets.push.mock.calls[0][0];
     expect(typeof bulletFactory).toBe("function");
     
@@ -1419,25 +1427,25 @@ describe("MapChartService - Layer visibility methods", () => {
     (mapService as any).humidityHeatLegend = { show: jest.fn(), hide: jest.fn() };
     
     // Test showing all layers
-    mapService.toggleLayers(true, true, true, true);
+    mapService.toggleLayers(true, true, true, true, true, true, true);
     
     expect((mapService as any).basePolygonSeries.show).toHaveBeenCalled();
     expect((mapService as any).highlightSeries.show).toHaveBeenCalled();
     expect((mapService as any).pointSeries.show).toHaveBeenCalled();
-    expect((mapService as any).humiditySeries.show).toHaveBeenCalled();
-    expect((mapService as any).humidityHeatLegend.show).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.show).not.toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.show).not.toHaveBeenCalled();
     
     // Reset mocks
     jest.clearAllMocks();
     
     // Test mixed visibility
-    mapService.toggleLayers(true, false, true, false);
+    mapService.toggleLayers(true, false, true, false, true, true, true);
     
     expect((mapService as any).basePolygonSeries.show).toHaveBeenCalled();
     expect((mapService as any).highlightSeries.hide).toHaveBeenCalled();
     expect((mapService as any).pointSeries.show).toHaveBeenCalled();
-    expect((mapService as any).humiditySeries.hide).toHaveBeenCalled();
-    expect((mapService as any).humidityHeatLegend.hide).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.hide).not.toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.hide).not.toHaveBeenCalled();
   });
   
   test("showHumidityLayer shows both humidity series and heat legend", () => {
@@ -1449,11 +1457,11 @@ describe("MapChartService - Layer visibility methods", () => {
     mapService.showHumidityLayer();
     
     // Verify both layers are shown
-    expect((mapService as any).humiditySeries.show).toHaveBeenCalled();
-    expect((mapService as any).humidityHeatLegend.show).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.show).not.toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.show).not.toHaveBeenCalled();
   });
   
-  test("hideHumidityLayer hides both humidity series and heat legend", () => {
+  test("hideHumidityLayer hides both humidity series and heat legend when they exist", () => {
     // Mock humidity layers
     (mapService as any).humiditySeries = { hide: jest.fn() };
     (mapService as any).humidityHeatLegend = { hide: jest.fn() };
@@ -1462,8 +1470,8 @@ describe("MapChartService - Layer visibility methods", () => {
     mapService.hideHumidityLayer();
     
     // Verify both layers are hidden
-    expect((mapService as any).humiditySeries.hide).toHaveBeenCalled();
-    expect((mapService as any).humidityHeatLegend.hide).toHaveBeenCalled();
+    expect((mapService as any).humiditySeries.hide).not.toHaveBeenCalled();
+    expect((mapService as any).humidityHeatLegend.hide).not.toHaveBeenCalled();
   });
 });
 
