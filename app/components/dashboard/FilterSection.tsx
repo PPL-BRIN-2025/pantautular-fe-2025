@@ -2,12 +2,12 @@
 "use client";
 import React from "react";
 import FilterForm from "./FilterForm";
-import { FilterState } from "../../../types";
+import { FilterStateDashboard } from "../../../types";
 
 interface FilterSectionProps {
-  onSubmitFilterState?: (filterState: FilterState) => void;
+  onSubmitFilterState?: (filterState: FilterStateDashboard) => void;
   onError: (message: string) => void;
-  initialFilterState?: FilterState | null;
+  initialFilterState?: FilterStateDashboard | null;
 }
 
 const FilterSection = ({

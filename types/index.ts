@@ -11,6 +11,18 @@ export interface MapConfig {
   centerPoint: { longitude: number; latitude: number };
 }
 
+export interface FilterStateDashboard {
+  diseases: string[];
+  locations: {
+    provinces: string[];
+    cities: string[];
+  };
+  level_of_alertness: number;
+  portals: string[];
+  start_date: null | Date;
+  end_date: null | Date;
+}
+
 export interface FilterState {
   diseases: string[];
   locations: string[];

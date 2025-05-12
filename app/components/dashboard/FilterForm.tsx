@@ -3,7 +3,7 @@
 import React, { useEffect, useState, FormEvent } from "react";
 import Select, { MultiValue } from "react-select";
 import DatePicker from "react-datepicker";
-import { FilterState } from "../../../types";
+import { FilterStateDashboard } from "../../../types";
 import "react-datepicker/dist/react-datepicker.css";
 
 interface SelectOption {
@@ -11,16 +11,26 @@ interface SelectOption {
   label: string;
 }
 
+interface GroupedOption {
+  label: string;
+  options: SelectOption[];
+}
+
+type SelectOptionType = SelectOption | GroupedOption;
+
 interface FilterOptions {
   diseases: SelectOption[];
-  locations: SelectOption[];
+  locations: {
+    provinces: SelectOption[];
+    cities: SelectOption[];
+  };
   news: SelectOption[];
 }
 
 interface MultiSelectFormProps {
-  onSubmitFilterState?: (filterState: FilterState) => void;
+  onSubmitFilterState?: (filterState: FilterStateDashboard) => void;
   apiFilterOptions?: string;
-  initialFilterState?: FilterState | null;
+  initialFilterState?: FilterStateDashboard | null;
   onError: (message: string) => void;
 }
 
@@ -78,7 +88,7 @@ const SelectField = ({
   instanceId
 }: {
   label: string;
-  options: SelectOption[];
+  options: SelectOptionType[];
   value: SelectOption[];
   onChange: (newValue: MultiValue<SelectOption>) => void;
   instanceId: string;
@@ -200,15 +210,36 @@ const createFilterState = (
   selectedNews: SelectOption[],
   selectedLevelOfAlertness: number,
   selectedStartDate: Date | null,
-  selectedEndDate: Date | null
-): FilterState => ({
-  diseases: selectedDiseases.map((disease) => disease.value),
-  locations: selectedLocations.map((location) => location.value),
-  portals: selectedNews.map((news) => news.value),
-  level_of_alertness: selectedLevelOfAlertness,
-  start_date: selectedStartDate,
-  end_date: selectedEndDate
-});
+  selectedEndDate: Date | null,
+  filterOptions: FilterOptions
+): FilterStateDashboard => {
+  // Separate locations into provinces and cities
+  const provinces: string[] = [];
+  const cities: string[] = [];
+
+  selectedLocations.forEach(location => {
+    const isProvince = filterOptions.locations.provinces.some(
+      province => province.value === location.value
+    );
+    if (isProvince) {
+      provinces.push(location.value);
+    } else {
+      cities.push(location.value);
+    }
+  });
+
+  return {
+    diseases: selectedDiseases.map((disease) => disease.value),
+    locations: {
+      provinces,
+      cities
+    },
+    portals: selectedNews.map((news) => news.value),
+    level_of_alertness: selectedLevelOfAlertness,
+    start_date: selectedStartDate,
+    end_date: selectedEndDate
+  };
+};
 
 const fetchFilterOptions = async (apiFilterOptions: string) => {
   const response = await fetch(apiFilterOptions, {
@@ -228,12 +259,15 @@ const fetchFilterOptions = async (apiFilterOptions: string) => {
 
 const createFilterOptions = (responseFilters: any) => ({
   diseases: createSelectOptions(responseFilters.data.diseases),
-  locations: createSelectOptions(responseFilters.data.locations),
+  locations: {
+    provinces: createSelectOptions(responseFilters.data.locations.provinces),
+    cities: createSelectOptions(responseFilters.data.locations.cities)
+  },
   news: createSelectOptions(responseFilters.data.news),
 });
 
 const setInitialFilterValues = (
-  initialFilterState: FilterState,
+  initialFilterState: FilterStateDashboard,
   options: FilterOptions,
   setters: {
     setDiseases: (value: SelectOption[]) => void;
@@ -258,7 +292,28 @@ const setInitialFilterValues = (
   };
 
   setInitialValues(initialFilterState.diseases, options.diseases, setters.setDiseases);
-  setInitialValues(initialFilterState.locations, options.locations, setters.setLocations);
+  
+  // Handle locations from both provinces and cities
+  const locationOptions: SelectOption[] = [];
+  
+  // Add provinces
+  initialFilterState.locations.provinces.forEach(province => {
+    const option = options.locations.provinces.find(opt => opt.value === province);
+    if (option) {
+      locationOptions.push(option);
+    }
+  });
+  
+  // Add cities
+  initialFilterState.locations.cities.forEach(city => {
+    const option = options.locations.cities.find(opt => opt.value === city);
+    if (option) {
+      locationOptions.push(option);
+    }
+  });
+  
+  setters.setLocations(locationOptions);
+  
   setInitialValues(initialFilterState.portals, options.news, setters.setNews);
   
   setters.setLevelOfAlertness(initialFilterState.level_of_alertness || 0);
@@ -282,7 +337,10 @@ const FilterForm = ({
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     diseases: [],
-    locations: [],
+    locations: {
+      provinces: [],
+      cities: [],
+    },
     news: [],
   });
   const [isMounted, setIsMounted] = useState(false);
@@ -323,34 +381,43 @@ const FilterForm = ({
   };
 
   const handleLocationChange = (newValue: MultiValue<SelectOption>) => {
-    handleSelectChange(newValue, selectedLocations, filterOptions.locations, setSelectedLocations);
+    const allLocations = [
+      ...filterOptions.locations.provinces,
+      ...filterOptions.locations.cities
+    ];
+    handleSelectChange(newValue, selectedLocations, allLocations, setSelectedLocations);
   };
 
   const handleNewsChange = (newValue: MultiValue<SelectOption>) => {
     handleSelectChange(newValue, selectedNews, filterOptions.news, setSelectedNews);
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-  
-    // Build the payload according to the API's structure (using Date objects)
-    const payload: FilterState = {
-      diseases: selectedDiseases.map((option) => option.value),
-      locations: selectedLocations.map((option) => option.value),
-      portals: selectedNews.map((option) => option.value),
-      level_of_alertness: selectedLevelOfAlertness,
-      start_date: selectedStartDate, // remains Date or null
-      end_date: selectedEndDate,     // remains Date or null
-    };
-  
-    console.log("Payload ready for API call:", payload);
-  
-    if (onSubmitFilterState) {
-      onSubmitFilterState(payload);
+
+    try {
+      const filterState: FilterStateDashboard = createFilterState(
+        selectedDiseases,
+        selectedLocations,
+        selectedNews,
+        selectedLevelOfAlertness,
+        selectedStartDate,
+        selectedEndDate,
+        filterOptions
+      );
+
+      console.log("Submitting filter state:", filterState);
+
+      if (onSubmitFilterState) {
+        onSubmitFilterState(filterState);
+      }
+    } catch (error) {
+      console.error("Error submitting filter:", error);
+      onError("Failed to apply filter. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-  
-    setIsSubmitting(false);
   };
   
   
@@ -388,7 +455,17 @@ const FilterForm = ({
 
         <SelectField
           label="Lokasi"
-          options={filterOptions.locations}
+          options={[
+            { value: "all", label: "Pilih Semua" },
+            {
+              label: "Provinsi",
+              options: filterOptions.locations.provinces
+            },
+            {
+              label: "Kota/Kabupaten",
+              options: filterOptions.locations.cities
+            }
+          ]}
           value={selectedLocations}
           onChange={handleLocationChange}
           instanceId="location-select"

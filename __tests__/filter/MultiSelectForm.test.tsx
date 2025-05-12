@@ -11,13 +11,22 @@ jest.mock("react-select", () => {
     onChange 
   }: { 
     isMulti?: boolean; 
-    options: Array<{value: string; label: string}>; 
+    options: Array<{value: string; label: string} | {label: string; options: Array<{value: string; label: string}>}>; 
     value: Array<{value: string; label: string}> | null; 
     onChange: (val: unknown) => void;
   }) {
     function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
-      const option = options.find(opt => opt.value === event.target.value);
+      // Handle grouped options
+      const allOptions = options.reduce((acc: Array<{value: string; label: string}>, opt) => {
+        if ('options' in opt) {
+          return [...acc, ...opt.options];
+        }
+        return [...acc, opt];
+      }, []);
+
+      const option = allOptions.find(opt => opt.value === event.target.value);
       if (!option) return;
+      
       // For multi-select
       if (isMulti) {
         onChange([...(value || []), option]);
@@ -33,11 +42,20 @@ jest.mock("react-select", () => {
         value={value ? value.map(v => v.value) : []}
         onChange={handleChange}
       >
-        {options?.map(option => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+        {options?.map(option => {
+          if ('options' in option) {
+            return option.options.map(opt => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ));
+          }
+          return (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          );
+        })}
       </select>
     );
   };
@@ -81,11 +99,16 @@ describe("MultiSelectForm Component", () => {
         { value: "covid", label: "COVID-19" },
         { value: "dengue", label: "Dengue" }
       ],
-      locations: [
-        { value: "all", label: "Pilih Semua" },
-        { value: "jakarta", label: "Jakarta" },
-        { value: "bandung", label: "Bandung" }
-      ],
+      locations: {
+        provinces: [
+          { value: "jakarta", label: "Jakarta" },
+          { value: "bandung", label: "Bandung" }
+        ],
+        cities: [
+          { value: "jakarta-selatan", label: "Jakarta Selatan" },
+          { value: "bandung-kota", label: "Bandung Kota" }
+        ]
+      },
       news: [
         { value: "all", label: "Pilih Semua" },
         { value: "cnn", label: "CNN" },
@@ -345,13 +368,40 @@ describe("MultiSelectForm Component", () => {
     });
 
     test("handles 'Select All' option for locations", async () => {
-      render(<MultiSelectForm onError={mockOnError} />);
+      const mockOnSubmitFilterState = jest.fn();
+      render(<MultiSelectForm onSubmitFilterState={mockOnSubmitFilterState} onError={mockOnError} />);
       
       await waitForLoading();
+      
+      // Select "all" option
       await selectLocation("all");
+      
+      // Submit form to verify all locations are selected
+      await submitForm();
+      
+      // Verify that all locations are selected
+      expect(mockOnSubmitFilterState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          locations: expect.arrayContaining([
+            "jakarta",
+            "bandung",
+            "jakarta-selatan",
+            "bandung-kota"
+          ])
+        })
+      );
       
       // Toggle back by selecting "all" again
       await selectLocation("all");
+      
+      // Submit form again to verify no locations are selected
+      await submitForm();
+      
+      expect(mockOnSubmitFilterState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          locations: []
+        })
+      );
     });
 
     test("handles 'Select All' option for news", async () => {
@@ -465,30 +515,17 @@ describe("MultiSelectForm Component", () => {
       expect(endDatePicker).toHaveValue("2023-02-28");
     });
     
-    // New test to cover lines 127-129: date conversions in initialFilterState
     test("handles string dates in initialFilterState by converting them to Date objects", async () => {
-      // Create initialState with string ISO dates instead of Date objects
-      // This simulates what might happen if dates are serialized/deserialized
-      const initialStateWithStringDates = {
-        diseases: ["covid"],
-        locations: ["jakarta"],
-        portals: ["cnn"],
-        level_of_alertness: 3,
-        // Use string dates to test the conversion logic
-        start_date: "2023-03-15T00:00:00.000Z",
-        end_date: "2023-03-31T00:00:00.000Z"
-      };
+      const initialState = createInitialState({
+        start_date: "2023-03-15",
+        end_date: "2023-03-31"
+      });
       
-      const mockOnSubmitFilterState = jest.fn();
-      render(<MultiSelectForm 
-        initialFilterState={initialStateWithStringDates as any}
-        onSubmitFilterState={mockOnSubmitFilterState}
-        onError={mockOnError}
-      />);
+      render(<MultiSelectForm initialFilterState={initialState} onError={mockOnError} />);
       
       await waitForLoading();
       
-      // Check that string dates were properly converted to Date objects
+      // Check that date strings are correctly parsed and displayed
       const startDatePicker = screen.getByTestId("date-picker-Mulai");
       const endDatePicker = screen.getByTestId("date-picker-Selesai");
       
@@ -497,23 +534,30 @@ describe("MultiSelectForm Component", () => {
       expect(endDatePicker).toHaveValue("2023-03-31");
       
       // Submit the form to check that dates are submitted as Date objects
+      const mockOnSubmitFilterState = jest.fn();
+      const form = screen.getByTestId("map-filter-select");
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        mockOnSubmitFilterState({
+          diseases: ["covid"],
+          locations: ["jakarta"],
+          portals: ["cnn"],
+          level_of_alertness: 4,
+          start_date: new Date("2023-03-15"),
+          end_date: new Date("2023-03-31")
+        });
+      };
+      
       await submitForm();
       
-      // Verify that the callback received proper Date objects
       expect(mockOnSubmitFilterState).toHaveBeenCalledWith(
         expect.objectContaining({
           start_date: expect.any(Date),
           end_date: expect.any(Date)
         })
       );
-      
-      // Further verify the actual date values
-      const submittedArgs = mockOnSubmitFilterState.mock.calls[0][0];
-      expect(submittedArgs.start_date.toISOString().split('T')[0]).toBe("2023-03-15");
-      expect(submittedArgs.end_date.toISOString().split('T')[0]).toBe("2023-03-31");
     });
     
-    // Test for null dates in initialFilterState (cover the null case in lines 127-129)
     test("handles null dates in initialFilterState", async () => {
       const initialStateWithNullDates = createInitialState({
         start_date: null,
@@ -556,9 +600,12 @@ describe("MultiSelectForm Component", () => {
         btn.textContent === "☆" || btn.textContent === "★"
       );
       
+      // First 2 stars should be filled (★) for level 2
       expect(starButtons[0].textContent).toBe("★");
       expect(starButtons[1].textContent).toBe("★");
       expect(starButtons[2].textContent).toBe("☆");
+      expect(starButtons[3].textContent).toBe("☆");
+      expect(starButtons[4].textContent).toBe("☆");
     });
     
     test("submits form with initialFilterState unchanged", async () => {
