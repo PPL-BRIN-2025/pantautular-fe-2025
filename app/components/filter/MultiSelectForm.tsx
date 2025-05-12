@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, FormEvent } from "react";
-import Select, { MultiValue, GroupBase, components } from "react-select";
+import Select, { MultiValue, components } from "react-select";
 import DatePicker from "react-datepicker";
 import { FilterState } from "../../../types";
 import "react-datepicker/dist/react-datepicker.css";
@@ -135,7 +135,7 @@ export default function MultiSelectForm({
               initialFilterState.locations.map(location => {
                 const province = options.locations.provinces.find((opt: SelectOption) => opt.value === location);
                 const city = options.locations.cities.find((opt: SelectOption) => opt.value === location);
-                return province || city || { value: location, label: location };
+                return province ?? city ?? { value: location, label: location };
               })
             );
             
