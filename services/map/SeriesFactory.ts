@@ -4,6 +4,11 @@ import am5geodata_indonesiaLow from "@amcharts/amcharts5-geodata/indonesiaLow";
 import { getTooltip } from "../../utils/tooltipUtils";
 
 /**
+ * Type definition for color mapping function
+ */
+type ColorMappingFunction = (sprite: am5.Sprite, min: any, max: any, value: any) => void;
+
+/**
  * Factory class for creating different types of map series
  */
 export class SeriesFactory {
@@ -62,7 +67,7 @@ export class SeriesFactory {
    */
   private applyHeatRules(
     series: am5map.MapPolygonSeries,
-    customFunction: (sprite: am5.Sprite, min: any, max: any, value: any) => void
+    customFunction: ColorMappingFunction
   ): void {
     series.set("heatRules", [
       {
@@ -71,6 +76,25 @@ export class SeriesFactory {
         customFunction: customFunction,
       },
     ]);
+  }
+
+  /**
+   * Creates a layer series with common structure
+   * @param colorMappingFn Function to map values to colors
+   */
+  private createLayerSeries(colorMappingFn: ColorMappingFunction): am5map.MapPolygonSeries {
+    const series = this.createBaseMapSeries({
+      valueField: "value",
+      calculateAggregates: true,
+    });
+
+    this.applyPolygonStyle(series, { fillOpacity: 0.8 });
+    this.applyHeatRules(series, colorMappingFn);
+    
+    // Initially hide the series
+    series.hide();
+
+    return series;
   }
 
   /**
@@ -100,14 +124,7 @@ export class SeriesFactory {
    * Creates a humidity layer series
    */
   createHumiditySeries(): am5map.MapPolygonSeries {
-    const series = this.createBaseMapSeries({
-      valueField: "value",
-      calculateAggregates: true,
-    });
-
-    this.applyPolygonStyle(series, { fillOpacity: 0.8 });
-
-    this.applyHeatRules(series, (sprite: am5.Sprite, min, max, value) => {
+    return this.createLayerSeries((sprite: am5.Sprite, min, max, value) => {
       if (value <= 0) {
         (sprite as am5.Graphics).set("fill", am5.color("#C41A0A"));
       } else if (value <= 10) {
@@ -134,25 +151,13 @@ export class SeriesFactory {
         (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
       }
     });
-
-    // Initially hide the series
-    series.hide();
-
-    return series;
   }
 
   /**
    * Creates a precipitation layer series
    */
   createPrecipitationSeries(): am5map.MapPolygonSeries {
-    const series = this.createBaseMapSeries({
-      valueField: "value",
-      calculateAggregates: true,
-    });
-
-    this.applyPolygonStyle(series, { fillOpacity: 0.8 });
-
-    this.applyHeatRules(series, (sprite: am5.Sprite, min, max, value) => {
+    return this.createLayerSeries((sprite: am5.Sprite, min, max, value) => {
       if (value == "Lokal") {
         (sprite as am5.Graphics).set("fill", am5.color("#DC3545"));
       } else if (value == "Multipattern") {
@@ -167,25 +172,13 @@ export class SeriesFactory {
         (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
       }
     });
-
-    // Initially hide the series
-    series.hide();
-
-    return series;
   }
 
   /**
    * Creates a temperature layer series
    */
   createTemperatureSeries(): am5map.MapPolygonSeries {
-    const series = this.createBaseMapSeries({
-      valueField: "value",
-      calculateAggregates: true,
-    });
-
-    this.applyPolygonStyle(series, { fillOpacity: 0.8 });
-
-    this.applyHeatRules(series, (sprite: am5.Sprite, min, max, value) => {
+    return this.createLayerSeries((sprite: am5.Sprite, min, max, value) => {
       if (value <= 0) {
         (sprite as am5.Graphics).set("fill", am5.color("#000080")); // Dark blue
       } else if (value <= 2) {
@@ -230,25 +223,13 @@ export class SeriesFactory {
         (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
       }
     });
-
-    // Initially hide the series
-    series.hide();
-
-    return series;
   }
 
   /**
    * Creates a severity layer series
    */
   createSeveritySeries(): am5map.MapPolygonSeries {
-    const series = this.createBaseMapSeries({
-      valueField: "value",
-      calculateAggregates: true,
-    });
-
-    this.applyPolygonStyle(series, { fillOpacity: 0.8 });
-
-    this.applyHeatRules(series, (sprite: am5.Sprite, min, max, value) => {
+    return this.createLayerSeries((sprite: am5.Sprite, min, max, value) => {
       if (value == "katastropik") {
         (sprite as am5.Graphics).set("fill", am5.color("#DC3545"));
       } else if (value == "bahaya") {
@@ -261,11 +242,6 @@ export class SeriesFactory {
         (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
       }
     });
-
-    // Initially hide the series
-    series.hide();
-
-    return series;
   }
 
   /**
