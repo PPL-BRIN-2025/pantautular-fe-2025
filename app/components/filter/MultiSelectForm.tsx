@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, FormEvent } from "react";
-import Select, { MultiValue } from "react-select";
+import Select, { MultiValue, GroupBase, components } from "react-select";
 import DatePicker from "react-datepicker";
 import { FilterState } from "../../../types";
 import "react-datepicker/dist/react-datepicker.css";
@@ -13,7 +13,10 @@ interface SelectOption {
 
 interface FilterOptions {
   diseases: SelectOption[];
-  locations: SelectOption[];
+  locations: {
+    provinces: SelectOption[];
+    cities: SelectOption[];
+  };
   news: SelectOption[];
 }
 
@@ -25,6 +28,18 @@ interface MultiSelectFormProps {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// Custom Group component for locations
+const Group = (props: any) => (
+  <div>
+    <components.Group {...props}>
+      <div className="px-2 py-1 bg-gray-100 text-sm font-medium">
+        {props.label}
+      </div>
+      {props.children}
+    </components.Group>
+  </div>
+);
 
 export default function MultiSelectForm({
   apiFilterOptions = `${API_BASE_URL}/api/filters/`, 
@@ -42,7 +57,10 @@ export default function MultiSelectForm({
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     diseases: [],
-    locations: [],
+    locations: {
+      provinces: [],
+      cities: []
+    },
     news: [],
   });
   
@@ -96,7 +114,10 @@ export default function MultiSelectForm({
           const responseFilters = await response.json();
           const options = {
             diseases: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.diseases],
-            locations: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.locations],
+            locations: {
+              provinces: responseFilters.data.locations.provinces,
+              cities: responseFilters.data.locations.cities
+            },
             news: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.news],
           };
           setFilterOptions(options);
@@ -111,10 +132,11 @@ export default function MultiSelectForm({
             );
             
             setSelectedLocations(
-              initialFilterState.locations.map(location => 
-                options.locations.find(option => option.value === location) || 
-                { value: location, label: location }
-              )
+              initialFilterState.locations.map(location => {
+                const province = options.locations.provinces.find((opt: SelectOption) => opt.value === location);
+                const city = options.locations.cities.find((opt: SelectOption) => opt.value === location);
+                return province || city || { value: location, label: location };
+              })
             );
             
             setSelectedNews(
@@ -158,14 +180,18 @@ export default function MultiSelectForm({
 
   const handleLocationChange = (newValue: MultiValue<SelectOption>) => {
     if (newValue.some((option) => option.value === "all")) {
-      if (selectedLocations.length === filterOptions.locations.length - 1) {
+      const allLocations = [
+        ...filterOptions.locations.provinces,
+        ...filterOptions.locations.cities
+      ];
+      if (selectedLocations.length === allLocations.length) {
         setSelectedLocations([]);
       } else {
-        setSelectedLocations(filterOptions.locations.slice(1));
+        setSelectedLocations(allLocations);
       }
     } else {
       setSelectedLocations(newValue as SelectOption[]);
-    }  
+    }
   };
 
   const handleNewsChange = (newValue: MultiValue<SelectOption>) => {
@@ -180,6 +206,19 @@ export default function MultiSelectForm({
     }  
   };
 
+  // Group locations into provinces and cities
+  const locationGroups = [
+    { value: "all", label: "Pilih Semua" },
+    {
+      label: "Provinsi",
+      options: filterOptions.locations.provinces
+    },
+    {
+      label: "Kota/Kabupaten",
+      options: filterOptions.locations.cities
+    }
+  ];
+
   if (isLoadingFilters) {
     return (
       <div className="max-w-lg mx-auto mt-10 p-4">
@@ -190,7 +229,7 @@ export default function MultiSelectForm({
       </div>
     );
   }
-  /* istanbul ignore next */
+
   return (
     <div className="max-w-lg mx-auto mt-10">
       <form data-testid="map-filter-select" onSubmit={handleSubmit} className="space-y-4">
@@ -209,11 +248,41 @@ export default function MultiSelectForm({
         <div>
           <label className="block text-sm font-medium">Lokasi</label>
           <Select
-            options={filterOptions.locations}
+            options={locationGroups}
             isMulti
             value={selectedLocations}
             onChange={handleLocationChange}
             className="mt-1 text-sm"
+            components={{ Group }}
+            styles={{
+              menuList: (base) => ({
+                ...base,
+                maxHeight: '400px',
+              }),
+              group: (base) => ({
+                ...base,
+                paddingTop: 0,
+                paddingBottom: 0,
+                '&:not(:last-child)': {
+                  paddingBottom: '8px',
+                  marginBottom: '8px',
+                  borderBottom: '1px solid #e5e7eb',
+                }
+              }),
+              groupHeading: (base) => ({
+                ...base,
+                padding: 0,
+                margin: 0,
+              }),
+              menu: (base) => ({
+                ...base,
+                zIndex: 9999
+              }),
+              option: (base) => ({
+                ...base,
+                padding: '8px 12px'
+              })
+            }}
           />
         </div>
         {/* news */}
@@ -235,13 +304,13 @@ export default function MultiSelectForm({
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
-                key={star}
-                type="button"
-                className={`text-3xl transition-all ${
-                  star <= selectedLevelOfAlertness ? "text-yellow-400" : "text-gray-300"
+                  key={star}
+                  type="button"
+                  className={`text-3xl transition-all ${
+                    star <= selectedLevelOfAlertness ? "text-yellow-400" : "text-gray-300"
                   }`}
                   onClick={() => setSelectedLevelOfAlertness(star)}
-                  >
+                >
                   {star <= selectedLevelOfAlertness ? "★" : "☆"}
                 </button>
               ))}
@@ -289,7 +358,7 @@ export default function MultiSelectForm({
             data-testid="submit-button-form-filter"
             className="w-1/4 bg-blue-500 text-white py-2 rounded-md"
             disabled={isSubmitting}
-            >
+          >
             {isSubmitting ? "Mengirim..." : "Kirim Data"}
           </button>
         </div>
