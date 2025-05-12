@@ -131,14 +131,18 @@ export default function MultiSelectForm({
               )
             );
             
+            const findLocation = (location: string, provinces: SelectOption[], cities: SelectOption[]): SelectOption => {
+              const province = provinces.find((opt: SelectOption) => opt.value === location);
+              if (province) return province;
+
+              const city = cities.find((opt: SelectOption) => opt.value === location);
+              return city ?? { value: location, label: location };
+            };
+
             setSelectedLocations(
-              initialFilterState.locations.map(location => {
-                const province = options.locations.provinces.find((opt: SelectOption) => opt.value === location);
-                const city = options.locations.cities.find((opt: SelectOption) => opt.value === location);
-                return province ?? city ?? { value: location, label: location };
-              })
+              initialFilterState.locations.map(location => findLocation(location, options.locations.provinces, options.locations.cities))
             );
-            
+
             setSelectedNews(
               initialFilterState.portals.map(portal => 
                 options.news.find(option => option.value === portal) || 
