@@ -3,6 +3,7 @@
 import Head from "next/head";
 import * as Sentry from "@sentry/nextjs";
 import { useState, useEffect } from "react";
+import { addBreadcrumb, setUserContext, setTag } from "../utils/sentryUtils";
 
 class SentryExampleFrontendError extends Error {
   constructor(message: string | undefined) {
@@ -21,7 +22,45 @@ export default function Page() {
       setIsConnected(result !== 'sentry-unreachable');
     }
     checkConnectivity();
+
+    // Set demo user context for better error tracking
+    setUserContext({
+      id: 'demo-user-123',
+      email: 'demo@example.com',
+      username: 'demo_user',
+      role: 'tester'
+    });
+
+    // Add tags for better filtering
+    setTag('page', 'sentry-example');
+    setTag('feature', 'error-demo');
+
+    // Add initial breadcrumb
+    addBreadcrumb('Page loaded', 'navigation');
   }, []);
+
+  const handleButtonClick = async () => {
+    // Add breadcrumb before action
+    addBreadcrumb('Error button clicked', 'ui.click', 'info', {
+      buttonId: 'throw-error-button'
+    });
+    
+    try {
+      await Sentry.startSpan({
+        name: 'Example Frontend Span',
+        op: 'test'
+      }, async () => {
+        const res = await fetch("/api/sentry-example-api");
+        if (!res.ok) {
+          setHasSentError(true);
+          throw new SentryExampleFrontendError("This error is raised on the frontend of the example page.");
+        }
+      });
+    } catch (error) {
+      // The error will be automatically captured by Sentry
+      console.error("Error caught:", error);
+    }
+  };
 
   return (
     <div>
@@ -46,18 +85,7 @@ export default function Page() {
 
         <button
           type="button"
-          onClick={async () => {
-            await Sentry.startSpan({
-              name: 'Example Frontend Span',
-              op: 'test'
-            }, async () => {
-              const res = await fetch("/api/sentry-example-api");
-              if (!res.ok) {
-                setHasSentError(true);
-                throw new SentryExampleFrontendError("This error is raised on the frontend of the example page.");
-              }
-            });
-          }}
+          onClick={handleButtonClick}
         >
           <span>
             Throw Sample Error
