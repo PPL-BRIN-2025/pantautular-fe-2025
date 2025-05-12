@@ -41,6 +41,7 @@ export default function HumidityButton({
       /* istanbul ignore next */
       if (isActive) mapService.showHumidityLayer()
       // else mapService.hideHumidityLayer()
+      if (activeButton == null) mapService.hideAllLayers()
     }
   }, [isActive, mapService])
 

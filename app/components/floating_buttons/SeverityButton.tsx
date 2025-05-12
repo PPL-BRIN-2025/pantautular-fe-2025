@@ -46,6 +46,7 @@ export default function GearToggleButton({
       /* istanbul ignore next */
       if (isActive) mapService.showSeverityLayer()
       // else mapService.hideSeverityLayer()
+      if (activeButton == null) mapService.hideAllLayers()
     }
   }, [isActive, mapService])
 

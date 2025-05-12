@@ -1,6 +1,7 @@
 import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
 import { ProvinceData } from "../../types";
+import { useMapStore } from "../../store/store";
 
 /**
  * Manages map layers like base, highlight, points, and thematic layers
@@ -269,6 +270,10 @@ export class LayerManager {
       this.chart.get("background")?.set("fill", am5.color("#D0F4FC"));
     } 
     if (!showHumidity && !showTemperature && !showSeverity && !showPrecipitation) {
+      this.hideHumidityLayer();
+      this.hideTemperatureLayer();
+      this.hideSeverityLayer();
+      this.hidePrecipitationLayer();
       this.chart.get("background")?.set("fill", am5.color("#E0E0E0"));
     }
     console.log("showPrecipitation", showPrecipitation);

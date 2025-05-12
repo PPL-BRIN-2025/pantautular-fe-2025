@@ -132,6 +132,13 @@ export class MapChartService {
   }
 
   /**
+   * Hide all theme layers on the map
+   */
+  hideAllLayers(): void {
+    this.mapManager.toggleLayers(true, true, true, false, false, false, false);
+  }
+
+  /**
    * Toggle the visibility of map layers
    */
   toggleLayers(
