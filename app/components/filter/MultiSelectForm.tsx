@@ -41,6 +41,23 @@ const Group = (props: any) => (
   </div>
 );
 
+const findLocation = (location: string, provinces: SelectOption[], cities: SelectOption[]): SelectOption => {
+  const province = provinces.find((opt: SelectOption) => opt.value === location);
+  if (province) return province;
+
+  const city = cities.find((opt: SelectOption) => opt.value === location);
+  return city ?? { value: location, label: location };
+};
+
+// Main function to set selected locations
+const getSelectedLocations = (
+  locations: string[],
+  provinces: SelectOption[],
+  cities: SelectOption[]
+): SelectOption[] => {
+  return locations.map(location => findLocation(location, provinces, cities));
+};
+
 export default function MultiSelectForm({
   apiFilterOptions = `${API_BASE_URL}/api/filters/`, 
   onSubmitFilterState, 
@@ -131,17 +148,7 @@ export default function MultiSelectForm({
               )
             );
             
-            const findLocation = (location: string, provinces: SelectOption[], cities: SelectOption[]): SelectOption => {
-              const province = provinces.find((opt: SelectOption) => opt.value === location);
-              if (province) return province;
-
-              const city = cities.find((opt: SelectOption) => opt.value === location);
-              return city ?? { value: location, label: location };
-            };
-
-            setSelectedLocations(
-              initialFilterState.locations.map(location => findLocation(location, options.locations.provinces, options.locations.cities))
-            );
+            setSelectedLocations(getSelectedLocations(initialFilterState.locations, options.locations.provinces, options.locations.cities));
 
             setSelectedNews(
               initialFilterState.portals.map(portal => 
