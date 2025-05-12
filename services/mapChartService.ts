@@ -6,7 +6,7 @@ import { MapChartManager } from "./map";
  * This version has been refactored for better maintainability using a more modular architecture
  */
 export class MapChartService {
-  private mapManager: MapChartManager;
+  private readonly mapManager: MapChartManager;
 
   constructor(onError?: (message: string) => void) {
     this.mapManager = new MapChartManager(onError);

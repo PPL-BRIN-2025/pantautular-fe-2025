@@ -8,12 +8,69 @@ import { getTooltip } from "../../utils/tooltipUtils";
  */
 type ColorMappingFunction = (sprite: am5.Sprite, min: any, max: any, value: any) => void;
 
+// Color mapping objects
+const humidityColorMap: Record<string, string> = {
+  "0": "#C41A0A",
+  "10": "#F4440B",
+  "20": "#F47A0B",
+  "30": "#F4B00B",
+  "40": "#F4E60B",
+  "50": "#D2EE3C",
+  "60": "#AFF474",
+  "70": "#A3D4FF",
+  "80": "#6DBCFF",
+  "90": "#1392FF",
+  "91+": "#00528F",
+  "default": "#FFFFFF"
+};
+
+const precipitationColorMap: Record<string, string> = {
+  "Lokal": "#DC3545",
+  "Multipattern": "#E35D6A",
+  "Monsoon": "#FFC107",
+  "Equatorial": "#3CB371",
+  "Lainnya": "#B8B8B8",
+  "default": "#FFFFFF"
+};
+
+const temperatureColorMap: Record<string, string> = {
+  "0": "#000080", // Dark blue
+  "2": "#0000FF", // Blue
+  "4": "#0066FF",
+  "6": "#0099FF",
+  "8": "#00CCFF",
+  "10": "#00FFFF", // Cyan
+  "12": "#00FFCC",
+  "14": "#00FF99",
+  "16": "#00FF66",
+  "18": "#00FF00", // Green
+  "20": "#66FF00",
+  "22": "#99FF00",
+  "24": "#CCFF00",
+  "26": "#FFFF00", // Yellow
+  "28": "#FFCC00",
+  "30": "#FF9900",
+  "32": "#FF6600",
+  "34": "#FF3300",
+  "36": "#FF0000", // Red
+  "37+": "#CC0000", // Dark red
+  "default": "#FFFFFF"
+};
+
+const severityColorMap: Record<string, string> = {
+  "katastropik": "#DC3545",
+  "bahaya": "#FD7E14",
+  "biasa": "#FFC107",
+  "minimal": "#CACBCB",
+  "default": "#FFFFFF"
+};
+
 /**
  * Factory class for creating different types of map series
  */
 export class SeriesFactory {
-  private root: am5.Root;
-  private chart: am5map.MapChart;
+  private readonly root: am5.Root;
+  private readonly chart: am5map.MapChart;
 
   constructor(root: am5.Root, chart: am5map.MapChart) {
     this.root = root;
@@ -53,10 +110,10 @@ export class SeriesFactory {
     } = {}
   ): void {
     series.mapPolygons.template.setAll({
-      fill: am5.color(options.fill || "#FFFFFF"),
-      stroke: am5.color(options.stroke || "#CCCCCC"),
-      strokeWidth: options.strokeWidth || 0.5,
-      fillOpacity: options.fillOpacity === undefined ? 1 : options.fillOpacity,
+      fill: am5.color(options.fill ?? "#FFFFFF"),
+      stroke: am5.color(options.stroke ?? "#CCCCCC"),
+      strokeWidth: options.strokeWidth ?? 0.5,
+      fillOpacity: options.fillOpacity ?? 1,
     });
   }
 
@@ -98,6 +155,31 @@ export class SeriesFactory {
   }
 
   /**
+   * Gets color for numeric ranges using a mapping object
+   */
+  private getNumericRangeColor(value: number, colorMap: Record<string, string>): string {
+    const keys = Object.keys(colorMap)
+      .filter(k => k !== "default" && !k.includes("+"))
+      .map(Number)
+      .sort((a, b) => a - b);
+    
+    // Handle special case for values above highest threshold
+    const highestKey = Math.max(...keys);
+    if (value > highestKey && colorMap[`${highestKey + 1}+`]) {
+      return colorMap[`${highestKey + 1}+`];
+    }
+    
+    // Find appropriate range
+    for (const threshold of keys) {
+      if (value <= threshold) {
+        return colorMap[threshold.toString()];
+      }
+    }
+    
+    return colorMap.default;
+  }
+
+  /**
    * Creates a base polygon series for Indonesia map
    */
   createBasePolygonSeries(): am5map.MapPolygonSeries {
@@ -125,31 +207,8 @@ export class SeriesFactory {
    */
   createHumiditySeries(): am5map.MapPolygonSeries {
     return this.createLayerSeries((sprite: am5.Sprite, min, max, value) => {
-      if (value <= 0) {
-        (sprite as am5.Graphics).set("fill", am5.color("#C41A0A"));
-      } else if (value <= 10) {
-        (sprite as am5.Graphics).set("fill", am5.color("#F4440B"));
-      } else if (value <= 20) {
-        (sprite as am5.Graphics).set("fill", am5.color("#F47A0B"));
-      } else if (value <= 30) {
-        (sprite as am5.Graphics).set("fill", am5.color("#F4B00B"));
-      } else if (value <= 40) {
-        (sprite as am5.Graphics).set("fill", am5.color("#F4E60B"));
-      } else if (value <= 50) {
-        (sprite as am5.Graphics).set("fill", am5.color("#D2EE3C"));
-      } else if (value <= 60) {
-        (sprite as am5.Graphics).set("fill", am5.color("#AFF474"));
-      } else if (value <= 70) {
-        (sprite as am5.Graphics).set("fill", am5.color("#A3D4FF"));
-      } else if (value <= 80) {
-        (sprite as am5.Graphics).set("fill", am5.color("#6DBCFF"));
-      } else if (value <= 90) {
-        (sprite as am5.Graphics).set("fill", am5.color("#1392FF"));
-      } else if (value > 90) {
-        (sprite as am5.Graphics).set("fill", am5.color("#00528F"));
-      } else {
-        (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
-      }
+      const color = this.getNumericRangeColor(value, humidityColorMap);
+      (sprite as am5.Graphics).set("fill", am5.color(color));
     });
   }
 
@@ -158,19 +217,8 @@ export class SeriesFactory {
    */
   createPrecipitationSeries(): am5map.MapPolygonSeries {
     return this.createLayerSeries((sprite: am5.Sprite, min, max, value) => {
-      if (value == "Lokal") {
-        (sprite as am5.Graphics).set("fill", am5.color("#DC3545"));
-      } else if (value == "Multipattern") {
-        (sprite as am5.Graphics).set("fill", am5.color("#E35D6A"));
-      } else if (value == "Monsoon") {
-        (sprite as am5.Graphics).set("fill", am5.color("#FFC107"));
-      } else if (value == "Equatorial") {
-        (sprite as am5.Graphics).set("fill", am5.color("#3CB371"));
-      } else if (value == "Lainnya") {
-        (sprite as am5.Graphics).set("fill", am5.color("#B8B8B8"));
-      } else {
-        (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
-      }
+      const color = precipitationColorMap[value] || precipitationColorMap.default;
+      (sprite as am5.Graphics).set("fill", am5.color(color));
     });
   }
 
@@ -179,49 +227,8 @@ export class SeriesFactory {
    */
   createTemperatureSeries(): am5map.MapPolygonSeries {
     return this.createLayerSeries((sprite: am5.Sprite, min, max, value) => {
-      if (value <= 0) {
-        (sprite as am5.Graphics).set("fill", am5.color("#000080")); // Dark blue
-      } else if (value <= 2) {
-        (sprite as am5.Graphics).set("fill", am5.color("#0000FF")); // Blue
-      } else if (value <= 4) {
-        (sprite as am5.Graphics).set("fill", am5.color("#0066FF"));
-      } else if (value <= 6) {
-        (sprite as am5.Graphics).set("fill", am5.color("#0099FF"));
-      } else if (value <= 8) {
-        (sprite as am5.Graphics).set("fill", am5.color("#00CCFF"));
-      } else if (value <= 10) {
-        (sprite as am5.Graphics).set("fill", am5.color("#00FFFF")); // Cyan
-      } else if (value <= 12) {
-        (sprite as am5.Graphics).set("fill", am5.color("#00FFCC"));
-      } else if (value <= 14) {
-        (sprite as am5.Graphics).set("fill", am5.color("#00FF99"));
-      } else if (value <= 16) {
-        (sprite as am5.Graphics).set("fill", am5.color("#00FF66"));
-      } else if (value <= 18) {
-        (sprite as am5.Graphics).set("fill", am5.color("#00FF00")); // Green
-      } else if (value <= 20) {
-        (sprite as am5.Graphics).set("fill", am5.color("#66FF00"));
-      } else if (value <= 22) {
-        (sprite as am5.Graphics).set("fill", am5.color("#99FF00"));
-      } else if (value <= 24) {
-        (sprite as am5.Graphics).set("fill", am5.color("#CCFF00"));
-      } else if (value <= 26) {
-        (sprite as am5.Graphics).set("fill", am5.color("#FFFF00")); // Yellow
-      } else if (value <= 28) {
-        (sprite as am5.Graphics).set("fill", am5.color("#FFCC00"));
-      } else if (value <= 30) {
-        (sprite as am5.Graphics).set("fill", am5.color("#FF9900")); 
-      } else if (value <= 32) {
-        (sprite as am5.Graphics).set("fill", am5.color("#FF6600"));
-      } else if (value <= 34) {
-        (sprite as am5.Graphics).set("fill", am5.color("#FF3300"));
-      } else if (value <= 36) {
-        (sprite as am5.Graphics).set("fill", am5.color("#FF0000")); // Red
-      } else if (value > 36) {
-        (sprite as am5.Graphics).set("fill", am5.color("#CC0000")); // Dark red
-      } else {
-        (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
-      }
+      const color = this.getNumericRangeColor(value, temperatureColorMap);
+      (sprite as am5.Graphics).set("fill", am5.color(color));
     });
   }
 
@@ -230,17 +237,8 @@ export class SeriesFactory {
    */
   createSeveritySeries(): am5map.MapPolygonSeries {
     return this.createLayerSeries((sprite: am5.Sprite, min, max, value) => {
-      if (value == "katastropik") {
-        (sprite as am5.Graphics).set("fill", am5.color("#DC3545"));
-      } else if (value == "bahaya") {
-        (sprite as am5.Graphics).set("fill", am5.color("#FD7E14"));
-      } else if (value == "biasa") {
-        (sprite as am5.Graphics).set("fill", am5.color("#FFC107"));
-      } else if (value == "minimal") {
-        (sprite as am5.Graphics).set("fill", am5.color("#CACBCB"));
-      } else {
-        (sprite as am5.Graphics).set("fill", am5.color("#FFFFFF"));
-      }
+      const color = severityColorMap[value] || severityColorMap.default;
+      (sprite as am5.Graphics).set("fill", am5.color(color));
     });
   }
 

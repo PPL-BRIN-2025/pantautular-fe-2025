@@ -5,8 +5,8 @@ import * as am5map from "@amcharts/amcharts5/map";
  * Factory class for creating map legends
  */
 export class LegendBuilder {
-  private root: am5.Root;
-  private chart: am5map.MapChart;
+  private readonly root: am5.Root;
+  private readonly chart: am5map.MapChart;
 
   constructor(root: am5.Root, chart: am5map.MapChart) {
     this.root = root;

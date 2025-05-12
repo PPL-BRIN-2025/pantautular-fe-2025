@@ -1,14 +1,12 @@
 import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
 import { ProvinceData } from "../../types";
-import { useMapStore } from "../../store/store";
-
 /**
  * Manages map layers like base, highlight, points, and thematic layers
  */
 export class LayerManager {
-  private root: am5.Root;
-  private chart: am5map.MapChart;
+  private readonly root: am5.Root;
+  private readonly chart: am5map.MapChart;
   private basePolygonSeries: am5map.MapPolygonSeries | null = null;
   private highlightSeries: am5map.MapPolygonSeries | null = null;
   private pointSeries: am5map.ClusteredPointSeries | null = null;
