@@ -41,7 +41,7 @@ export default function RainButton({
     if (mapService) {
       /* istanbul ignore next */
       if (isActive) mapService.showPrecipitationLayer()
-      else mapService.hidePrecipitationLayer()
+      // else mapService.hidePrecipitationLayer()
     }
   }, [isActive, mapService])
 
