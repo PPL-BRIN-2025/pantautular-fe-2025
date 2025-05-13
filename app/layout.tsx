@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "../styles/globals.css";
 import { AuthProvider } from "./auth/provider";
+import LogRocketInitializer from './logrocket-client';
 
 const inter = { className: "" };
 
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen`}>
         <main className="min-h-screen pt-20">
           <AuthProvider>
+          <LogRocketInitializer />
           {children}
           </AuthProvider>
         </main>
