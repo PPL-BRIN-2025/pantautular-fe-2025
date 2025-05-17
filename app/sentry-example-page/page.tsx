@@ -92,17 +92,25 @@ export default function Page() {
           </span>
         </button>
 
-        {hasSentError ? (
-          <p className="success">
-            Sample error was sent to Sentry.
-          </p>
-        ) : !isConnected ? (
-          <div className="connectivity-error">
-            <p>The Sentry SDK is not able to reach Sentry right now - this may be due to an adblocker. For more information, see <a target="_blank" href="https://docs.sentry.io/platforms/javascript/guides/nextjs/troubleshooting/#the-sdk-is-not-sending-any-data">the troubleshooting guide</a>.</p>
-          </div>
-        ) : (
-          <div className="success_placeholder" />
-        )}
+        {(() => {
+          if (hasSentError) {
+            return (
+              <p className="success">
+                Sample error was sent to Sentry.
+              </p>
+            );
+          } else if (!isConnected) {
+            return (
+              <div className="connectivity-error">
+                <p>The Sentry SDK is not able to reach Sentry right now - this may be due to an adblocker. For more information, see <a target="_blank" href="https://docs.sentry.io/platforms/javascript/guides/nextjs/troubleshooting/#the-sdk-is-not-sending-any-data">the troubleshooting guide</a>.</p>
+              </div>
+            );
+          } else {
+            return (
+              <div className="success_placeholder" />
+            );
+          }
+        })()}
 
         <div className="flex-spacer" />
         

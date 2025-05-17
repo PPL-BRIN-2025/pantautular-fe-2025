@@ -11,7 +11,7 @@ Sentry.init({
   tracesSampleRate: 0.2, // Reduced from 1.0 to 0.2 (20% of transactions)
   
   // Set the environment to differentiate between development and production
-  environment: process.env.NODE_ENV || 'development',
+  environment: process.env.NODE_ENV ?? 'development',
   
   // Enable performance monitoring
   enableTracing: true,
