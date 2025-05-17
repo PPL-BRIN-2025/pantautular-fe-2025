@@ -21,9 +21,6 @@ Sentry.init({
   // Set the environment to differentiate between development and production
   environment: process.env.NODE_ENV ?? 'development',
 
-  // Enable performance monitoring
-  enableTracing: true,
-
   // Define how likely Replay events are sampled.
   // This sets the sample rate to be 10%. You may want this to be 100% while
   // in development and sample at a lower rate in production
