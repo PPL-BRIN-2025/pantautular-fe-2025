@@ -41,7 +41,8 @@ export default function TemperatureButton({
     if (mapService) {
       /* istanbul ignore next */
       if (isActive) mapService.showTemperatureLayer() 
-      else mapService.hideTemperatureLayer()
+      // else mapService.hideTemperatureLayer()
+      if (activeButton == null) mapService.hideAllLayers()
     }
   }, [isActive, mapService])
 
