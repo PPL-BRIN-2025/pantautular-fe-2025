@@ -6,15 +6,17 @@ import { Input } from "./ui-profile/input"
 import { useState } from "react"
 import { CheckIcon } from "./ui-profile/Checkicon"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
-const accessToken = localStorage.getItem('accessToken');
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+// const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+// const accessToken = localStorage.getItem('accessToken');
 
 interface PasswordSettingsProps {
   onClose: () => void
 }
 
 export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsProps>) {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -63,7 +65,7 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
     setIsLoading(true);
     
     try {
-      const token = localStorage.getItem('accessToken');
+      const accessToken = localStorage.getItem('accessToken');
 
       const response = await fetch(`${API_BASE_URL}/authentication/api/auth/change-password/`, {
         method: 'POST',
