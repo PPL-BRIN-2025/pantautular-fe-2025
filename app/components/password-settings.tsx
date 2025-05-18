@@ -6,10 +6,6 @@ import { Input } from "./ui-profile/input"
 import { useState } from "react"
 import { CheckIcon } from "./ui-profile/Checkicon"
 
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-// const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
-// const accessToken = localStorage.getItem('accessToken');
-
 interface PasswordSettingsProps {
   onClose: () => void
 }
@@ -103,7 +99,8 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(error.message);
-      } else {
+      } 
+      else {
         setErrorMessage("Terjadi kesalahan tak terduga");
       }
     } finally {
