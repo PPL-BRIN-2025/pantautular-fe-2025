@@ -258,4 +258,83 @@ describe('PasswordSettings Component', () => {
     fireEvent.click(closeButton);
     expect(mockOnClose).toHaveBeenCalled();
   });
+
+  it('handles non-Error exceptions in API calls', async () => {
+    // Mock fetch to reject with a non-Error object (string)
+    fetchMock.mockRejectedValueOnce("Not an error object");
+
+    render(<PasswordSettings onClose={mockOnClose} />);
+    
+    // Fill form with valid data
+    const currentPasswordInput = screen.getByTestId('input-current-password');
+    const newPasswordInput = screen.getByTestId('input-new-password');
+    const confirmPasswordInput = screen.getByTestId('input-confirm-password');
+    const submitButton = screen.getByTestId('button');
+    
+    fireEvent.change(currentPasswordInput, { target: { value: TEST_PASSWORDS.current } });
+    fireEvent.change(newPasswordInput, { target: { value: TEST_PASSWORDS.new } });
+    fireEvent.change(confirmPasswordInput, { target: { value: TEST_PASSWORDS.new } });
+    
+    // Submit form
+    fireEvent.click(submitButton);
+    
+    // Wait for and verify the generic error message
+    await waitFor(() => {
+      expect(screen.getByText('Terjadi kesalahan tak terduga')).toBeInTheDocument();
+    });
+  });
+
+  it('displays custom success message from API response when available', async () => {
+    // Mock with a custom success message from API
+    fetchMock.mockResponseOnce(JSON.stringify({ 
+      message: 'Password berhasil diperbarui pada 18 Mei 2025' 
+    }));
+
+    render(<PasswordSettings onClose={mockOnClose} />);
+
+    // Fill form with valid data
+    const currentPasswordInput = screen.getByTestId('input-current-password');
+    const newPasswordInput = screen.getByTestId('input-new-password');
+    const confirmPasswordInput = screen.getByTestId('input-confirm-password');
+    const submitButton = screen.getByTestId('button');
+    
+    fireEvent.change(currentPasswordInput, { target: { value: TEST_PASSWORDS.current } });
+    fireEvent.change(newPasswordInput, { target: { value: TEST_PASSWORDS.new } });
+    fireEvent.change(confirmPasswordInput, { target: { value: TEST_PASSWORDS.new } });
+    
+    // Submit form
+    fireEvent.click(submitButton);
+    
+    // Wait for and verify the custom success message from API
+    await waitFor(() => {
+      expect(screen.getByText('Password berhasil diperbarui pada 18 Mei 2025')).toBeInTheDocument();
+    });
+  });
+
+  it('displays default success message when API does not return a message', async () => {
+    // Mock with empty response (no message field)
+    fetchMock.mockResponseOnce(JSON.stringify({ 
+      success: true 
+    }));
+
+    render(<PasswordSettings onClose={mockOnClose} />);
+
+    // Fill form with valid data
+    const currentPasswordInput = screen.getByTestId('input-current-password');
+    const newPasswordInput = screen.getByTestId('input-new-password');
+    const confirmPasswordInput = screen.getByTestId('input-confirm-password');
+    const submitButton = screen.getByTestId('button');
+    
+    fireEvent.change(currentPasswordInput, { target: { value: TEST_PASSWORDS.current } });
+    fireEvent.change(newPasswordInput, { target: { value: TEST_PASSWORDS.new } });
+    fireEvent.change(confirmPasswordInput, { target: { value: TEST_PASSWORDS.new } });
+    
+    // Submit form
+    fireEvent.click(submitButton);
+    
+    // Wait for and verify the default success message
+    await waitFor(() => {
+      expect(screen.getByText('Kata sandi berhasil diubah')).toBeInTheDocument();
+    });
+  });
 });
