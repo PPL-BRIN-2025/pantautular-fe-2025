@@ -1,7 +1,14 @@
 "use client"
 
-import { LocationErrorType } from '../../services/LocationService';
 import { useEffect, useState } from "react";
+
+// Define the error type enum
+export type LocationErrorType = 
+  | "UNKNOWN"
+  | "BROWSER_UNSUPPORTED"
+  | "PERMISSION_DENIED"
+  | "POSITION_UNAVAILABLE"
+  | "TIMEOUT";
 
 interface LocationErrorPopupProps {
   open?: boolean;
@@ -111,31 +118,9 @@ export default function LocationErrorPopup({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
     data-testid="location-error-popup"
     >
-      <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
-        <button
-          onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-          >
-            <path d="M18 6 6 18"></path>
-            <path d="m6 6 12 12"></path>
-          </svg>
-          <span className="sr-only">Close</span>
-        </button>
-
+      <div className="relative w-full max-w-md rounded-lg bg-[#0069cf] p-6 shadow-lg dark:bg-[#0069cf] border-2 border-white">
         <div className="flex flex-col items-center gap-1 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 dark:bg-white/30">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -146,26 +131,36 @@ export default function LocationErrorPopup({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-6 w-6 text-red-600 dark:text-red-400"
+              className="h-6 w-6 text-white"
             >
               <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
               <path d="M12 9v4"></path>
               <path d="M12 17h.01"></path>
             </svg>
           </div>
-          <h2 className="text-xl font-semibold">{errorDetails.title}</h2>
-          <p className="text-gray-500 dark:text-gray-400">
+          <h2 className="text-xl font-semibold text-white">{errorDetails.title}</h2>
+          <p className="text-white/90">
             {errorDetails.description}
           </p>
         </div>
 
-        <div className="mt-4 rounded-lg bg-gray-100 p-4 dark:bg-gray-700/50">
-          <h3 className="mb-2 font-medium">Ini mungkin terjadi karena:</h3>
-          <ul className="ml-5 list-disc space-y-1 text-sm text-gray-600 dark:text-gray-300">
+        <div className="mt-4 rounded-lg bg-white/10 p-4 border border-white/20">
+          <h3 className="mb-2 font-medium text-white">Ini mungkin terjadi karena:</h3>
+          <ul className="ml-5 list-disc space-y-1 text-sm text-white/90">
             {errorDetails.reasons.map((reason) => (
               <li key={reason.id}>{reason.text}</li>
             ))}
           </ul>
+        </div>
+        
+        {/* Bottom center close button */}
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => onOpenChange(false)}
+            className="px-6 py-2.5 rounded-md bg-white hover:bg-white/90 text-[#0069cf] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+          >
+            Tutup
+          </button>
         </div>
       </div>
     </div>
