@@ -10,7 +10,7 @@ const StatsItem: React.FC<StatsItemProps> = ({ type, count, percentage }) => {
   let bgColor = '';
   let textColor = '';
   let label = '';
-  let iconPath: string | null = null; 
+  let iconPath: string;
 
   switch (type) {
     case 'kasus_kematian':
@@ -35,7 +35,7 @@ const StatsItem: React.FC<StatsItemProps> = ({ type, count, percentage }) => {
       bgColor = 'bg-gray-100';
       textColor = 'text-gray-800';
       label = 'Unknown';
-      iconPath = null;
+      iconPath = '';  
       break;
   }
 
