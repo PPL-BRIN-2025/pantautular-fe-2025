@@ -10,7 +10,7 @@ const StatsItem: React.FC<StatsItemProps> = ({ type, count, percentage }) => {
   let bgColor = '';
   let textColor = '';
   let label = '';
-  let iconPath = '';
+  let iconPath: string | null = null; 
 
   switch (type) {
     case 'kasus_kematian':
@@ -35,7 +35,7 @@ const StatsItem: React.FC<StatsItemProps> = ({ type, count, percentage }) => {
       bgColor = 'bg-gray-100';
       textColor = 'text-gray-800';
       label = 'Unknown';
-      iconPath = '';
+      iconPath = null;
       break;
   }
 
@@ -45,9 +45,9 @@ const StatsItem: React.FC<StatsItemProps> = ({ type, count, percentage }) => {
       className={`flex justify-between items-center ${bgColor} ${textColor} p-3 rounded-md`}
     >
       <div className="flex items-center">
-        {iconPath && (
+        {iconPath ? (
           <img src={iconPath} alt={label} className="mr-2 w-5 h-5" />
-        )}
+        ) : null}
         <span className="text-sm">{label}</span>
       </div>
       <span className="font-semibold text-sm">
