@@ -163,6 +163,41 @@ describe('mapApi', () => {
             }
         };
 
+        it('should fetch dashboard data with filters using POST method', async () => {
+            const mockFilters = {
+                diseases: ['Dengue'],
+                locations: ['Jakarta'],
+                level_of_alertness: 2,
+                portals: ['news-portal-1'],
+                start_date: new Date('2023-01-01'),
+                end_date: new Date('2023-12-31')
+            };
+
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(dashboardMockData)
+            });
+
+            const result = await mapApi.getDashboardData(mockFilters);
+            
+            expect(result).toEqual(dashboardMockData);
+            
+            // Verify it used POST method with the filters in the body
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/statistics/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(mockFilters),
+                }
+            );
+        });
+
         it('should fetch dashboard data successfully', async () => {
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: true,
