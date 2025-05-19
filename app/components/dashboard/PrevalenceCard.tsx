@@ -24,7 +24,7 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
 
   return (
     <div className="bg-white rounded-lg p-4 shadow content-center">
-      <h2 className="text-xl font-semibold text-blue-600 mb-4 text-center">Estimasi Prevalensi</h2>
+      <h2 className="text-xl font-semibold text-[#0069CF] mb-4 text-center">Estimasi Prevalensi</h2>
       
       <div className="flex flex-col items-center justify-center mb-4">
         <div className="flex items-center justify-center">
@@ -36,7 +36,7 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
           </div>
           <span className="text-5xl font-bold">
             {prevalenceRate}
-            {typeof prevalenceRate !== 'string' && <span className="text-blue-600">%</span>}
+            {typeof prevalenceRate !== 'string' && <span className="text-[#0069CF]">%</span>}
           </span>
         </div>
       </div>
