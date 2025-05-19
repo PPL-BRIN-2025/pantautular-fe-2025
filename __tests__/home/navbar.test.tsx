@@ -1,8 +1,7 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { AuthProvider } from "../../app/auth/provider";
-import { within } from "@testing-library/react";
 import Navbar from "../../app/components/Navbar";
 
 // Mock next/image supaya tidak error useContext di testing
