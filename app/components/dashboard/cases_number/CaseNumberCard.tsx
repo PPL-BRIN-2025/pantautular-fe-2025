@@ -1,5 +1,6 @@
 import React from 'react';
 import StatsItem from './StatsItem';
+import PeopleIcon from "../../icons/PeopleIcon";
 
 interface CaseNumbersProps {
     jumlah_kasus: number,
@@ -14,22 +15,7 @@ const CaseNumberCard:  React.FC<CaseNumbersProps> = ({ jumlah_kasus, jumlah_kasu
       <div className="flex justify-between items-center">
       <h3 className="text-xl font-semibold text-[#0069CF]">Jumlah Kasus</h3>
         <div className="flex items-center text-blue-600 text-xl font-bold">
-          <svg 
-            className="w-6 h-6 mr-2" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            viewBox="0 0 24 24" 
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M17 20h5v-2a3 3 0 00-3-3h-4m-6 
-                 5H3v-2a3 3 0 013-3h4m0 0V5a3 
-                 3 0 016 0v7m-6 0h6" 
-            />
-          </svg>
+          <PeopleIcon className="w-6 h-6 mr-2" />
           {jumlah_kasus}
         </div>
       </div>
