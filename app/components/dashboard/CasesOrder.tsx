@@ -1,6 +1,7 @@
 import React from "react";
 import { DiseaseSeverityChart, ProvinceSeverityChart, CitySeverityChart } from "../severity/Severity";
 import { FilterState } from "../../../types";
+import AreaMap from "./area_map/AreaMap";
 
 interface CasesOrderProps {
   filter?: FilterState;
@@ -24,6 +25,7 @@ const CasesOrder = ({ filter }: CasesOrderProps) => {
       <div className="chart-card">
         <CitySeverityChart filter={filter}/>
       </div>
+      <AreaMap/>
     </div>
   );
 };
