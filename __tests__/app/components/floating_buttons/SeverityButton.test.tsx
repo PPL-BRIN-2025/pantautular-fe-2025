@@ -1,6 +1,5 @@
 import { render, fireEvent, screen } from "@testing-library/react";
 import GearToggleButton from "../../../../app/components/floating_buttons/SeverityButton";
-import SeverityButton from "../../../../app/components/floating_buttons/SeverityButton";
 
 describe("GearToggleButton", () => {
   it("renders without crashing with default props", () => {
@@ -46,7 +45,7 @@ describe("GearToggleButton", () => {
   });
 
   test('shows and hides tooltip on hover', () => {
-    render(<SeverityButton />);
+    render(<GearToggleButton />);
     const button = screen.getByRole('button');
 
     // Tooltip belum muncul

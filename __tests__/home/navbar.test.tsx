@@ -2,8 +2,8 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { AuthProvider } from "../../app/auth/provider";
-import userEvent from "@testing-library/user-event";
 import { within } from "@testing-library/react";
+import Navbar from "../../app/components/Navbar";
 
 // Mock next/image supaya tidak error useContext di testing
 jest.mock("next/image", () => ({
@@ -30,7 +30,6 @@ jest.mock("../../app/auth/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-import Navbar from "../../app/components/Navbar";
 
 describe("Navbar - user not logged in", () => {
   beforeEach(() => {
