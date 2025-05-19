@@ -3,6 +3,7 @@ import { MapLocation, FilterState, ProvinceData} from "../types";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
+
 export const mapApi = {
   async getLocations(): Promise<MapLocation[]> {
     try {
@@ -99,12 +100,14 @@ export const mapApi = {
 
   async getProvinceData(dataType: string): Promise<ProvinceData[]> {
     try {
+      const accessToken = localStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE_URL}/api/province-${dataType}/`, {
         method: "GET",
         headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "x-api-key": String(API_KEY),
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
+          ...(accessToken && { 'Authorization': `Bearer ${accessToken}` })
         },
         credentials: "include",
       });
@@ -119,7 +122,6 @@ export const mapApi = {
       throw error;
     }
   }
-  
 };
 
 const fetchSeverityStats = async (endpoint: string, filter?: FilterState) => {

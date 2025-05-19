@@ -163,6 +163,41 @@ describe('mapApi', () => {
             }
         };
 
+        it('should fetch dashboard data with filters using POST method', async () => {
+            const mockFilters = {
+                diseases: ['Dengue'],
+                locations: ['Jakarta'],
+                level_of_alertness: 2,
+                portals: ['news-portal-1'],
+                start_date: new Date('2023-01-01'),
+                end_date: new Date('2023-12-31')
+            };
+
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(dashboardMockData)
+            });
+
+            const result = await mapApi.getDashboardData(mockFilters);
+            
+            expect(result).toEqual(dashboardMockData);
+            
+            // Verify it used POST method with the filters in the body
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/statistics/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(mockFilters),
+                }
+            );
+        });
+
         it('should fetch dashboard data successfully', async () => {
             (global.fetch as jest.Mock).mockResolvedValueOnce({
                 ok: true,
@@ -444,3 +479,146 @@ describe('mapApi', () => {
         });
     });
 }); 
+
+describe('getProvinceData', () => {
+    const mockDataType = 'cases';
+    const mockProvinceData = [
+        { id: 1, province: 'Jawa Barat', count: 120 },
+        { id: 2, province: 'Jawa Timur', count: 95 },
+        { id: 3, province: 'Jawa Tengah', count: 85 }
+    ];
+
+    beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Fix: Create mock localStorage properly with proper type casting
+        Object.defineProperty(window, 'localStorage', {
+            value: {
+                getItem: jest.fn() as jest.Mock,
+                setItem: jest.fn() as jest.Mock,
+                removeItem: jest.fn() as jest.Mock,
+                clear: jest.fn() as jest.Mock,
+                length: 0,
+                key: jest.fn() as jest.Mock
+            },
+            writable: true
+        });
+    });
+
+    it('should fetch province data successfully with token', async () => {
+        // Mock localStorage to return a token
+        (localStorage.getItem as jest.Mock).mockReturnValue('test-token');
+
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockProvinceData)
+        });
+
+        const result = await mapApi.getProvinceData(mockDataType);
+
+        expect(result).toEqual(mockProvinceData);
+        expect(global.fetch).toHaveBeenCalledWith(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/province-${mockDataType}/`,
+            {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                    'Authorization': 'Bearer test-token'
+                },
+                credentials: 'include',
+            }
+        );
+        expect(localStorage.getItem).toHaveBeenCalledWith('accessToken');
+    });
+
+    it('should fetch province data successfully without token', async () => {
+        // Mock localStorage to return null (no token)
+        (localStorage.getItem as jest.Mock).mockReturnValue(null);
+
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockProvinceData)
+        });
+
+        const result = await mapApi.getProvinceData(mockDataType);
+
+        expect(result).toEqual(mockProvinceData);
+        expect(global.fetch).toHaveBeenCalledWith(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/province-${mockDataType}/`,
+            {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'x-api-key': String(process.env.NEXT_PUBLIC_API_KEY),
+                },
+                credentials: 'include',
+            }
+        );
+        // Headers should not include Authorization
+        expect(global.fetch).not.toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                headers: expect.objectContaining({
+                    'Authorization': expect.anything()
+                })
+            })
+        );
+    });
+
+    it('should handle HTTP error responses for province data', async () => {
+        (localStorage.getItem as jest.Mock).mockReturnValue('test-token');
+
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: false,
+            status: 404
+        });
+
+        await expect(mapApi.getProvinceData(mockDataType)).rejects.toThrow('HTTP error! status: 404');
+        expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    it('should handle network errors for province data', async () => {
+        (localStorage.getItem as jest.Mock).mockReturnValue('test-token');
+
+        const networkError = new Error('Network error');
+        (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+
+        await expect(mapApi.getProvinceData(mockDataType)).rejects.toThrow('Network error');
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching case detail:', networkError);
+    });
+
+    it('should handle empty response for province data', async () => {
+        (localStorage.getItem as jest.Mock).mockReturnValue('test-token');
+
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve([])
+        });
+
+        const result = await mapApi.getProvinceData(mockDataType);
+        expect(result).toEqual([]);
+    });
+
+    it('should correctly format URL with different dataType values', async () => {
+        (localStorage.getItem as jest.Mock).mockReturnValue('test-token');
+
+        const dataTypes = ['cases', 'deaths', 'recoveries'];
+
+        for (const type of dataTypes) {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve([])
+            });
+
+            await mapApi.getProvinceData(type);
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/province-${type}/`,
+                expect.anything()
+            );
+        }
+    });
+});

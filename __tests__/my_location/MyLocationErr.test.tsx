@@ -61,7 +61,7 @@ describe('LocationErrorPopup Component', () => {
       />
     );
     
-    const closeButton = screen.getByRole('button', { name: /close/i });
+    const closeButton = screen.getByRole('button', { name: /tutup/i });
     fireEvent.click(closeButton);
     
     expect(mockOnOpenChange).toHaveBeenCalledWith(false);
