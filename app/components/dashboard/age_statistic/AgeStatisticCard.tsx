@@ -140,7 +140,7 @@ export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProp
     <div className="w-full h-96 bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-xl font-semibold text-[#0069CF]">Usia</h3>
-        <div className="flex items-center text-blue-600 text-xl font-bold">
+        <div className="flex items-center text-[#0069CF] text-xl font-bold">
           <PeopleIcon className="w-6 h-6 mr-2" />
           {totalCases ? new Intl.NumberFormat('de-DE').format(totalCases) : 0}
         </div>
