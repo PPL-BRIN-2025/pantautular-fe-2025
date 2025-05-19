@@ -31,6 +31,6 @@ describe("ChartHeader", () => {
     const { container } = render(<ChartHeader title="Icon Test" total={1000} />);
     const svg = container.querySelector("svg");
     expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute("viewBox", "0 0 16 16");
+    expect(svg).toHaveAttribute("viewBox", "0 0 21 20");
   });
 });
