@@ -150,4 +150,20 @@ describe('RainButton', () => {
     expect(path).toBeInTheDocument();
     expect(path).toHaveAttribute('d', expect.stringContaining('M6 14C7.39239 14'));
   });
+
+  test('shows and hides tooltip on hover', () => {
+    render(<RainButton />);
+    const button = screen.getByRole('button');
+
+    // Tooltip belum muncul
+    expect(screen.queryByText(/Peta Tematik: Curah Hujan/i)).not.toBeInTheDocument();
+
+    // Hover: tooltip muncul
+    fireEvent.mouseEnter(button);
+    expect(screen.getByText(/Peta Tematik: Curah Hujan/i)).toBeInTheDocument();
+
+    // Unhover: tooltip hilang
+    fireEvent.mouseLeave(button);
+    expect(screen.queryByText(/Peta Tematik: Curah Hujan/i)).not.toBeInTheDocument();
+  });
 });

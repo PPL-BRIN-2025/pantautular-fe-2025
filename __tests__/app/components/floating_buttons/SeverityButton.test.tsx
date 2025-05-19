@@ -1,5 +1,6 @@
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, screen } from "@testing-library/react";
 import GearToggleButton from "../../../../app/components/floating_buttons/SeverityButton";
+import SeverityButton from "../../../../app/components/floating_buttons/SeverityButton";
 
 describe("GearToggleButton", () => {
   it("renders without crashing with default props", () => {
@@ -42,5 +43,21 @@ describe("GearToggleButton", () => {
   it("sets correct aria-label", () => {
     const { getByRole } = render(<GearToggleButton ariaLabel="Custom Label" />);
     expect(getByRole("button")).toHaveAttribute("aria-label", "Custom Label");
+  });
+
+  test('shows and hides tooltip on hover', () => {
+    render(<SeverityButton />);
+    const button = screen.getByRole('button');
+
+    // Tooltip belum muncul
+    expect(screen.queryByText(/Peta Tematik: Keparahan/i)).not.toBeInTheDocument();
+
+    // Hover: tooltip muncul
+    fireEvent.mouseEnter(button);
+    expect(screen.getByText(/Peta Tematik: Keparahan/i)).toBeInTheDocument();
+
+    // Unhover: tooltip hilang
+    fireEvent.mouseLeave(button);
+    expect(screen.queryByText(/Peta Tematik: Keparahan/i)).not.toBeInTheDocument();
   });
 });
