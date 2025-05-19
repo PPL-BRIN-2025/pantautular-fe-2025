@@ -48,7 +48,7 @@ export const MapButton = ({
     <div className="relative flex flex-col items-center">
       <button
         aria-label="Map"
-        className={`relative rounded-full flex items-center justify-center transition-colors duration-200 ${
+        className={`relative group rounded-full flex items-center justify-center transition-colors duration-200 ${
           isActive || showAdditionalButtons ? "bg-blue-600" : "bg-white"
         } ${sizeMap[size].button} ${className}`}
         onClick={handleClick}
@@ -69,6 +69,12 @@ export const MapButton = ({
             fill={isActive || showAdditionalButtons ? "white" : "black"}
           />
         </svg>
+        {/* Tooltip on hover */}
+        <span
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-10 px-2 py-1 rounded bg-gray-800 text-white text-xs opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-200 shadow-lg"
+        >
+          Peta Umum
+        </span>
       </button>
 
       {showAdditionalButtons && user && (

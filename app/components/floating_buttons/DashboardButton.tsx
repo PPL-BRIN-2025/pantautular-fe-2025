@@ -75,6 +75,11 @@ export default function DashboardButton({
             fill={isActive ? "white" : "black"}
           />
         </svg>
+        <span
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-10 px-2 py-1 rounded bg-gray-800 text-white text-xs opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity duration-200 shadow-lg"
+        >
+          Dashboard
+        </span>
       </div>
     </button>
   )
