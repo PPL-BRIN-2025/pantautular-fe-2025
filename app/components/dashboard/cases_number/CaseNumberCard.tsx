@@ -14,7 +14,7 @@ const CaseNumberCard:  React.FC<CaseNumbersProps> = ({ jumlah_kasus, jumlah_kasu
     <div className="w-full mx-auto bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center">
       <h3 className="text-xl font-semibold text-[#0069CF]">Jumlah Kasus</h3>
-        <div className="flex items-center text-blue-600 text-xl font-bold">
+        <div className="flex items-center text-[#0069CF] text-xl font-bold">
           <PeopleIcon className="w-6 h-6 mr-2" />
           {jumlah_kasus}
         </div>
