@@ -1,5 +1,6 @@
 import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
+import { TEMPERATURE_COLORS } from "../../types";
 
 /**
  * Factory class for creating map legends
@@ -169,32 +170,23 @@ export class LegendBuilder {
       centerY: am5.percent(50)
     }));
 
-    // Define temperature color blocks
+    // Define the colors and value ranges for each block
     const temperatureColorBlocks = [
-      { color: "#000080", range: "≤0°C" },
-      { color: "#0000FF", range: "2°C" },
-      { color: "#0066FF", range: "4°C" },
-      { color: "#0099FF", range: "6°C" },
-      { color: "#00CCFF", range: "8°C" },
-      { color: "#00FFFF", range: "10°C" },
-      { color: "#00FFCC", range: "12°C" },
-      { color: "#00FF99", range: "14°C" },
-      { color: "#00FF66", range: "16°C" },
-      { color: "#00FF00", range: "18°C" },
-      { color: "#66FF00", range: "20°C" },
-      { color: "#99FF00", range: "22°C" },
-      { color: "#CCFF00", range: "24°C" },
-      { color: "#FFFF00", range: "26°C" },
-      { color: "#FFCC00", range: "28°C" },
-      { color: "#FF9900", range: "30°C" },
-      { color: "#FF6600", range: "32°C" },
-      { color: "#FF3300", range: "34°C" },
-      { color: "#FF0000", range: "36°C" },
-      { color: "#CC0000", range: ">36°C" }
+      { color: TEMPERATURE_COLORS[-10], range: "-10°C" },
+      { color: TEMPERATURE_COLORS[-5], range: "-5°C" },
+      { color: TEMPERATURE_COLORS[0], range: "0°C" },
+      { color: TEMPERATURE_COLORS[5], range: "5°C" },
+      { color: TEMPERATURE_COLORS[10], range: "10°C" },
+      { color: TEMPERATURE_COLORS[15], range: "15°C" },
+      { color: TEMPERATURE_COLORS[20], range: "20°C" },
+      { color: TEMPERATURE_COLORS[25], range: "25°C" },
+      { color: TEMPERATURE_COLORS[30], range: "30°C" },
+      { color: TEMPERATURE_COLORS[35], range: "35°C" },
+      { color: TEMPERATURE_COLORS[40], range: "40°C" }
     ];
 
     // Create blocks for temperature legend with smaller font due to more items
-    this.createColorBlocks(temperatureBlocksContainer, temperatureColorBlocks, 10, -15);
+    this.createColorBlocks(temperatureBlocksContainer, temperatureColorBlocks);
 
     // Initially hide the legend
     temperatureLegend.hide();
@@ -282,12 +274,23 @@ export class LegendBuilder {
         fill: am5.color(block.color),
       }));
 
+      // Determine text color based on temperature range
+      let textColor = 0xFFFFFF; // Default white
+      
+      // For temperature legends, determine text color based on the temperature value
+      if (block.range.includes("°C")) {
+        const temp = parseInt(block.range);
+        if (temp > -5 && temp < 35) {
+          textColor = 0x000000; // Black for temperatures > 0 and <= 36
+        }
+      }
+
       // Add the label inside the colored rectangle
       blockContainer.children.push(am5.Label.new(this.root, {
         text: block.range,
         fontSize: fontSize,
         fontWeight: "500",
-        fill: am5.color(0xFFFFFF),
+        fill: am5.color(textColor),
         centerX: am5.percent(centerX),
         marginTop: -25,
       }));
