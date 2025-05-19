@@ -2,6 +2,7 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
 import am5geodata_indonesiaLow from "@amcharts/amcharts5-geodata/indonesiaLow";
 import { getTooltip } from "../../utils/tooltipUtils";
+import { TEMPERATURE_COLORS } from "../../types";
 
 /**
  * Type definition for color mapping function
@@ -33,29 +34,14 @@ const precipitationColorMap: Record<string, string> = {
   "default": "#FFFFFF"
 };
 
-const temperatureColorMap: Record<string, string> = {
-  "0": "#000080", // Dark blue
-  "2": "#0000FF", // Blue
-  "4": "#0066FF",
-  "6": "#0099FF",
-  "8": "#00CCFF",
-  "10": "#00FFFF", // Cyan
-  "12": "#00FFCC",
-  "14": "#00FF99",
-  "16": "#00FF66",
-  "18": "#00FF00", // Green
-  "20": "#66FF00",
-  "22": "#99FF00",
-  "24": "#CCFF00",
-  "26": "#FFFF00", // Yellow
-  "28": "#FFCC00",
-  "30": "#FF9900",
-  "32": "#FF6600",
-  "34": "#FF3300",
-  "36": "#FF0000", // Red
-  "37+": "#CC0000", // Dark red
-  "default": "#FFFFFF"
-};
+// Convert TEMPERATURE_COLORS to a map with string keys for the SeriesFactory
+const temperatureColorMap: Record<string, string> = Object.entries(TEMPERATURE_COLORS).reduce(
+  (acc, [temp, color]) => {
+    acc[temp.toString()] = color;
+    return acc;
+  },
+  { "default": "#FFFFFF" } as Record<string, string>
+);
 
 const severityColorMap: Record<string, string> = {
   "katastropik": "#DC3545",
