@@ -123,4 +123,21 @@ describe('HumidityButton', () => {
       fireEvent.click(button);
     }).not.toThrow();
   });
+
+  test('shows and hides tooltip on hover', () => {
+  render(<HumidityButton />);
+  const button = screen.getByRole('button');
+
+  // Tooltip belum muncul
+  expect(screen.queryByText(/Peta Tematik: Kelembaban/i)).not.toBeInTheDocument();
+
+  // Hover: tooltip muncul
+  fireEvent.mouseEnter(button);
+  expect(screen.getByText(/Peta Tematik: Kelembaban/i)).toBeInTheDocument();
+
+  // Unhover: tooltip hilang
+  fireEvent.mouseLeave(button);
+  expect(screen.queryByText(/Peta Tematik: Kelembaban/i)).not.toBeInTheDocument();
+});
+  
 });

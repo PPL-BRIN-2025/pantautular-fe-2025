@@ -148,12 +148,12 @@ describe("useDonutChart hook", () => {
       {
         category: "Pria",
         value: 30,
-        color: am5.color(0x3b82f6),
+        color: am5.color("#0069CF"),
       },
       {
         category: "Wanita",
         value: 70,
-        color: am5.color(0xf472b6),
+        color: am5.color("#f0848c"),
       },
     ]);
 

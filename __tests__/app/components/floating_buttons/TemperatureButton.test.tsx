@@ -1,4 +1,4 @@
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, screen } from "@testing-library/react";
 import TemperatureButton from "../../../../app/components/floating_buttons/TemperatureButton";
 
 describe("TemperatureButton", () => {
@@ -45,5 +45,21 @@ describe("TemperatureButton", () => {
     expect(button).toHaveAttribute("aria-pressed", "false");
     fireEvent.click(button);
     expect(button).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test('shows and hides tooltip on hover', () => {
+    render(<TemperatureButton />);
+    const button = screen.getByRole('button');
+
+    // Tooltip belum muncul
+    expect(screen.queryByText(/Peta Tematik: Temperatur/i)).not.toBeInTheDocument();
+
+    // Hover: tooltip muncul
+    fireEvent.mouseEnter(button);
+    expect(screen.getByText(/Peta Tematik: Temperatur/i)).toBeInTheDocument();
+
+    // Unhover: tooltip hilang
+    fireEvent.mouseLeave(button);
+    expect(screen.queryByText(/Peta Tematik: Temperatur/i)).not.toBeInTheDocument();
   });
 });

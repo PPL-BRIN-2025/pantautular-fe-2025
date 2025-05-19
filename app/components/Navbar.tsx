@@ -77,6 +77,7 @@ function NavbarContent() {
         <div className="hidden md:flex items-center gap-20">
           <NavLink href="/" label="Beranda" />
           <NavLink href="/map" label="Peta Sebaran" />
+          <NavLink href="/dashboard" label="Dashboard" />
           <NavLink href="/about" label="Tentang Kami" />
           <NavLink href="/help" label="Bantuan" />
         </div>
