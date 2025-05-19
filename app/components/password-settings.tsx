@@ -6,14 +6,13 @@ import { Input } from "./ui-profile/input"
 import { useState } from "react"
 import { CheckIcon } from "./ui-profile/Checkicon"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
-
 interface PasswordSettingsProps {
   onClose: () => void
 }
 
 export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsProps>) {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -62,14 +61,15 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
     setIsLoading(true);
     
     try {
-      const token = localStorage.getItem('accessToken');
+      const accessToken = localStorage.getItem('accessToken');
 
       const response = await fetch(`${API_BASE_URL}/authentication/api/auth/change-password/`, {
         method: 'POST',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'X-API-KEY': String(API_KEY),
-          'Authorization': `Bearer ${token}`
+          'x-api-key': String(API_KEY),
+          ...(accessToken && { 'Authorization': `Bearer ${accessToken}` })
         },
         body: JSON.stringify({
           current_password: currentPassword,
@@ -99,7 +99,8 @@ export default function PasswordSettings({ onClose }: Readonly<PasswordSettingsP
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(error.message);
-      } else {
+      } 
+      else {
         setErrorMessage("Terjadi kesalahan tak terduga");
       }
     } finally {
