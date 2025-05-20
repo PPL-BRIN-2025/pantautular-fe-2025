@@ -1,6 +1,6 @@
 const Footer: React.FC = () => {
     return (
-      <footer className="bg-blue-500 text-white py-3 px-5 fixed bottom-0 w-full flex justify-start">
+      <footer className="bg-blue-500 text-white py-3 px-5 fixed bottom-0 w-full flex justify-start z-50">
         <div className="w-full max-w-5xl mx-0 ml-5">
           <h2 className="text-sm font-semibold mb-0.5">Saluran Bantuan</h2>
           <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1.4fr_1.8fr_1.4fr] gap-x-12 text-left items-start">
