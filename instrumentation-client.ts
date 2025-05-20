@@ -11,7 +11,6 @@ Sentry.init({
   integrations: [
     Sentry.replayIntegration(),
     Sentry.browserProfilingIntegration(),
-    Sentry.feedbackIntegration(),
     Sentry.browserTracingIntegration(),
   ],
 
