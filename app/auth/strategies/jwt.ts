@@ -60,7 +60,7 @@ export class JWTStrategy implements AuthStrategy {
 
   async logout() {
     // hapus token dari localStorage
-    localStorage.removeItem("token");
+    localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
     // setuser menjadi null
     this.token = null;
