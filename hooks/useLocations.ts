@@ -49,17 +49,17 @@ export const useLocations = (filterState: FilterState) => {
       // Match the specific error format you provided
       if (responseData.code === 'token_not_valid' || 
           responseData.detail?.includes('token not valid') ||
-          (responseData.messages && responseData.messages.some(
-            (msg: any) => msg.message?.includes('Token is invalid or expired')
-          ))) {
+          responseData.messages?.some(
+        (msg: any) => msg.message?.includes('Token is invalid or expired')
+          )) {
         return true;
       }
     }
     
     // Fallback to check error message string
     if (err.message) {
-      return err.message.includes('token_not_valid') || 
-             err.message.includes('unauthorized') || 
+      return err.message.includes('token_not_valid') ?? 
+             err.message.includes('unauthorized') ?? 
              err.message.includes('invalid token');
     }
     
