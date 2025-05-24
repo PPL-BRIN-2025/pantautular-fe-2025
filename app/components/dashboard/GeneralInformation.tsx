@@ -120,9 +120,9 @@ const GeneralInformation = ({ data }: GeneralInformationProps) => {
             {/* Case Numbers Card */}
             <CaseNumberCard
               jumlah_kasus={statsData.severity_statistics.total_cases}
-              jumlah_kasus_kematian={statsData.severity_statistics.severity_counts.Mortalitas ?? 0}
-              jumlah_kasus_terjangkit={statsData.severity_statistics.severity_counts.Insiden ?? 0}
-              jumlah_kasus_sembuh={statsData.severity_statistics.severity_counts.Hospitalisasi ?? 0}
+              jumlah_kasus_kematian={statsData.severity_statistics.severity_counts.mortalitas ?? 0}
+              jumlah_kasus_terjangkit={statsData.severity_statistics.severity_counts.insiden ?? 0}
+              jumlah_kasus_sembuh={statsData.severity_statistics.severity_counts.hospitalisasi ?? 0}
             />
             {/* Prevalence Card */}
             <PrevalenceCard

@@ -137,7 +137,9 @@ export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTin
       const updateTotalDataCount = () => {
         let totalPoints = 0;
         severityLevels.forEach(level => {
-          totalPoints += formattedData[level].length;
+          formattedData[level].forEach(item => {
+            totalPoints += item.count;
+          });
         });
 
       const dataCountEl = document.getElementById('dataCount');

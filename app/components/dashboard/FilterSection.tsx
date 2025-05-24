@@ -16,7 +16,7 @@ const FilterSection = ({
   onError,
 }: FilterSectionProps) => {
   return (
-    <div className="fixed flex flex-col h-full bg-transparent text-xl p-2 pt-8 pl-20 z-50 overflow-y-auto pb-32">
+    <div className="fixed flex flex-col h-full bg-transparent text-xl p-2 pt-8 pl-20 z-30 overflow-y-auto pb-32">
       <div className="flex-grow">
         <FilterForm
           onSubmitFilterState={onSubmitFilterState}
