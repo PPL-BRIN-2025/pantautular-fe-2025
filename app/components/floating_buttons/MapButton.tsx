@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import SeverityButton from "./SeverityButton"
 import TemperatureButton from "./TemperatureButton"
@@ -23,6 +23,12 @@ export const MapButton = ({
   const isActive = pathname === "/map"
   const { user } = useAuth()
 
+  useEffect(() => {
+    if (pathname === "/map") {
+      setShowAdditionalButtons(true)
+    }
+  }, [pathname])
+
   // Size mapping for the button and SVG
   const sizeMap = {
     small: {
@@ -40,7 +46,9 @@ export const MapButton = ({
   }
 
   const handleClick = () => {
-    setShowAdditionalButtons(true)
+    if (pathname === "/map") {
+      setShowAdditionalButtons(true)
+    }
     router.push("/map")
   }
 
