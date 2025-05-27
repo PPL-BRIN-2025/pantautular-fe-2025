@@ -66,7 +66,7 @@ const LoadingPlaceholder = ({ label }: { label?: string }) => (
 );
 
 const LoadingForm = () => (
-  <div className="bg-white rounded-lg shadow-md overflow-hidden w-full max-w-md">
+  <div className="bg-white rounded-lg shadow-md overflow-hidden w-full">
     <div className="bg-blue-500 px-6 py-4">
       <h2 className="text-white text-lg font-semibold">Filter Informasi Penyakit Menular</h2>
     </div>
@@ -440,7 +440,7 @@ const FilterForm = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden w-full max-w-md">
+    <div className="sticky top-auto z-10 bg-white rounded-lg shadow-md overflow-hidden w-full">
       <div className="bg-blue-500 px-6 py-4">
         <h2 className="text-white text-lg font-semibold">Filter Informasi Penyakit Menular</h2>
       </div>

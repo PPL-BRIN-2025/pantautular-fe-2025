@@ -16,16 +16,12 @@ const FilterSection = ({
   onError,
 }: FilterSectionProps) => {
   return (
-    <div className="h-full flex flex-col bg-transparent text-xl p-4">
-      <div className="sticky top-0 flex justify-center">
-        <div className="w-full max-w-lg">
-          <FilterForm
-            onSubmitFilterState={onSubmitFilterState}
-            initialFilterState={initialFilterState}
-            onError={onError}
-          />
-        </div>
-      </div>
+    <div className="h-screen overflow-y-auto p-4">
+      <FilterForm
+        onSubmitFilterState={onSubmitFilterState}
+        initialFilterState={initialFilterState}
+        onError={onError}
+      />
     </div>
   );
 };

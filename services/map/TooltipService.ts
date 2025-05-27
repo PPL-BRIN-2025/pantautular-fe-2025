@@ -13,7 +13,7 @@ export class TooltipService {
       getFillFromSprite: false,
       background: am5.Rectangle.new(root, {
         fill: am5.color(0xffffff),
-        fillOpacity: 0,
+        fillOpacity: 1,
       }),
       labelText: "",
       autoTextColor: false,
@@ -46,8 +46,21 @@ export class TooltipService {
   private setupCloseHandler(tooltip: am5.Tooltip): void {
     const closeHandler = (e: Event) => {
       const target = e.target as HTMLElement;
+      console.log('clicked on', target);
+      
+      // Check if click is on close button
       const closeButton = target.closest('[data-tooltip-close]');
       if (closeButton) {
+        e.preventDefault();
+        e.stopPropagation();
+        tooltip.hide();
+        return;
+      }
+
+      // Check if click is outside tooltip
+      const tooltipElement = document.querySelector('.am5-tooltip');
+      if (tooltipElement && !tooltipElement.contains(target)) {
+        console.log('clicked outside tooltip');
         e.preventDefault();
         e.stopPropagation();
         tooltip.hide();

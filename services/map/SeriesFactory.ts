@@ -311,14 +311,45 @@ export class SeriesFactory {
               const tooltipHtml = await getTooltip({ id: dataContext.id });
               tooltip.set("html", tooltipHtml);
               
-              // Set up click handler for close button
+              // Enhanced click handler for closing tooltip
               const closeHandler = (e: Event) => {
                 const target = e.target as HTMLElement;
                 const closeButton = target.closest('[data-tooltip-close]');
+                
+                // Close if clicking the close button
                 if (closeButton) {
                   e.preventDefault();
                   e.stopPropagation();
                   tooltip.hide();
+                  document.removeEventListener('click', closeHandler);
+                  return;
+                }
+                
+                // Close if clicking outside the tooltip
+                // Get the tooltip's DOM element from the amCharts5 instance
+                const tooltipElement = (tooltip as any)._display?.dom;
+                
+                if (tooltipElement) {
+                  // Check if click is outside the tooltip
+                  if (!tooltipElement.contains(target)) {
+                    // Additional check to ensure we're not clicking on the map point itself
+                    const isMapPoint = target.closest('.am5-bullet') || 
+                                     target.closest('circle[fill="#fc0339"]') ||
+                                     target.tagName.toLowerCase() === 'circle';
+                    if (!isMapPoint) {
+                      tooltip.hide();
+                      document.removeEventListener('click', closeHandler);
+                    }
+                  }
+                } else {
+                  // Fallback: close on any click that's not on a map element
+                  const isMapElement = target.closest('svg') || 
+                                      target.tagName.toLowerCase() === 'circle' ||
+                                      target.closest('.am5-bullet');
+                  if (!isMapElement) {
+                    tooltip.hide();
+                    document.removeEventListener('click', closeHandler);
+                  }
                 }
               };
 
