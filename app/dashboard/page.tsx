@@ -22,7 +22,7 @@ const Page = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#ebf3f5] overflow-auto">
+    <div className="min-h-screen bg-[#ebf3f5] ">
       <Navbar />
       <div className="h-full flex w-full gap-5">
         <div className="w-2/5 bg-transparent">

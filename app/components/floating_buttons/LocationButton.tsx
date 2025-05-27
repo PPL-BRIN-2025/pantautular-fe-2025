@@ -2,6 +2,7 @@
 
 import { MapPin } from "lucide-react"
 import type { ButtonHTMLAttributes } from "react"
+import { useState } from "react"
 
 interface LocationButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "outline"
@@ -22,6 +23,8 @@ export default function LocationButton({
     md: "w-10 h-10",
     lg: "w-16 h-16",
   }
+  const [isHovered, setIsHovered] = useState(false)
+
 
   const variantClasses = {
     default: "bg-white hover:bg-gray-100 text-black shadow-sm",
@@ -42,9 +45,12 @@ export default function LocationButton({
   }
 
   return (
+    <div className="relative">
     <button
       aria-label="Location"
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
         sizeClasses[size]
       } ${variantClasses[variant]} ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
@@ -53,5 +59,11 @@ export default function LocationButton({
     >
       <MapPin className={`text-primary ${iconSize}`} />
     </button>
+    {isHovered && (
+        <div className="absolute left-1/2 -translate-x-1/2 mt-2 bg-black text-white text-xs rounded py-1 px-2 z-30 whitespace-nowrap">
+          Temukan Lokasi Saya
+        </div>
+      )}
+    </div>
   )
 }
