@@ -22,17 +22,17 @@ const Page = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#ebf3f5]">
+    <div className="min-h-screen bg-[#ebf3f5] overflow-auto">
       <Navbar />
-      <div className="h-[calc(100vh-64px)] flex w-full gap-5">
-        <div className="w-2/5">
+      <div className="h-full flex w-full gap-5">
+        <div className="w-2/5 bg-transparent">
           <FilterSection 
             onSubmitFilterState={handleFilterSubmit}
             onError={handleError}
             // You can pass an initialFilterState here if needed.
           />
         </div>
-        <div className="w-3/5 bg-transparent overflow-y-auto">
+        <div className="w-3/5 bg-transparent">
           <InformationSection filterState={filterState} />
         </div>
       </div>
@@ -41,5 +41,4 @@ const Page = () => {
 };
 
 export default Page;
-
 

@@ -81,7 +81,7 @@ export default function MapPage() {
 
                 setFilterState(state);
                 // Optional: close filter form after submission
-                // setIsFilterVisible(false);
+                setIsFilterVisible(false);
               }}
               initialFilterState={filterState}
               onError={
