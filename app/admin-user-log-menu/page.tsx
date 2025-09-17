@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 // types
 type UserLog = {
@@ -9,6 +11,12 @@ type UserLog = {
   timestamp: string;
   detail: "Login success" | "Login Failed" | "Change Role" | string;
   note?: string; 
+};
+
+// for the filter system
+type DateRange = {
+  start: Date | null;
+  end: Date | null;
 };
 
 type Query = { page?: number; pageSize?: number };
@@ -58,6 +66,11 @@ export default function UserLogPage() {
   const [rows, setRows] = useState<UserLog[]>([]);
   const [total, setTotal] = useState(0);
 
+  // filter state
+  const [searchInputText, setSearchInputText] = useState("");
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
   // detail-modal state
   const [openId, setOpenId] = useState<string | null>(null);
   const opened = rows.find((r) => r.id === openId) || null;
@@ -89,9 +102,119 @@ export default function UserLogPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  
+  // function to handle search input changes
+  function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const newSearchText = event.target.value;
+    setSearchInputText(newSearchText);
+  }
+
+  // function to handle start date changes
+  function handleStartDateChange(date: Date | null) {
+    setStartDate(date);
+  }
+
+  // function to handle end date changes
+  function handleEndDateChange(date: Date | null) {
+    setEndDate(date);
+  }
+
+  // function to reset all filters
+  function resetFilters() {
+    setSearchInputText("");
+    setStartDate(null);
+    setEndDate(null);
+    run(); // Refresh data
+  }
+
+  // function to filter rows
+  function filterRows() {
+    let filteredData = [...rows]; // Make copy of rows
+
+    // Filter by search text if there is any
+    if (searchInputText !== "") {
+      filteredData = filteredData.filter(function(row) {
+        const lowercaseSearch = searchInputText.toLowerCase();
+        const usernameMatch = row.username.toLowerCase().includes(lowercaseSearch);
+        const emailMatch = row.email.toLowerCase().includes(lowercaseSearch);
+        const detailMatch = row.detail.toLowerCase().includes(lowercaseSearch);
+        
+        return usernameMatch || emailMatch || detailMatch;
+      });
+    }
+
+    // Filter by date range if dates are selected
+    if (startDate || endDate) {
+      filteredData = filteredData.filter(function(row) {
+        const rowDate = new Date(row.timestamp);
+        
+        // Check if date is after start date
+        const isAfterStart = !startDate ? true : rowDate >= startDate;
+        
+        // Check if date is before end date
+        const isBeforeEnd = !endDate ? true : rowDate <= endDate;
+        
+        return isAfterStart && isBeforeEnd;
+      });
+    }
+
+    return filteredData;
+  }
+
+  // Get filtered rows
+  const visibleRows = filterRows();
 
   return (
     <div className="min-h-screen w-full bg-slate-100 p-6 font-sans">
+      {/* Filter Section - Updated to match design */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-gray-200">
+          {/* Search (left) */}
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Cari user..."
+              value={searchInputText}
+              onChange={handleSearchChange}
+              className="h-10 w-full rounded-md bg-gray-100 px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* vertical divider */}
+          <div className="hidden h-8 w-px bg-gray-200 sm:block" />
+
+          {/* Date range (center) */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Dari</span>
+            <DatePicker
+              selected={startDate}
+              onChange={handleStartDateChange}
+              placeholderText="dd/mm/yy"
+              dateFormat="dd/MM/yy"
+              className="h-10 w-[140px] rounded-md bg-gray-100 px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <span className="ml-2 text-sm text-gray-600">Sampai</span>
+            <DatePicker
+              selected={endDate}
+              onChange={handleEndDateChange}
+              placeholderText="dd/mm/yy"
+              dateFormat="dd/MM/yy"
+              className="h-10 w-[140px] rounded-md bg-gray-100 px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Apply button (right) */}
+          <button
+            onClick={resetFilters}
+            className="ml-2 h-10 rounded-xl bg-blue-500 px-5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+          >
+            Terapkan Filter
+          </button>
+        </div>
+      </div>
+
+      {/* Table Section */}
       <div className="overflow-hidden rounded-2xl border shadow-sm">
         <div className="bg-blue-500 text-white ring-1 ring-black rounded-t-[10px]">
           <div className="grid grid-cols-[180px_minmax(0,1fr)_210px_160px_64px] gap-0">
@@ -116,9 +239,9 @@ export default function UserLogPage() {
 
         {/* Body */}
         <div className="bg-white">
-          {rows.length > 0 ? (
+          {visibleRows.length > 0 ? (
             <ul className="divide-y">
-              {rows.map((r) => (
+              {visibleRows.map((r) => (
                 <li key={r.id} className="px-4 py-6 hover:bg-gray-50">
                   <div className="grid grid-cols-[180px_minmax(0,1fr)_210px_160px_64px] items-center gap-0">
                     <div className="px-0 text-black text-lg leading-loose font-normal">{r.username}</div>
