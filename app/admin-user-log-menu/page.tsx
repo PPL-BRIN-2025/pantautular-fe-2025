@@ -8,6 +8,7 @@ type UserLog = {
   email: string;
   timestamp: string;
   detail: "Login success" | "Login Failed" | "Change Role" | string;
+  note?: string; 
 };
 
 type Query = { page?: number; pageSize?: number };
@@ -22,6 +23,7 @@ async function fetchUserLogs(params: Query): Promise<Resp> {
     email: `user${(i % 3) + 1}@gmail.com`,
     timestamp: new Date(Date.now() - i * 36e5).toISOString(),
     detail: i % 3 === 0 ? "Login success" : i % 3 === 1 ? "Change Role" : "Login Failed",
+    note: i % 2 === 0 ? "Lokasi: Jakarta (GeoIP). 2FA: aktif." : "Lokasi: Bandung (GeoIP). 2FA: non-aktif.",
   }));
   const pageSize = params.pageSize ?? 10;
   const page = Math.max(1, params.page ?? 1);
@@ -56,6 +58,10 @@ export default function UserLogPage() {
   const [rows, setRows] = useState<UserLog[]>([]);
   const [total, setTotal] = useState(0);
 
+  // detail-modal state
+  const [openId, setOpenId] = useState<string | null>(null);
+  const opened = rows.find((r) => r.id === openId) || null;
+
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
   const run = async (p?: Partial<Query>) => {
@@ -73,6 +79,15 @@ export default function UserLogPage() {
   useEffect(() => {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // allow closing modal with Esc
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   return (
@@ -116,8 +131,10 @@ export default function UserLogPage() {
                     </div>
                     <div className="px-0 text-right">
                       <button
-                        className="text-black text-2xl leading-loose px-2 py-1"
+                        className="text-black text-2xl leading-loose px-2 py-1 hover:bg-gray-100 rounded-lg"
                         aria-label="lihat detail"
+                        onClick={() => setOpenId(r.id)}
+                        title="Lihat detail"
                       >
                         &gt;
                       </button>
@@ -170,6 +187,77 @@ export default function UserLogPage() {
       </div>
 
       <p className="mt-4 text-xs text-gray-500">Klik baris untuk melihat detail log.</p>
+
+      {/* ------------------ Detail Modal ------------------ */}
+      {opened && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setOpenId(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-blue-600">Detail Aktivitas</h3>
+              <button
+                className="rounded-lg px-2 py-1 text-sm hover:bg-gray-100"
+                onClick={() => setOpenId(null)}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Fields */}
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
+              <div>
+                <p className="text-black font-medium">Nama</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.username}</div>
+              </div>
+              <div>
+                <p className="text-black font-medium">Email</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.email}</div>
+              </div>
+              <div>
+                <p className="text-black font-medium">Activity</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.detail}</div>
+              </div>
+              <div>
+                <p className="text-black font-medium">Time</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.timestamp)}</div>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-black font-medium">Catatan</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2 min-h-[44px]">
+                  {opened.note ?? "-"}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setOpenId(null)}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Keluar
+              </button>
+              <button
+                className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+                onClick={() => setOpenId(null)}
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ---------------- End Detail Modal ---------------- */}
+
     </div>
   );
 }
