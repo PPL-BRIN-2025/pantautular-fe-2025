@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Navbar from "../components/Navbar";
 
 type Role = "Admin" | "Expert User" | "Curator" | "Contributor";
 type User = {
@@ -40,10 +41,7 @@ export default function Page() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-
-  // editing inline state (no popup)
-  const [editingId, setEditingId] = useState<string | number | null>(null);
-  const [draftRole, setDraftRole] = useState<Role>("Contributor");
+  const [editing, setEditing] = useState<User | null>(null);
 
   // load data
   useEffect(() => {
@@ -111,7 +109,7 @@ export default function Page() {
   const onSaveRole = async (user: User, newRole: Role) => {
     const prev = users;
     setUsers((p) => p.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))); // optimistic
-    setEditingId(null);
+    setEditing(null);
     if (!USE_API) return;
 
     try {
@@ -130,6 +128,7 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
+
       <main className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="text-xl font-semibold text-gray-800">Daftar Pengguna</h1>
         <p className="mt-1 text-sm text-gray-500">
@@ -160,60 +159,24 @@ export default function Page() {
                     <td className="px-4 py-3 text-gray-700">{u.email}</td>
                     <td className="px-4 py-3 text-gray-500">{u.last_login ?? "—"}</td>
                     <td className="px-4 py-3">
-                      {editingId === u.id ? (
-                        <select
-                          value={draftRole}
-                          onChange={(e) => setDraftRole(e.target.value as Role)}
-                          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
-                        >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>
-                              {r}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full border border-[#0069CF]/20 bg-[#0069CF]/5 px-3 py-1 text-xs font-medium text-[#0069CF]">
-                          {u.role}
-                        </span>
-                      )}
+                      <span className="inline-flex items-center rounded-full border border-[#0069CF]/20 bg-[#0069CF]/5 px-3 py-1 text-xs font-medium text-[#0069CF]">
+                        {u.role}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {editingId === u.id ? (
-                          <>
-                            <button
-                              onClick={() => onSaveRole(u, draftRole)}
-                              className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                            >
-                              Simpan
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                            >
-                              Batal
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditingId(u.id);
-                                setDraftRole(u.role);
-                              }}
-                              className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                            >
-                              Ubah
-                            </button>
-                            <button
-                              onClick={() => onDelete(u.id)}
-                              className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                            >
-                              Hapus
-                            </button>
-                          </>
-                        )}
+                        <button
+                          onClick={() => setEditing(u)}
+                          className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                        >
+                          Ubah
+                        </button>
+                        <button
+                          onClick={() => onDelete(u.id)}
+                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                        >
+                          Hapus
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -230,6 +193,135 @@ export default function Page() {
           )}
         </div>
       </main>
+
+      {editing && (
+        <RoleModal
+          user={editing}
+          onClose={() => setEditing(null)}
+          onSave={(newRole) => onSaveRole(editing, newRole)}
+        />
+      )}
     </div>
+  );
+}
+
+/** ================
+ *  POPUP (Modal)
+ *  ================ */
+function RoleModal({
+  user,
+  onClose,
+  onSave,
+}: {
+  user: User;
+  onClose: () => void;
+  onSave: (role: Role) => void;
+}) {
+  const [role, setRole] = useState<Role>(user.role);
+  const [start, setStart] = useState<string>("");
+  const [end, setEnd] = useState<string>("");
+  const [note, setNote] = useState<string>("");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* overlay */}
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={onClose}
+        aria-hidden
+      />
+      {/* modal */}
+      <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-800">Edit Role</h2>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
+            aria-label="Close"
+            title="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-2">
+          <FormGroup label="Nama">
+            <input
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm"
+              value={user.name}
+              readOnly
+            />
+          </FormGroup>
+          <FormGroup label="Email">
+            <input
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm"
+              value={user.email}
+              readOnly
+            />
+          </FormGroup>
+          <FormGroup label="Role">
+            <select
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </FormGroup>
+          <FormGroup label="Berlaku Mulai">
+            <input
+              type="date"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
+              value={start}
+              onChange={(e) => setStart(e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Kadaluwarsa (opsional)">
+            <input
+              type="date"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
+              value={end}
+              onChange={(e) => setEnd(e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Catatan (opsional)">
+            <input
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
+              placeholder="—"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </FormGroup>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Batal
+          </button>
+          <button
+            onClick={() => onSave(role)}
+            className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+          >
+            Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-gray-600">{label}</span>
+      {children}
+    </label>
   );
 }
