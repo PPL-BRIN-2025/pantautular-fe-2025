@@ -3,30 +3,69 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import StatCard from "./_components/StatCard";
 import RolePills from "./_components/RolePills";
+import UserInfo from "./_components/UserInfo";
+import { headers } from "next/headers";
 
-export default function AdminDashboardPage() {
-  /* Stats Binding → Connect FE components (numbers in cards) to backend API.
-     NOTE: Commented out per request. Example skeleton:
-     
-     // Server component example:
-     // const res = await fetch(`${process.env.NEXT_PUBLIC_API}/admin-feature/stats`, { cache: "no-store" });
-     // const data = await res.json();
-     // const totalUsers = data.totalUsers;
-     // const datasets = data.datasets;
-     // const failedLogins = data.failedLogins;
+export default async function AdminDashboardPage() {
+  // Stats Binding → Connect FE components (numbers in cards) to backend API.
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
-     // Or Client hook example:
-     // const { data } = useSWR("/admin-feature/stats", fetcher);
-     // const totalUsers = data?.totalUsers ?? 0;
-  */
+  let totalUsers = 0;
+  let datasets = 0;
+  let failedLogins = 0;
+  let roles: string[] = ["Admin", "Expert", "Kurator", "Contributor"]; // fallback
 
-  // demo data – replace with API wiring above when ready
-  const totalUsers = 124;
-  const datasets = 50;
-  const roles = ["Admin", "Expert", "Kurator", "Contributor"];
+  if (API_BASE_URL) {
+    try {
+  // Forward incoming cookies to the backend (for httpOnly session/JWT cookies)
+  const reqHeaders = await headers();
+  const cookieHeader = reqHeaders.get("cookie") ?? undefined;
+
+      const res = await fetch(`${API_BASE_URL}/admin-feature/stats/`, {
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "x-api-key": String(API_KEY ?? ""),
+          ...(cookieHeader ? { cookie: cookieHeader } : {}),
+        },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Support multiple possible shapes with safe fallbacks
+        totalUsers =
+          data?.totalUsers ?? data?.total_users ?? data?.users ?? totalUsers;
+        datasets =
+          data?.datasets ?? data?.datasets_count ?? data?.dataset ?? datasets;
+        failedLogins =
+          data?.failedLogins ?? data?.failed_logins ?? data?.failed ?? failedLogins;
+        roles = Array.isArray(data?.roles) && data.roles.length > 0 ? data.roles : roles;
+      } else {
+        let detail = "";
+        try {
+          detail = await res.text();
+        } catch {}
+        let msg = `Admin stats HTTP error: ${res.status}`;
+        if (detail) msg += ` | ${detail}`;
+        console.error(msg);
+      }
+    } catch (e) {
+      console.error("Failed to fetch admin stats:", e);
+    }
+  } else {
+    console.warn("NEXT_PUBLIC_API_URL is not set. Using demo defaults for stats.");
+  }
 
   return (
     <main className={styles.container}>
+      {/* User Info Component → Display logged-in admin’s name & role */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <UserInfo />
+      </div>
+
       {/* Top stat cards */}
       <section className={styles.topGrid}>
         <StatCard label="Total Users" value={totalUsers} icon={<span>👥</span>} />
@@ -34,7 +73,7 @@ export default function AdminDashboardPage() {
 
         <div className={styles.card}>
           <div className={styles.cardLabel}>Role Defined</div>
-          <div className={styles.roleCount}>4</div>
+          <div className={styles.roleCount}>{roles.length}</div>
           <RolePills roles={roles} />
         </div>
       </section>
@@ -67,7 +106,7 @@ export default function AdminDashboardPage() {
             <div className={styles.summaryCardLabel}>Failed Login</div>
             <div className={styles.summaryRow}>
               <div className={styles.iconLarge}>👥</div>
-              <div className={styles.summaryValue}>{totalUsers}</div>
+              <div className={styles.summaryValue}>{failedLogins}</div>
             </div>
             <Link href="/admin-dashboard/logs" className={styles.linkSmall}>
               See on User Log Page

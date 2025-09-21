@@ -82,7 +82,10 @@ function NavbarContent() {
           <NavLink href="/help" label="Bantuan" />
         </div>
         {user ? (
-          <ProfileIcon logout={logout}/>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:block text-[#0f172a] font-medium select-none">{user.name} | {user.role}</span>
+            <ProfileIcon logout={logout}/>
+          </div>
         ) : (
             <div className="flex items-center gap-4 pl-4">
               <button
