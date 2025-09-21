@@ -1,0 +1,196 @@
+/* app/admin-dashboard/page.module.css */
+
+.container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Top row */
+.topGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e6edf2;
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.cardLabel {
+  font-size: 14px;
+  color: #5d6b7a;
+  margin-bottom: 8px;
+}
+
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.cardValue {
+  font-size: 36px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Role card specifics */
+.roleCount {
+  font-size: 36px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.pillsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pill {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+/* Summary block */
+.summaryWrapper {
+  background: #ffffff;
+  border: 1px solid #e6edf2;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 12px 8px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.summaryTitle {
+  font-weight: 600;
+  color: #214055;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.buttonPrimary,
+.buttonSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.buttonPrimary {
+  background: #1677ff;
+  color: #fff;
+  border-color: #1677ff;
+}
+
+.buttonSecondary {
+  background: #fff;
+  color: #1f2a37;
+  border-color: #d0d7de;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 12px 4px 6px 4px;
+}
+
+.summaryCard {
+  background: #ffffff;
+  border: 1px solid #e6edf2;
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.summaryCardLabel {
+  font-size: 14px;
+  color: #5d6b7a;
+  margin-bottom: 10px;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.iconLarge {
+  font-size: 38px;
+  line-height: 1;
+}
+
+.summaryValue {
+  font-size: 36px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.summaryNote {
+  font-size: 13px;
+  color: #708395;
+}
+
+.linkSmall {
+  font-size: 13px;
+  color: #1677ff;
+  text-decoration: none;
+}
+
+/* Bottom nav */
+.bottomNav {
+  margin-top: 18px;
+  color: #5d6b7a;
+  font-size: 14px;
+}
+
+.navLink {
+  color: #1677ff;
+  text-decoration: none;
+  margin-left: 6px;
+}
+
+.dot {
+  margin: 0 8px;
+  color: #9aa7b2;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .topGrid {
+    grid-template-columns: 1fr;
+  }
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,7 @@
+/*jsonconfig.json*/
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["./*"] }
+  }
+}
