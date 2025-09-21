@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import Navbar from "../components/Navbar";
 
 // types
 type UserLog = {
@@ -10,13 +11,7 @@ type UserLog = {
   email: string;
   timestamp: string;
   detail: "Login success" | "Login Failed" | "Change Role" | string;
-  note?: string; 
-};
-
-// for the filter system
-type DateRange = {
-  start: Date | null;
-  end: Date | null;
+  note?: string;
 };
 
 type Query = { page?: number; pageSize?: number };
@@ -66,12 +61,12 @@ export default function UserLogPage() {
   const [rows, setRows] = useState<UserLog[]>([]);
   const [total, setTotal] = useState(0);
 
-  // filter state
+  // filters
   const [searchInputText, setSearchInputText] = useState("");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  // detail-modal state
+  // modal
   const [openId, setOpenId] = useState<string | null>(null);
   const opened = rows.find((r) => r.id === openId) || null;
 
@@ -94,224 +89,188 @@ export default function UserLogPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // allow closing modal with Esc
+  // esc to close modal
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenId(null);
-    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenId(null);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  
-  // function to handle search input changes
-  function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const newSearchText = event.target.value;
-    setSearchInputText(newSearchText);
-  }
 
-  // function to handle start date changes
-  function handleStartDateChange(date: Date | null) {
-    setStartDate(date);
-  }
-
-  // function to handle end date changes
-  function handleEndDateChange(date: Date | null) {
-    setEndDate(date);
-  }
-
-  // function to reset all filters
+  // filter utils
   function resetFilters() {
     setSearchInputText("");
     setStartDate(null);
     setEndDate(null);
-    run(); // Refresh data
+    run();
   }
 
-  // function to filter rows
   function filterRows() {
-    let filteredData = [...rows]; // Make copy of rows
+    let filtered = [...rows];
 
-    // Filter by search text if there is any
-    if (searchInputText !== "") {
-      filteredData = filteredData.filter(function(row) {
-        const lowercaseSearch = searchInputText.toLowerCase();
-        const usernameMatch = row.username.toLowerCase().includes(lowercaseSearch);
-        const emailMatch = row.email.toLowerCase().includes(lowercaseSearch);
-        const detailMatch = row.detail.toLowerCase().includes(lowercaseSearch);
-        
-        return usernameMatch || emailMatch || detailMatch;
-      });
+    if (searchInputText) {
+      const q = searchInputText.toLowerCase();
+      filtered = filtered.filter(
+        (r) =>
+          r.username.toLowerCase().includes(q) ||
+          r.email.toLowerCase().includes(q) ||
+          r.detail.toLowerCase().includes(q)
+      );
     }
 
-    // Filter by date range if dates are selected
     if (startDate || endDate) {
-      filteredData = filteredData.filter(function(row) {
-        const rowDate = new Date(row.timestamp);
-        
-        // Check if date is after start date
-        const isAfterStart = !startDate ? true : rowDate >= startDate;
-        
-        // Check if date is before end date
-        const isBeforeEnd = !endDate ? true : rowDate <= endDate;
-        
-        return isAfterStart && isBeforeEnd;
+      filtered = filtered.filter((r) => {
+        const t = new Date(r.timestamp);
+        const after = !startDate || t >= startDate;
+        const before = !endDate || t <= endDate;
+        return after && before;
       });
     }
 
-    return filteredData;
+    return filtered;
   }
 
-  // Get filtered rows
   const visibleRows = filterRows();
 
   return (
-    <div className="min-h-screen w-full bg-slate-100 p-6 font-sans">
-      {/* Filter Section - Updated to match design */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-gray-200">
-          {/* Search (left) */}
-          <div className="flex-1">
+    <div className="min-h-screen w-full bg-slate-100 font-sans">
+      <Navbar />
+
+      {/* CONTAINER */}
+      <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        {/* Filter Section */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 rounded-xl bg-white p-2 sm:p-2.5 shadow-sm ring-1 ring-gray-200">
             <input
               type="text"
               placeholder="Cari user..."
               value={searchInputText}
-              onChange={handleSearchChange}
-              className="h-10 w-full rounded-md bg-gray-100 px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setSearchInputText(e.target.value)}
+              className="h-9 sm:h-10 flex-1 min-w-[200px] rounded-md bg-gray-100 px-3 sm:px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <div className="hidden h-8 w-px bg-gray-200 sm:block" />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Dari</span>
+              <DatePicker
+                selected={startDate}
+                onChange={setStartDate}
+                placeholderText="dd/mm/yy"
+                dateFormat="dd/MM/yy"
+                className="h-9 sm:h-10 w-[110px] sm:w-[140px] rounded-md bg-gray-100 px-3 sm:px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="ml-1 sm:ml-2 text-sm text-gray-600">Sampai</span>
+              <DatePicker
+                selected={endDate}
+                onChange={setEndDate}
+                placeholderText="dd/mm/yy"
+                dateFormat="dd/MM/yy"
+                className="h-9 sm:h-10 w-[110px] sm:w-[140px] rounded-md bg-gray-100 px-3 sm:px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              onClick={resetFilters}
+              className="ml-auto h-9 sm:h-10 rounded-xl bg-blue-500 px-4 sm:px-5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+            >
+              Terapkan Filter
+            </button>
           </div>
-
-          {/* vertical divider */}
-          <div className="hidden h-8 w-px bg-gray-200 sm:block" />
-
-          {/* Date range (center) */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Dari</span>
-            <DatePicker
-              selected={startDate}
-              onChange={handleStartDateChange}
-              placeholderText="dd/mm/yy"
-              dateFormat="dd/MM/yy"
-              className="h-10 w-[140px] rounded-md bg-gray-100 px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            <span className="ml-2 text-sm text-gray-600">Sampai</span>
-            <DatePicker
-              selected={endDate}
-              onChange={handleEndDateChange}
-              placeholderText="dd/mm/yy"
-              dateFormat="dd/MM/yy"
-              className="h-10 w-[140px] rounded-md bg-gray-100 px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Apply button (right) */}
-          <button
-            onClick={resetFilters}
-            className="ml-2 h-10 rounded-xl bg-blue-500 px-5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
-          >
-            Terapkan Filter
-          </button>
         </div>
-      </div>
 
-      {/* Table Section */}
-      <div className="overflow-hidden rounded-2xl border shadow-sm">
-        <div className="bg-blue-500 text-white ring-1 ring-black rounded-t-[10px]">
-          <div className="grid grid-cols-[180px_minmax(0,1fr)_210px_160px_64px] gap-0">
-            {[
-              "Username",
-              "Email",
-              "Date",
-              "Detail",
-              <span key="act" className="w-full text-right">Action</span>,
-            ].map((label, idx) => (
-              <div
-                key={idx}
-                className={`px-4 py-3 text-lg leading-loose font-normal ${
-                  idx === 0 ? "" : "border-l border-white/80"
-                }`}
-              >
-                {label}
+        {/* TABLE */}
+        <div className="overflow-hidden rounded-2xl border shadow-sm bg-white">
+          <div className="overflow-x-auto">
+            <div className="min-w-[960px]">
+              {/* Header */}
+              <div className="bg-blue-500 text-white ring-1 ring-black rounded-t-[10px]">
+                <div className="grid grid-cols-[1.2fr_1.6fr_1.4fr_1.1fr_0.6fr]">
+                  {["Username", "Email", "Date", "Detail", "Action"].map((label, idx) => (
+                    <div
+                      key={label}
+                      className={`px-4 py-2.5 sm:py-3 text-sm sm:text-base leading-loose font-normal ${
+                        idx === 0 ? "" : "border-l border-white/80"
+                      }`}
+                    >
+                      {idx === 4 ? <span className="block text-right">{label}</span> : label}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Body */}
-        <div className="bg-white">
-          {visibleRows.length > 0 ? (
-            <ul className="divide-y">
-              {visibleRows.map((r) => (
-                <li key={r.id} className="px-4 py-6 hover:bg-gray-50">
-                  <div className="grid grid-cols-[180px_minmax(0,1fr)_210px_160px_64px] items-center gap-0">
-                    <div className="px-0 text-black text-lg leading-loose font-normal">{r.username}</div>
-                    <div className="px-0 text-black text-lg leading-loose font-normal truncate">{r.email}</div>
-                    <div className="px-0 text-black text-lg leading-loose font-normal tabular-nums">
-                      {fmtDate(r.timestamp)}
-                    </div>
-                    <div className="px-0 text-lg leading-loose">
-                      <StatusBadge detail={r.detail} />
-                    </div>
-                    <div className="px-0 text-right">
-                      <button
-                        className="text-black text-2xl leading-loose px-2 py-1 hover:bg-gray-100 rounded-lg"
-                        aria-label="lihat detail"
-                        onClick={() => setOpenId(r.id)}
-                        title="Lihat detail"
-                      >
-                        &gt;
-                      </button>
-                    </div>
+              {/* Body */}
+              {visibleRows.length > 0 ? (
+                <ul className="divide-y">
+                  {visibleRows.map((r) => (
+                    <li key={r.id} className="px-4 py-4 sm:py-5 hover:bg-gray-50">
+                      <div className="grid grid-cols-[1.2fr_1.6fr_1.4fr_1.1fr_0.6fr] items-center">
+                        <div className="text-black text-sm sm:text-base leading-loose">{r.username}</div>
+                        <div className="text-black text-sm sm:text-base leading-loose truncate">{r.email}</div>
+                        <div className="text-black text-sm sm:text-base leading-loose tabular-nums">
+                          {fmtDate(r.timestamp)}
+                        </div>
+                        <div className="text-sm sm:text-base leading-loose">
+                          <StatusBadge detail={r.detail} />
+                        </div>
+                        <div className="text-right">
+                          <button
+                            className="text-black text-xl sm:text-2xl leading-loose px-2 py-1 hover:bg-gray-100 rounded-lg"
+                            aria-label="lihat detail"
+                            onClick={() => setOpenId(r.id)}
+                            title="Lihat detail"
+                          >
+                            &gt;
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-4 py-10 text-center text-gray-500">
+                  {loading ? "Loading…" : "Tidak ada data"}
+                </div>
+              )}
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between bg-white p-3 sm:p-4">
+                <p className="text-xs text-gray-600">
+                  Menampilkan <span className="font-medium">{visibleRows.length}</span> dari{" "}
+                  <span className="font-medium">{total}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+                    disabled={page <= 1}
+                    onClick={() => {
+                      const p = Math.max(1, page - 1);
+                      setPage(p);
+                      run({ page: p });
+                    }}
+                  >
+                    Prev
+                  </button>
+                  <div className="rounded-lg bg-gray-50 px-3 py-1.5 text-sm">
+                    {page} / {pageCount}
                   </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="px-4 py-10 text-center text-gray-500">
-              {loading ? "Loading…" : "Tidak ada data"}
+                  <button
+                    className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+                    disabled={page >= pageCount}
+                    onClick={() => {
+                      const p = Math.min(pageCount, page + 1);
+                      setPage(p);
+                      run({ page: p });
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between bg-white p-4">
-          <p className="text-xs text-gray-600">
-            Menampilkan <span className="font-medium">{rows.length}</span> dari{" "}
-            <span className="font-medium">{total}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
-              disabled={page <= 1}
-              onClick={() => {
-                const p = Math.max(1, page - 1);
-                setPage(p);
-                run({ page: p });
-              }}
-            >
-              Prev
-            </button>
-            <div className="rounded-lg bg-gray-50 px-3 py-1.5 text-sm">
-              {page} / {pageCount}
-            </div>
-            <button
-              className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
-              disabled={page >= pageCount}
-              onClick={() => {
-                const p = Math.min(pageCount, page + 1);
-                setPage(p);
-                run({ page: p });
-              }}
-            >
-              Next
-            </button>
           </div>
         </div>
+
+        <p className="mt-4 text-xs text-gray-500">Klik baris untuk melihat detail log.</p>
       </div>
 
-      <p className="mt-4 text-xs text-gray-500">Klik baris untuk melihat detail log.</p>
-
-      {/* ------------------ Detail Modal ------------------ */}
+      {/* Modal */}
       {opened && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -323,7 +282,6 @@ export default function UserLogPage() {
             role="dialog"
             aria-modal="true"
           >
-            {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-blue-600">Detail Aktivitas</h3>
               <button
@@ -335,7 +293,6 @@ export default function UserLogPage() {
               </button>
             </div>
 
-            {/* Fields */}
             <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
               <div>
                 <p className="text-black font-medium">Nama</p>
@@ -361,7 +318,6 @@ export default function UserLogPage() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setOpenId(null)}
@@ -379,8 +335,6 @@ export default function UserLogPage() {
           </div>
         </div>
       )}
-      {/* ---------------- End Detail Modal ---------------- */}
-
     </div>
   );
 }
