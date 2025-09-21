@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 
-type Role = "Admin" | "Expert User" | "Curator" | "Contributor";
+type Role = "Admin" | "EXP_USER" | "CURATOR" | "CONTRIBUTOR";
 type User = {
   id: string | number;
   name: string;
@@ -12,29 +12,34 @@ type User = {
   role: Role;
 };
 
-const ROLES: Role[] = ["Admin", "Expert User", "Curator", "Contributor"];
+const ROLES: Role[] = ["Admin", "EXP_USER", "CURATOR", "CONTRIBUTOR"];
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
-/** =======================
- *  TOGGLE: API vs DUMMY
- *  ======================= */
-const USE_API = false;
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
 
-/** =======================
- *  DUMMY DATA (bervariasi)
- *  ======================= */
-const DUMMY_USERS: User[] = [
-  { id: 1, name: "alika",  email: "alika@pantautular.id",  last_login: "2025-08-30 08:12:10", role: "Admin" },
-  { id: 2, name: "bima",   email: "bima@pantautular.id",   last_login: "2025-08-29 21:05:44", role: "Curator" },
-  { id: 3, name: "citra",  email: "citra@gmail.com",       last_login: "2025-08-28 14:32:12", role: "Contributor" },
-  { id: 4, name: "dimas",  email: "dimas@yahoo.com",       last_login: "2025-08-27 09:01:05", role: "Expert User" },
-  { id: 5, name: "eka",    email: "eka@pantautular.id",    last_login: "2025-08-26 19:45:30", role: "Curator" },
-  { id: 6, name: "farah",  email: "farah@mail.com",        last_login: "2025-08-25 07:12:55", role: "Contributor" },
-  { id: 7, name: "gilang", email: "gilang@pantautular.id", last_login: "2025-08-24 22:20:11", role: "Expert User" },
-  { id: 8, name: "hana",   email: "hana@mail.com",         last_login: "2025-08-23 10:00:00", role: "Admin" },
-  { id: 9, name: "indra",  email: "indra@pantautular.id",  last_login: "2025-08-22 15:40:03", role: "Contributor" },
-  { id: 10, name: "joko",  email: "joko@mail.com",         last_login: null,                  role: "Curator" },
-];
+  // Try multiple common keys
+  const keys = ["access_token", "token", "accessToken", "jwt"];
+  for (const k of keys) {
+    const v = localStorage.getItem(k);
+    if (v) return v;
+  }
+
+  // Fallback: read from cookie named access_token
+  const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+  if (m) return decodeURIComponent(m[1]);
+
+  return null;
+}
+
+function authHeaders(): Record<string, string> {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  const token = getToken();
+  if (token) h["Authorization"] = `Bearer ${token}`;
+  if (API_KEY) h["X-API-KEY"] = String(API_KEY);
+  return h;
+}
 
 export default function Page() {
   const [query, setQuery] = useState("");
@@ -45,20 +50,26 @@ export default function Page() {
 
   // load data
   useEffect(() => {
-    if (!USE_API) {
-      setUsers(DUMMY_USERS);
-      setLoading(false);
-      return;
-    }
     (async () => {
       try {
         setLoading(true);
         setErr(null);
-        const res = await fetch(`${API_BASE}/authentication/admin/users`, {
+        console.log("[admin-role] headers", authHeaders());
+        const res = await fetch(`${API_BASE}/admin-feature/users`, {
+          method: "GET",
+          headers: authHeaders(),
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
         });
-        if (!res.ok) throw new Error(`GET /admin/users failed: ${res.status}`);
+        if (!res.ok) {
+          let detail = "";
+          try {
+            const j = await res.json();
+            detail = j?.detail || JSON.stringify(j);
+          } catch {}
+          throw new Error(
+            `GET /admin-feature/users failed: ${res.status} ${detail}`.trim()
+          );
+        }
         const data: User[] = await res.json();
         setUsers(data);
       } catch (e: any) {
@@ -69,7 +80,7 @@ export default function Page() {
     })();
   }, []);
 
-  // filter (fixed): name, email, role, last_login
+  // filter
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return users;
@@ -90,16 +101,21 @@ export default function Page() {
   const onDelete = async (id: string | number) => {
     if (!confirm("Hapus pengguna ini?")) return;
     const prev = users;
-    setUsers((p) => p.filter((u) => u.id !== id)); // optimistic
-    if (!USE_API) return;
-
+    setUsers((p) => p.filter((u) => u.id !== id));
     try {
-      const res = await fetch(`${API_BASE}/authentication/admin/users/${id}`, {
+      const res = await fetch(`${API_BASE}/admin-feature/users/${id}`, {
         method: "DELETE",
+        headers: authHeaders(),
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
       });
-      if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
+      if (!res.ok) {
+        let detail = "";
+        try {
+          const j = await res.json();
+          detail = j?.detail || JSON.stringify(j);
+        } catch {}
+        throw new Error(`DELETE failed: ${res.status} ${detail}`.trim());
+      }
     } catch {
       setUsers(prev);
       alert("Gagal menghapus user");
@@ -108,18 +124,29 @@ export default function Page() {
 
   const onSaveRole = async (user: User, newRole: Role) => {
     const prev = users;
-    setUsers((p) => p.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))); // optimistic
+    setUsers((p) =>
+      p.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))
+    );
     setEditing(null);
-    if (!USE_API) return;
 
     try {
-      const res = await fetch(`${API_BASE}/authentication/admin/users/${user.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole }),
-      });
-      if (!res.ok) throw new Error(`PATCH failed: ${res.status}`);
+      const res = await fetch(
+        `${API_BASE}/admin-feature/users/${user.id}/role`,
+        {
+          method: "PUT",
+          headers: authHeaders(),
+          credentials: "include",
+          body: JSON.stringify({ role_name: newRole }),
+        }
+      );
+      if (!res.ok) {
+        let detail = "";
+        try {
+          const j = await res.json();
+          detail = j?.detail || JSON.stringify(j);
+        } catch {}
+        throw new Error(`PUT role failed: ${res.status} ${detail}`.trim());
+      }
     } catch {
       setUsers(prev);
       alert("Gagal menyimpan perubahan role");
@@ -128,7 +155,6 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
-
       <main className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="text-xl font-semibold text-gray-800">Daftar Pengguna</h1>
         <p className="mt-1 text-sm text-gray-500">
@@ -144,18 +170,6 @@ export default function Page() {
             aria-label="Cari Nama / Email / Role"
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 pr-12 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
           />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10.5 3.75a6.75 6.75 0 1 0 4.243 11.877l3.315 3.315a.75.75 0 1 0 1.06-1.06l-3.315-3.315A6.75 6.75 0 0 0 10.5 3.75Zm-5.25 6.75a5.25 5.25 0 1 1 10.5 0 5.25 5.25 0 0 1-10.5 0Z"
-              clipRule="evenodd"
-            />
-          </svg>
         </div>
 
         {/* table */}
@@ -177,10 +191,15 @@ export default function Page() {
               </thead>
               <tbody>
                 {filtered.map((u, idx) => (
-                  <tr key={u.id} className={idx % 2 ? "bg-gray-50/50" : "bg-white"}>
+                  <tr
+                    key={u.id}
+                    className={idx % 2 ? "bg-gray-50/50" : "bg-white"}
+                  >
                     <td className="px-4 py-3 text-gray-700">{u.name}</td>
                     <td className="px-4 py-3 text-gray-700">{u.email}</td>
-                    <td className="px-4 py-3 text-gray-500">{u.last_login ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {u.last_login ?? "—"}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center rounded-full border border-[#0069CF]/20 bg-[#0069CF]/5 px-3 py-1 text-xs font-medium text-[#0069CF]">
                         {u.role}
@@ -206,7 +225,10 @@ export default function Page() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
+                    <td
+                      colSpan={5}
+                      className="px-4 py-6 text-center text-sm text-gray-500"
+                    >
                       Tidak ada data yang cocok dengan pencarian.
                     </td>
                   </tr>
@@ -228,9 +250,6 @@ export default function Page() {
   );
 }
 
-/** ================
- *  POPUP (Modal)
- *  ================ */
 function RoleModal({
   user,
   onClose,
@@ -241,19 +260,14 @@ function RoleModal({
   onSave: (role: Role) => void;
 }) {
   const [role, setRole] = useState<Role>(user.role);
-  const [start, setStart] = useState<string>("");
-  const [end, setEnd] = useState<string>("");
-  const [note, setNote] = useState<string>("");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* overlay */}
       <div
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
         aria-hidden
       />
-      {/* modal */}
       <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-800">Edit Role</h2>
@@ -295,30 +309,6 @@ function RoleModal({
               ))}
             </select>
           </FormGroup>
-          <FormGroup label="Berlaku Mulai">
-            <input
-              type="date"
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
-          </FormGroup>
-          <FormGroup label="Kadaluwarsa (opsional)">
-            <input
-              type="date"
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-            />
-          </FormGroup>
-          <FormGroup label="Catatan (opsional)">
-            <input
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
-              placeholder="—"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </FormGroup>
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
@@ -340,10 +330,18 @@ function RoleModal({
   );
 }
 
-function FormGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function FormGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-gray-600">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-gray-600">
+        {label}
+      </span>
       {children}
     </label>
   );
