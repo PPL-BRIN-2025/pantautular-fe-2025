@@ -135,6 +135,29 @@ export default function Page() {
           Kelola role: tambah/ubah/hapus. Perubahan berlaku login berikutnya.
         </p>
 
+        {/* search */}
+        <div className="relative mt-4">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari Nama / Email / Role"
+            aria-label="Cari Nama / Email / Role"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 pr-12 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
+          />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10.5 3.75a6.75 6.75 0 1 0 4.243 11.877l3.315 3.315a.75.75 0 1 0 1.06-1.06l-3.315-3.315A6.75 6.75 0 0 0 10.5 3.75Zm-5.25 6.75a5.25 5.25 0 1 1 10.5 0 5.25 5.25 0 0 1-10.5 0Z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </div>
+
         {/* table */}
         <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           {loading ? (
