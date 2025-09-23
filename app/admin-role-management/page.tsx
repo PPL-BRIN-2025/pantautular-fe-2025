@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Navbar from "../components/Navbar";
 
 type Role = "Admin" | "EXP_USER" | "CURATOR" | "CONTRIBUTOR";
 type User = {
@@ -37,9 +36,14 @@ function authHeaders(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json" };
   const token = getToken();
   if (token) h["Authorization"] = `Bearer ${token}`;
-  if (API_KEY) h["X-API-KEY"] = String(API_KEY);
+  if (process.env.NEXT_PUBLIC_API_KEY) {
+    h["X-API-KEY"] = String(process.env.NEXT_PUBLIC_API_KEY);
+  }
   return h;
 }
+
+export { authHeaders };
+
 
 export default function Page() {
   const [query, setQuery] = useState("");
