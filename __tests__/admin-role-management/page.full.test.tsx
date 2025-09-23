@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import Page, { authHeaders } from "../../app/admin-role-management/page";
+import Page, { authHeaders, getToken } from "../../app/admin-role-management/page";
 
 // Mock data users
 const USERS = [
@@ -201,3 +201,157 @@ describe("authHeaders branch coverage", () => {
     });
   });
 });
+
+describe("Extra branch coverage", () => {
+  test("getToken returns null when window is undefined", async () => {
+    const savedWindow = global.window;
+    // @ts-ignore force undefined
+    delete (global as any).window;
+
+    const mod = await import("../../app/admin-role-management/page");
+    const token = (mod as any).getToken();
+    expect(token).toBeNull();
+
+    // restore window
+    global.window = savedWindow;
+  });
+
+  test("GET error path with broken JSON triggers catch{}", async () => {
+    jest.resetAllMocks();
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => {
+        throw new Error("bad json");
+      },
+    } as any);
+
+    render(<Page />);
+    await waitFor(() => {
+      expect(screen.getByText(/Error:/i)).toBeInTheDocument();
+    });
+  });
+
+  test("PUT error path with broken JSON triggers catch{}", async () => {
+    jest.resetAllMocks();
+    global.fetch = jest.fn()
+      // first GET users
+      .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any)
+      // then PUT fails with broken json
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => { throw new Error("bad json"); },
+      } as any);
+
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Ubah")[1]);
+    await screen.findByText(/Edit Role/i);
+
+    const select = screen.getByLabelText("Role");
+    fireEvent.change(select, { target: { value: "EXP_USER" } });
+
+    fireEvent.click(screen.getByText("Simpan"));
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan role");
+    });
+  });
+
+  test("DELETE error path with broken JSON triggers catch{}", async () => {
+    jest.resetAllMocks();
+    global.fetch = jest.fn()
+      // GET users
+      .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any)
+      // DELETE fails with broken json
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => { throw new Error("bad json"); },
+      } as any);
+
+    (window.confirm as jest.Mock).mockReturnValue(true);
+
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Gagal menghapus user");
+      expect(screen.getByText("Bob")).toBeInTheDocument();
+    });
+  });
+
+  test("getToken returns null when window is undefined", () => {
+    const savedWindow = global.window;
+    // @ts-ignore force delete
+    delete (global as any).window;
+
+    expect(getToken()).toBeNull();
+
+    global.window = savedWindow; // restore
+  });
+
+  test("GET error path triggers catch{} when res.json throws", async () => {
+  global.fetch = jest.fn().mockResolvedValueOnce({
+    ok: false,
+    status: 500,
+    json: async () => { throw new Error("parse error"); },
+  } as any);
+
+  render(<Page />);
+  await waitFor(() => {
+    expect(screen.getByText(/Error:/i)).toBeInTheDocument();
+  });
+});
+
+test("PUT error path triggers catch{} when res.json throws", async () => {
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET users
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => { throw new Error("parse error"); },
+    } as any); // PUT fail
+
+  render(<Page />);
+  await screen.findByText("Bob");
+
+  fireEvent.click(screen.getAllByText("Ubah")[1]);
+  await screen.findByText(/Edit Role/i);
+
+  const select = screen.getByLabelText("Role");
+  fireEvent.change(select, { target: { value: "EXP_USER" } });
+
+  fireEvent.click(screen.getByText("Simpan"));
+
+  await waitFor(() => {
+    expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan role");
+  });
+});
+
+test("DELETE error path triggers catch{} when res.json throws", async () => {
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => { throw new Error("parse error"); },
+    } as any); // DELETE fail
+
+  (window.confirm as jest.Mock).mockReturnValue(true);
+
+  render(<Page />);
+  await screen.findByText("Bob");
+
+  fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+  await waitFor(() => {
+    expect(window.alert).toHaveBeenCalledWith("Gagal menghapus user");
+  });
+});
+});
+
