@@ -45,6 +45,12 @@
   color: #0f172a;
 }
 
+.hint {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
 /* Role card specifics */
 .roleCount {
   font-size: 36px;
