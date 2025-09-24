@@ -353,5 +353,75 @@ test("DELETE error path triggers catch{} when res.json throws", async () => {
     expect(window.alert).toHaveBeenCalledWith("Gagal menghapus user");
   });
 });
+
+test("uses fallback API_BASE when NEXT_PUBLIC_API_BASE_URL not set", async () => {
+  delete (process as any).env.NEXT_PUBLIC_API_BASE_URL;
+
+  global.fetch = jest.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => USERS,
+  } as any);
+
+  render(<Page />);
+
+  await waitFor(() => {
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/admin-feature/users",
+      expect.any(Object)
+    );
+  });
+});
+
+test("sets error fallback 'Load gagal' when e.message is undefined", async () => {
+  global.fetch = jest.fn().mockImplementationOnce(() => {
+    throw {}; // error tanpa message
+  });
+
+  render(<Page />);
+
+  await waitFor(() => {
+    expect(screen.getByText(/Error: Load gagal/)).toBeInTheDocument();
+  });
+});
+
+test("cancel delete when confirm returns false", async () => {
+  (window.confirm as jest.Mock).mockReturnValue(false);
+
+  render(<Page />);
+  await screen.findByText("Bob");
+
+  fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+  await waitFor(() => {
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+  });
+
+  // pastikan fetch tidak dipanggil
+  expect(global.fetch).toHaveBeenCalledTimes(1); // hanya GET awal
+});
+
+test("uses fallback API_BASE when NEXT_PUBLIC_API_BASE_URL is not set", async () => {
+  const old = process.env.NEXT_PUBLIC_API_BASE_URL;
+  delete (process as any).env.NEXT_PUBLIC_API_BASE_URL;
+
+  global.fetch = jest.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => USERS,
+  } as any);
+
+  render(<Page />);
+
+  await waitFor(() => {
+    const url = (global.fetch as jest.Mock).mock.calls[0][0];
+    expect(url).toBe("http://localhost:8000/admin-feature/users");
+  });
+
+  // restore original env
+  if (old) {
+    process.env.NEXT_PUBLIC_API_BASE_URL = old;
+  }
+});
+
+
 });
 
