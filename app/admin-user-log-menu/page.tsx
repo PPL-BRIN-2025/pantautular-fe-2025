@@ -26,7 +26,7 @@ async function fetchUserLogs(params: Query): Promise<Resp> {
     email: `user${(i % 3) + 1}@gmail.com`,
     timestamp: new Date(Date.now() - i * 36e5).toISOString(),
     detail: i % 3 === 0 ? "Login success" : i % 3 === 1 ? "Change Role" : "Login Failed",
-    note: i % 2 === 0 ? "Lokasi: Jakarta (GeoIP). 2FA: aktif." : "Lokasi: Bandung (GeoIP). 2FA: non-aktif.",
+    note: i % 2 === 0 ? "Lokasi: Jakarta (GeoIP). 2FA: aktif." : undefined,
   }));
   const pageSize = params.pageSize ?? 10;
   const page = Math.max(1, params.page ?? 1);
@@ -338,3 +338,4 @@ export default function UserLogPage() {
     </div>
   );
 }
+export { fetchUserLogs };
