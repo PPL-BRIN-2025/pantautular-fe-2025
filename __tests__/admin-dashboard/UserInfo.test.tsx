@@ -28,5 +28,40 @@ describe('Admin Dashboard - UserInfo', () => {
     );
 
     expect(screen.getByText('Gojo Satoru | Admin')).toBeInTheDocument();
+    expect(screen.getByLabelText('Logged in admin information')).toBeInTheDocument();
+  });
+
+  it('displays default values when user is not defined', () => {
+    const value = {
+      login: async () => ({}),
+      logout: async () => {},
+      user: null,
+      strategy,
+    };
+
+    render(
+      <AuthContext.Provider value={value}>
+        <UserInfo />
+      </AuthContext.Provider>
+    );
+
+    expect(screen.getByText('Admin | —')).toBeInTheDocument();
+  });
+
+  it('displays default role when user has no role', () => {
+    const value = {
+      login: async () => ({}),
+      logout: async () => {},
+      user: { id: 2, email: 'user@example.com', name: 'Test User', role: null } as any,
+      strategy,
+    };
+
+    render(
+      <AuthContext.Provider value={value}>
+        <UserInfo />
+      </AuthContext.Provider>
+    );
+
+    expect(screen.getByText('Test User | —')).toBeInTheDocument();
   });
 });

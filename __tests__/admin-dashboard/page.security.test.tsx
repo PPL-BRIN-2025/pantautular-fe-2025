@@ -1,17 +1,24 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+
+// Mock window location
+Object.defineProperty(window, 'location', {
+  value: {
+    href: '',
+  },
+  writable: true,
+});
 
 // Mock cookies forwarding
 jest.mock('next/headers', () => ({
   headers: () => Promise.resolve({ get: (k: string) => (k.toLowerCase() === 'cookie' ? 'sessionid=abc' : null) }),
 }));
 
-// Mock redirect from next/navigation
-const redirectMock = jest.fn();
-jest.mock('next/navigation', () => ({
-  redirect: (...args: any[]) => redirectMock(...args),
-}));
+// Mock UserInfo to avoid AuthContext dependency
+jest.mock('../../app/admin-dashboard/_components/UserInfo', () => () => (
+  <div data-testid="user-info">Mock User Info</div>
+));
 
 import AdminDashboardPage from '../../app/admin-dashboard/page';
 
@@ -22,7 +29,7 @@ describe('Admin Dashboard - Security UX', () => {
     jest.resetModules();
     process.env = { ...ORIGINAL_ENV };
     (global.fetch as any) = jest.fn();
-    redirectMock.mockReset();
+    window.location.href = '';
   });
 
   afterAll(() => {
@@ -31,33 +38,87 @@ describe('Admin Dashboard - Security UX', () => {
 
   it('renders access denied screen on 403 with friendly message', async () => {
     process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 403,
       json: async () => ({ detail: 'Akses Ditolak' }),
     });
 
-    const ui = await AdminDashboardPage();
-    render(ui as unknown as React.ReactElement);
+    render(<AdminDashboardPage />);
 
-    expect(screen.getByText('Informasi Akses')).toBeInTheDocument();
+    // Wait for async state updates
+    await waitFor(() => {
+      expect(screen.getByText('Informasi Akses')).toBeInTheDocument();
+    });
+    
     expect(screen.getByText('Akses Ditolak')).toBeInTheDocument();
-    expect(redirectMock).not.toHaveBeenCalled();
+    
+    // Links should be present
+    const backLink = screen.getByRole('link', { name: 'Kembali' });
+    expect(backLink).toBeInTheDocument();
+    expect(backLink.getAttribute('href')).toBe('/');
+    
+    const loginLink = screen.getByRole('link', { name: 'Login' });
+    expect(loginLink).toBeInTheDocument();
+    expect(loginLink.getAttribute('href')).toBe('/login?next=/admin-dashboard');
+  });
+
+  it('handles 403 with invalid JSON response', async () => {
+    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => { throw new Error('Invalid JSON'); },
+    });
+
+    render(<AdminDashboardPage />);
+
+    // Wait for async state updates
+    await waitFor(() => {
+      expect(screen.getByText('Akses Ditolak')).toBeInTheDocument();
+    });
   });
 
   it('redirects to login on 401 (unauthenticated)', async () => {
     process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 401 });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
+      ok: false, 
+      status: 401 
+    });
 
-    let thrown: any = null;
-    try {
-      await AdminDashboardPage();
-    } catch (e) {
-      thrown = e;
-    }
+    render(<AdminDashboardPage />);
+    
+    // Wait for the redirect
+    await waitFor(() => {
+      expect(window.location.href).toBe('/login?next=%2Fadmin-dashboard');
+    });
+  });
 
-    expect(redirectMock).toHaveBeenCalledWith('/login?next=/admin-dashboard');
-    // In Next.js, redirect throws to stop rendering; we simulate and accept any thrown error
-    expect(thrown).toBeTruthy();
+  it('handles non-403 error status codes gracefully', async () => {
+    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // Test with 404 error
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      text: async () => 'Not Found',
+    });
+
+    render(<AdminDashboardPage />);
+
+    // Wait for async updates
+    await waitFor(() => {
+      expect(errorSpy).toHaveBeenCalled();
+    });
+    
+    // Should log error
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Admin stats HTTP error: 404'));
+    
+    // Should render the page with default values
+    const zeroValues = screen.getAllByText('0');
+    expect(zeroValues.length).toBeGreaterThan(0);
+    
+    errorSpy.mockRestore();
   });
 });

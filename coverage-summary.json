@@ -1,0 +1,21 @@
+
+> pantautular-fe@0.1.0 test
+> jest --coverage --coverage --testPathPattern=__tests__/admin-dashboard -- --json
+
+-----------------------------|---------|----------|---------|---------|-------------------
+File                         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-----------------------------|---------|----------|---------|---------|-------------------
+All files                    |   94.11 |    91.42 |     100 |    96.2 |                   
+ admin-dashboard             |   94.28 |    91.66 |     100 |   95.38 |                   
+  layout.tsx                 |     100 |      100 |     100 |     100 |                   
+  page.tsx                   |    94.2 |    91.66 |     100 |   95.31 | 55-57             
+ admin-dashboard/_components |     100 |      100 |     100 |     100 |                   
+  AccessDenied.tsx           |     100 |      100 |     100 |     100 |                   
+  RolePills.tsx              |     100 |      100 |     100 |     100 |                   
+  StatCard.tsx               |     100 |      100 |     100 |     100 |                   
+  UserInfo.tsx               |     100 |      100 |     100 |     100 |                   
+ auth                        |     100 |      100 |     100 |     100 |                   
+  context.ts                 |     100 |      100 |     100 |     100 |                   
+ auth/hooks                  |      80 |       50 |     100 |     100 |                   
+  useAuth.ts                 |      80 |       50 |     100 |     100 | 8                 
+-----------------------------|---------|----------|---------|---------|-------------------
