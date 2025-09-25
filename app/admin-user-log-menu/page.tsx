@@ -17,21 +17,25 @@ type UserLog = {
 type Query = { page?: number; pageSize?: number };
 type Resp = { data: UserLog[]; page: number; pageSize: number; total: number };
 
-// dummy fetch
+// inserting the real fetch from the database, probably wont work
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+
 async function fetchUserLogs(params: Query): Promise<Resp> {
-  await new Promise((r) => setTimeout(r, 150));
-  const seed: UserLog[] = Array.from({ length: 25 }).map((_, i) => ({
-    id: String(i + 1),
-    username: `user${(i % 3) + 1}`,
-    email: `user${(i % 3) + 1}@gmail.com`,
-    timestamp: new Date(Date.now() - i * 36e5).toISOString(),
-    detail: i % 3 === 0 ? "Login success" : i % 3 === 1 ? "Change Role" : "Login Failed",
-    note: i % 2 === 0 ? "Lokasi: Jakarta (GeoIP). 2FA: aktif." : "Lokasi: Bandung (GeoIP). 2FA: non-aktif.",
-  }));
-  const pageSize = params.pageSize ?? 10;
-  const page = Math.max(1, params.page ?? 1);
-  const start = (page - 1) * pageSize;
-  return { data: seed.slice(start, start + pageSize), page, pageSize, total: seed.length };
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.pageSize) qs.set("pageSize", String(params.pageSize));
+  if (params.search) qs.set("search", params.search);
+  if (params.start) qs.set("start", params.start);
+  if (params.end) qs.set("end", params.end);
+  if (params.sort) qs.set("sort", params.sort);
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const key = process.env.NEXT_PUBLIC_API_KEY;
+  // if (key) headers["x-api-key"] = key; // gonna add this later
+
+  const res = await fetch(`${API}/api/admin/user-logs/?${qs}`, { headers, cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as Resp;
 }
 
 // helpers
