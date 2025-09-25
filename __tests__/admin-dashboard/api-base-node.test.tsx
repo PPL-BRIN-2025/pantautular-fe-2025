@@ -25,7 +25,7 @@ describe('Admin Dashboard Page API_BASE check - Direct module test', () => {
       const originalReact = jest.requireActual('react');
       return {
         ...originalReact,
-        useEffect: (callback) => {
+        useEffect: (callback: () => void) => {
           callback();
         },
         useState: jest.fn().mockImplementation((initialState) => [initialState, jest.fn()])

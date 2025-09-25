@@ -1,5 +1,4 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 describe('Admin Dashboard - API_BASE Coverage', () => {
@@ -7,7 +6,6 @@ describe('Admin Dashboard - API_BASE Coverage', () => {
   test('API_BASE is properly checked', () => {
     // Import the module to directly test the code
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const pageModule = require('../../app/admin-dashboard/page');
     
     // Extract the API_BASE check from the useEffect in page.tsx
     const API_BASE = ''; // Empty string to simulate API_BASE being falsy
