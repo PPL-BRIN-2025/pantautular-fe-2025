@@ -6,15 +6,24 @@ import Navbar from "../components/Navbar";
 
 // types
 type UserLog = {
-  id: string;
+  id: number;
   username: string;
   email: string;
   timestamp: string;
   detail: "Login success" | "Login Failed" | "Change Role" | string;
   note?: string;
+  action?: string;
 };
 
-type Query = { page?: number; pageSize?: number };
+type Query = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  start?: string; // ISO
+  end?: string;   // ISO will add later
+  sort?: "timestamp:asc" | "timestamp:desc";
+};
+
 type Resp = { data: UserLog[]; page: number; pageSize: number; total: number };
 
 // inserting the real fetch from the database, probably wont work
@@ -71,7 +80,7 @@ export default function UserLogPage() {
   const [endDate, setEndDate] = useState<Date | null>(null);
 
   // modal
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<number | null>(null);
   const opened = rows.find((r) => r.id === openId) || null;
 
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
@@ -79,10 +88,20 @@ export default function UserLogPage() {
   const run = async (p?: Partial<Query>) => {
     setLoading(true);
     try {
-      const res = await fetchUserLogs({ page, pageSize, ...(p || {}) });
+      const res = await fetchUserLogs({
+        page,
+        pageSize,
+        search: searchInputText || undefined,
+        start: startDate ? startDate.toISOString() : undefined,
+        end: endDate ? endDate.toISOString() : undefined,
+        sort: "timestamp:desc",
+        ...(p || {}),
+      });
       setRows(res.data);
       setTotal(res.total);
       if (p?.page) setPage(p.page);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -100,13 +119,12 @@ export default function UserLogPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // filter utils
-  function resetFilters() {
-    setSearchInputText("");
-    setStartDate(null);
-    setEndDate(null);
-    run();
+  function applyFilters() {
+    setPage(1);
+    run({ page: 1 });
   }
+
+  const visibleRows = rows;
 
   function filterRows() {
     let filtered = [...rows];
@@ -171,7 +189,7 @@ export default function UserLogPage() {
               />
             </div>
             <button
-              onClick={resetFilters}
+              onClick={applyFilters}
               className="ml-auto h-9 sm:h-10 rounded-xl bg-blue-500 px-4 sm:px-5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
             >
               Terapkan Filter
