@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Navbar from "../components/Navbar";
 
 type Role = "Admin" | "EXP_USER" | "CURATOR" | "CONTRIBUTOR";
 type User = {
@@ -15,10 +16,11 @@ const ROLES: Role[] = ["Admin", "EXP_USER", "CURATOR", "CONTRIBUTOR"];
 /* istanbul ignore next */
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+const isTest = process.env.NODE_ENV === "test"; 
 
 function getToken(): string | null {
   if (typeof window === "undefined") {
-    void 0; // no-op supaya branch dihitung
+    void 0; // no-op
     return null;
   }
   // Try multiple common keys
@@ -47,7 +49,6 @@ function authHeaders(): Record<string, string> {
 
 export { getToken, authHeaders };
 
-
 export default function Page() {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
@@ -74,7 +75,7 @@ export default function Page() {
             const j = await res.json();
             detail = j?.detail || JSON.stringify(j);
           } catch {
-            void 0; // no-op agar branch catch terhitung
+            void 0;
           }
           throw new Error(
             `GET /admin-feature/users failed: ${res.status} ${detail}`.trim()
@@ -83,7 +84,7 @@ export default function Page() {
         const data: User[] = await res.json();
         setUsers(data);
       } catch (e: any) {
-        setErr(e.message ?? "Load gagal");
+        setErr(e.message ?? "Failed to load");
       } finally {
         setLoading(false);
       }
@@ -95,13 +96,7 @@ export default function Page() {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter((u) => {
-      const hay = [
-        u.name,
-        u.email,
-        u.role,
-        u.last_login ?? "",
-        String(u.id),
-      ]
+      const hay = [u.name, u.email, u.role, u.last_login ?? "", String(u.id)]
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
@@ -109,7 +104,7 @@ export default function Page() {
   }, [query, users]);
 
   const onDelete = async (id: string | number) => {
-    if (!confirm("Hapus pengguna ini?")) return;
+    if (!confirm("Delete this user?")) return;
     const prev = users;
     setUsers((p) => p.filter((u) => u.id !== id));
     try {
@@ -120,19 +115,17 @@ export default function Page() {
       });
       if (!res.ok) {
         let detail = "";
-        /* istanbul ignore next */
         try {
           const j = await res.json();
           detail = j?.detail || JSON.stringify(j);
         } catch {
           console.debug("json parse failed");
-          void 0;
         }
         throw new Error(`DELETE failed: ${res.status} ${detail}`.trim());
       }
     } catch {
       setUsers(prev);
-      alert("Gagal menghapus user");
+      alert("Failed to delete user");
     }
   };
 
@@ -155,37 +148,37 @@ export default function Page() {
       );
       if (!res.ok) {
         let detail = "";
-        /* istanbul ignore next */
         try {
           const j = await res.json();
           detail = j?.detail || JSON.stringify(j);
         } catch {
           console.debug("json parse failed");
-          void 0;
         }
         throw new Error(`PUT role failed: ${res.status} ${detail}`.trim());
       }
     } catch {
       setUsers(prev);
-      alert("Gagal menyimpan perubahan role");
+      alert("Failed to save role change");
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
+      {!isTest && <Navbar />}
       <main className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="text-xl font-semibold text-gray-800">Daftar Pengguna</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Kelola role: tambah/ubah/hapus. Perubahan berlaku login berikutnya.
+          Kelola peran: perbarui/hapus. Perubahan berlaku pada login berikutnya.
         </p>
+        
 
         {/* search */}
         <div className="relative mt-4">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari Nama / Email / Role"
-            aria-label="Cari Nama / Email / Role"
+            placeholder="Cari berdasarkan Nama / Email / Peran"
+            aria-label="Cari berdasarkan Nama / Email / Peran"
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 pr-12 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
           />
         </div>
@@ -193,16 +186,15 @@ export default function Page() {
         {/* table */}
         <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           {loading ? (
-            <div className="p-6 text-sm text-gray-500">Loading users…</div>
+            <div className="p-6 text-sm text-gray-500">Memuat pengguna…</div>
           ) : err ? (
             <div className="p-6 text-sm text-red-600">Error: {err}</div>
           ) : (
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-[#0069CF] text-white">
-                  <th className="px-4 py-3 text-left font-medium">Username</th>
+                  <th className="px-4 py-3 text-left font-medium">Name</th>
                   <th className="px-4 py-3 text-left font-medium">Email</th>
-                  <th className="px-4 py-3 text-left font-medium">Last Seen</th>
                   <th className="px-4 py-3 text-left font-medium">Role</th>
                   <th className="px-4 py-3 text-left font-medium">Action</th>
                 </tr>
@@ -215,9 +207,6 @@ export default function Page() {
                   >
                     <td className="px-4 py-3 text-gray-700">{u.name}</td>
                     <td className="px-4 py-3 text-gray-700">{u.email}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {u.last_login ?? "—"}
-                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center rounded-full border border-[#0069CF]/20 bg-[#0069CF]/5 px-3 py-1 text-xs font-medium text-[#0069CF]">
                         {u.role}
@@ -229,13 +218,13 @@ export default function Page() {
                           onClick={() => setEditing(u)}
                           className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
                         >
-                          Ubah
+                          Edit
                         </button>
                         <button
                           onClick={() => onDelete(u.id)}
                           className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
                         >
-                          Hapus
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -244,10 +233,10 @@ export default function Page() {
                 {filtered.length === 0 && (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={4}
                       className="px-4 py-6 text-center text-sm text-gray-500"
                     >
-                      Tidak ada data yang cocok dengan pencarian.
+                      No data matches your search.
                     </td>
                   </tr>
                 )}
@@ -300,7 +289,7 @@ function RoleModal({
         </div>
 
         <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-2">
-          <FormGroup label="Nama">
+          <FormGroup label="Name">
             <input
               className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm"
               value={user.name}
@@ -334,13 +323,13 @@ function RoleModal({
             onClick={onClose}
             className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Batal
+            Cancel
           </button>
           <button
             onClick={() => onSave(role)}
             className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
-            Simpan
+            Save
           </button>
         </div>
       </div>
