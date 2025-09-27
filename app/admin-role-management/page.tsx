@@ -334,6 +334,14 @@ export default function Page() {
           )}
         </div>
       </main>
+      {editing && (
+        <RoleModal
+          user={editing}
+          onClose={() => setEditing(null)}
+          onSave={(role) => onSaveRole(editing, role)}
+        />
+      )}
+
 
       {!isTest && <Footer />}
     </div>

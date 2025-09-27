@@ -1,17 +1,38 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Page, { authHeaders, getToken } from "../../app/admin-role-management/page";
 
-// Mock data users
+/** Mock Navbar & Footer so we can control layout (footer height measurement) */
+jest.mock("../../app/components/Navbar", () => () => <div data-testid="navbar" />);
+jest.mock("../../app/components/Footer", () => () => (
+  // give it a height so our auto-measure padding test can read it
+  <footer data-testid="footer" style={{ height: "100px" }}>Mock Footer</footer>
+));
+
+
+/** -------------------------
+ *  Shared fixtures & helpers
+ *  ------------------------- */
 const USERS = [
   { id: 1, name: "Alice", email: "alice@mail.com", last_login: "2025-09-20", role: "Admin" },
   { id: 2, name: "Bob", email: "bob@mail.com", last_login: null, role: "CURATOR" },
 ];
 
-// Helper buat mock fetch response
-function mockFetchOnce(data: any, ok = true) {
+// Helper buat mock fetch response (sekali panggil)
+function mockFetchOnce(data: any, ok = true, status: number = ok ? 200 : 500) {
   (global.fetch as jest.Mock).mockResolvedValueOnce({
     ok,
+    status,
     json: async () => data,
+  } as any);
+}
+
+// General helper to craft a custom once response
+function mockOnce(resp: Partial<Response> & { json?: () => Promise<any>, text?: () => Promise<string> }) {
+  (global.fetch as jest.Mock).mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => USERS,
+    ...resp,
   } as any);
 }
 
@@ -23,6 +44,13 @@ beforeEach(() => {
   jest.spyOn(window, "alert").mockImplementation(() => {});
   localStorage.clear();
   document.cookie = "";
+
+  // stabilize pathname for redirect assertions
+  Object.defineProperty(window, "location", {
+    value: { href: "", pathname: "/admin-role-management" },
+    writable: true,
+  });
+
   delete (process as any).env.NEXT_PUBLIC_API_KEY;
 });
 
@@ -83,7 +111,7 @@ describe("Admin Role Management Page (full render)", () => {
     const select = screen.getByLabelText("Peran");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
 
-    mockFetchOnce({ detail: "fail" }, false);
+    mockFetchOnce({ detail: "fail" }, false, 400);
     fireEvent.click(screen.getByText("Simpan"));
 
     await waitFor(() => {
@@ -109,7 +137,7 @@ describe("Admin Role Management Page (full render)", () => {
     render(<Page />);
     await screen.findByText("Bob");
 
-    mockFetchOnce({ detail: "fail" }, false);
+    mockFetchOnce({ detail: "fail" }, false, 400);
     fireEvent.click(screen.getAllByText("Hapus")[1]);
 
     await waitFor(() => {
@@ -170,17 +198,12 @@ describe("authHeaders branch coverage", () => {
   });
 
   test("includes X-API-KEY when env is set", () => {
-    // pastikan tidak ada sisa nilai env lama
     delete (process as any).env.NEXT_PUBLIC_API_KEY;
-
-    // set API_KEY sementara untuk test ini
     (process as any).env.NEXT_PUBLIC_API_KEY = "apikey";
 
     const headers = authHeaders();
-
     expect(headers["X-API-KEY"]).toBe("apikey");
 
-    // cleanup lagi biar test lain gak keikut
     delete (process as any).env.NEXT_PUBLIC_API_KEY;
   });
 
@@ -188,14 +211,11 @@ describe("authHeaders branch coverage", () => {
     render(<Page />);
     await screen.findByText("Bob");
 
-    // buka modal edit
     fireEvent.click(screen.getAllByText("Ubah")[1]);
     await screen.findByText(/Edit Peran/i);
 
-    // klik tombol Batal
     fireEvent.click(screen.getByText("Batal"));
 
-    // modal harus hilang
     await waitFor(() => {
       expect(screen.queryByText(/Edit Peran/i)).not.toBeInTheDocument();
     });
@@ -203,17 +223,14 @@ describe("authHeaders branch coverage", () => {
 });
 
 describe("Extra branch coverage", () => {
-  test("getToken returns null when window is undefined", async () => {
+  test("getToken returns null when window is undefined (imported getToken)", () => {
     const savedWindow = global.window;
-    // @ts-ignore force undefined
+    // @ts-ignore force delete
     delete (global as any).window;
 
-    const mod = await import("../../app/admin-role-management/page");
-    const token = (mod as any).getToken();
-    expect(token).toBeNull();
+    expect(getToken()).toBeNull();
 
-    // restore window
-    global.window = savedWindow;
+    global.window = savedWindow; // restore
   });
 
   test("GET error path with broken JSON triggers catch{}", async () => {
@@ -285,142 +302,378 @@ describe("Extra branch coverage", () => {
     });
   });
 
-  test("getToken returns null when window is undefined", () => {
-    const savedWindow = global.window;
-    // @ts-ignore force delete
-    delete (global as any).window;
-
-    expect(getToken()).toBeNull();
-
-    global.window = savedWindow; // restore
-  });
-
   test("GET error path triggers catch{} when res.json throws", async () => {
-  global.fetch = jest.fn().mockResolvedValueOnce({
-    ok: false,
-    status: 500,
-    json: async () => { throw new Error("parse error"); },
-  } as any);
-
-  render(<Page />);
-  await waitFor(() => {
-    expect(screen.getByText(/Error:/i)).toBeInTheDocument();
-  });
-});
-
-test("PUT error path triggers catch{} when res.json throws", async () => {
-  global.fetch = jest.fn()
-    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET users
-    .mockResolvedValueOnce({
+    jest.resetAllMocks();
+    global.fetch = jest.fn().mockResolvedValueOnce({
       ok: false,
-      status: 400,
+      status: 500,
       json: async () => { throw new Error("parse error"); },
-    } as any); // PUT fail
+    } as any);
 
-  render(<Page />);
-  await screen.findByText("Bob");
+    render(<Page />);
+    await waitFor(() => {
+      expect(screen.getByText(/Error:/i)).toBeInTheDocument();
+    });
+  });
 
-  fireEvent.click(screen.getAllByText("Ubah")[1]);
-  await screen.findByText(/Edit Peran/i);
+  test("PUT error path triggers catch{} when res.json throws", async () => {
+    jest.resetAllMocks();
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET users
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => { throw new Error("parse error"); },
+      } as any); // PUT fail
 
-  const select = screen.getByLabelText("Peran");
-  fireEvent.change(select, { target: { value: "EXP_USER" } });
+    render(<Page />);
+    await screen.findByText("Bob");
 
-  fireEvent.click(screen.getByText("Simpan"));
+    fireEvent.click(screen.getAllByText("Ubah")[1]);
+    await screen.findByText(/Edit Peran/i);
 
-  await waitFor(() => {
-    expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
+    const select = screen.getByLabelText("Peran");
+    fireEvent.change(select, { target: { value: "EXP_USER" } });
+
+    fireEvent.click(screen.getByText("Simpan"));
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
+    });
+  });
+
+  test("DELETE error path triggers catch{} when res.json throws", async () => {
+    jest.resetAllMocks();
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => { throw new Error("parse error"); },
+      } as any); // DELETE fail
+
+    (window.confirm as jest.Mock).mockReturnValue(true);
+
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Gagal menghapus pengguna");
+    });
+  });
+
+  test("uses fallback API_BASE when NEXT_PUBLIC_API_BASE_URL not set", async () => {
+    delete (process as any).env.NEXT_PUBLIC_API_BASE_URL;
+
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => USERS,
+    } as any);
+
+    render(<Page />);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:8000/admin-feature/users",
+        expect.any(Object)
+      );
+    });
+  });
+
+  test("sets error fallback 'Gagal memuat' when e.message is undefined", async () => {
+    global.fetch = jest.fn().mockImplementationOnce(() => {
+      throw {}; // error tanpa message
+    });
+
+    render(<Page />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Error: Gagal memuat/)).toBeInTheDocument();
+    });
+  });
+
+  test("cancel delete when confirm returns false (no DELETE call)", async () => {
+    (window.confirm as jest.Mock).mockReturnValue(false);
+
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Bob")).toBeInTheDocument();
+    });
+
+    // hanya GET awal
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test("uses fallback API_BASE when NEXT_PUBLIC_API_BASE_URL is not set (URL check)", async () => {
+    const old = process.env.NEXT_PUBLIC_API_BASE_URL;
+    delete (process as any).env.NEXT_PUBLIC_API_BASE_URL;
+
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => USERS,
+    } as any);
+
+    render(<Page />);
+
+    await waitFor(() => {
+      const url = (global.fetch as jest.Mock).mock.calls[0][0];
+      expect(url).toBe("http://localhost:8000/admin-feature/users");
+    });
+
+    if (old) process.env.NEXT_PUBLIC_API_BASE_URL = old;
   });
 });
 
-test("DELETE error path triggers catch{} when res.json throws", async () => {
-  global.fetch = jest.fn()
-    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET
-    .mockResolvedValueOnce({
+/** New coverage for 401/403 flows & dynamic padding & backdrop-close */
+describe("401/403 flows & dynamic padding", () => {
+  test("GET 401 → redirects to /login?next=…", async () => {
+    jest.resetAllMocks();
+    global.fetch = jest.fn().mockResolvedValueOnce({
       ok: false,
-      status: 400,
-      json: async () => { throw new Error("parse error"); },
-    } as any); // DELETE fail
+      status: 401,
+      json: async () => ({ detail: "unauth" }),
+    } as any);
 
-  (window.confirm as jest.Mock).mockReturnValue(true);
+    render(<Page />);
 
-  render(<Page />);
-  await screen.findByText("Bob");
+    await waitFor(() => {
+      expect(window.location.href).toMatch(/^\/login\?next=/);
+    });
+  });
 
-  fireEvent.click(screen.getAllByText("Hapus")[1]);
+  test("GET 403 → shows blocked screen with detail and buttons", async () => {
+    jest.resetAllMocks();
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => ({ detail: "Akses Ditolak (test)" }),
+    } as any);
 
-  await waitFor(() => {
-    expect(window.alert).toHaveBeenCalledWith("Gagal menghapus pengguna");
+    render(<Page />);
+
+    await screen.findByText("Akses Ditolak (test)");
+    expect(screen.getByText("Informasi Akses")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Masuk/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Kembali/i })).toBeInTheDocument();
+  });
+
+  test("PUT 401 → redirects to login", async () => {
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Ubah")[1]);
+    await screen.findByText(/Edit Peran/i);
+
+    const select = screen.getByLabelText("Peran");
+    fireEvent.change(select, { target: { value: "EXP_USER" } });
+
+    mockOnce({ ok: false, status: 401, json: async () => ({ detail: "unauth" }) });
+    fireEvent.click(screen.getByText("Simpan"));
+
+    await waitFor(() => {
+      expect(window.location.href).toMatch(/^\/login\?next=/);
+    });
+  });
+
+  test("DELETE 401 → redirects to login", async () => {
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    mockOnce({ ok: false, status: 401, json: async () => ({ detail: "unauth" }) });
+    fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+    await waitFor(() => {
+      expect(window.location.href).toMatch(/^\/login\?next=/);
+    });
+  });
+
+  test("PUT 403 → alerts detail and reverts optimistic change", async () => {
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Ubah")[1]);
+    await screen.findByText(/Edit Peran/i);
+
+    const select = screen.getByLabelText("Peran");
+    fireEvent.change(select, { target: { value: "EXP_USER" } });
+
+    mockOnce({ ok: false, status: 403, json: async () => ({ detail: "Akses Ditolak (PUT)" }) });
+    fireEvent.click(screen.getByText("Simpan"));
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Akses Ditolak (PUT)");
+      expect(screen.getByText("CURATOR")).toBeInTheDocument(); // reverted
+    });
+  });
+
+  test("DELETE 403 → alerts detail and reverts list", async () => {
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    mockOnce({ ok: false, status: 403, json: async () => ({ detail: "Akses Ditolak (DELETE)" }) });
+    fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Akses Ditolak (DELETE)");
+      expect(screen.getByText("Bob")).toBeInTheDocument(); // reverted
+    });
+  });
+
+  test("Modal closes by clicking backdrop (overlay)", async () => {
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Ubah")[1]);
+    await screen.findByText(/Edit Peran/i);
+
+    const overlay = document.querySelector(".absolute.inset-0.bg-black\\/40") as HTMLElement;
+    expect(overlay).toBeTruthy();
+
+    fireEvent.click(overlay);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Edit Peran/i)).not.toBeInTheDocument();
+    });
   });
 });
 
-test("uses fallback API_BASE when NEXT_PUBLIC_API_BASE_URL not set", async () => {
-  delete (process as any).env.NEXT_PUBLIC_API_BASE_URL;
+describe("403 fallbacks (JSON parse fails) to cover remaining lines", () => {
+  test("GET 403 with broken JSON -> shows default 'Akses Ditolak'", async () => {
+    jest.resetAllMocks();
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      // simulate server returns non-JSON or malformed JSON
+      json: async () => { throw new Error("bad json"); },
+    } as any);
 
-  global.fetch = jest.fn().mockResolvedValueOnce({
-    ok: true,
-    json: async () => USERS,
-  } as any);
+    render(<Page />);
 
-  render(<Page />);
+    // default detail should be used
+    await screen.findByText("Akses Ditolak");
+    expect(screen.getByText("Informasi Akses")).toBeInTheDocument();
+  });
 
-  await waitFor(() => {
-    expect(global.fetch).toHaveBeenCalledWith(
-      "http://localhost:8000/admin-feature/users",
-      expect.any(Object)
-    );
+  test("PUT 403 with broken JSON -> alerts default and reverts", async () => {
+    // 1st call = GET OK
+    jest.resetAllMocks();
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ([
+        { id: 1, name: "Alice", email: "alice@mail.com", last_login: "2025-09-20", role: "Admin" },
+        { id: 2, name: "Bob",   email: "bob@mail.com",   last_login: null,         role: "CURATOR" },
+      ]) } as any)
+      // 2nd call = PUT 403 with broken JSON
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => { throw new Error("bad json"); },
+      } as any);
+
+    jest.spyOn(window, "alert").mockImplementation(() => {});
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Ubah")[1]);
+    await screen.findByText(/Edit Peran/i);
+
+    const select = screen.getByLabelText("Peran");
+    fireEvent.change(select, { target: { value: "EXP_USER" } });
+
+    fireEvent.click(screen.getByText("Simpan"));
+
+    await waitFor(() => {
+      // default message from 403 catch{} path
+      expect(window.alert).toHaveBeenCalledWith("Akses Ditolak");
+      // reverted back to original role
+      expect(screen.getByText("CURATOR")).toBeInTheDocument();
+    });
+  });
+
+  test("DELETE 403 with broken JSON -> alerts default and reverts", async () => {
+    // 1st = GET OK, 2nd = DELETE 403 broken JSON
+    jest.resetAllMocks();
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ([
+        { id: 1, name: "Alice", email: "alice@mail.com", last_login: "2025-09-20", role: "Admin" },
+        { id: 2, name: "Bob",   email: "bob@mail.com",   last_login: null,         role: "CURATOR" },
+      ]) } as any)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => { throw new Error("bad json"); },
+      } as any);
+
+    jest.spyOn(window, "alert").mockImplementation(() => {});
+    (window.confirm as jest.Mock).mockReturnValue(true);
+
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+    await waitFor(() => {
+      // default message from 403 catch{} path
+      expect(window.alert).toHaveBeenCalledWith("Akses Ditolak");
+      // item reverted (Bob still present)
+      expect(screen.getByText("Bob")).toBeInTheDocument();
+    });
   });
 });
 
-test("sets error fallback 'Load gagal' when e.message is undefined", async () => {
-  global.fetch = jest.fn().mockImplementationOnce(() => {
-    throw {}; // error tanpa message
-  });
+describe("Footer-measure early return (no footer present)", () => {
+  test("resize with no footer keeps inline padding unset and uses pb-40 fallback", async () => {
+    // In test env, isTest === true → Footer is NOT rendered
+    render(<Page />);
 
-  render(<Page />);
+    // ensure page mounted and data loaded
+    await screen.findByText("Alice");
 
-  await waitFor(() => {
-    expect(screen.getByText(/Error: Gagal memuat/)).toBeInTheDocument();
+    const main = document.getElementsByTagName("main")[0] as HTMLElement;
+    expect(main).toBeTruthy();
+
+    // Trigger re-measure (measure runs on mount AND on resize)
+    window.dispatchEvent(new Event("resize"));
+
+    // Because there's no <footer>, measure does early return:
+    await waitFor(() => {
+      // no inline paddingBottom applied
+      expect(main.style.paddingBottom).toBe("");
+    });
+
+    // Tailwind fallback is still present from the JSX
+    expect(main.className).toMatch(/\bpb-40\b/);
   });
 });
 
-test("cancel delete when confirm returns false", async () => {
-  (window.confirm as jest.Mock).mockReturnValue(false);
+describe("Footer measure with actual footer present (no re-import)", () => {
+  test("applies inline paddingBottom = footer.height + 16 on resize", async () => {
+    render(<Page />);
+    await screen.findByText("Alice");
 
-  render(<Page />);
-  await screen.findByText("Bob");
+    // Create a real footer node and stub its rect
+    const footer = document.createElement("footer");
+    // Stub getBoundingClientRect to return height 50
+    footer.getBoundingClientRect = () =>
+      ({ height: 50, width: 0, top: 0, left: 0, bottom: 0, right: 0, x: 0, y: 0, toJSON: () => {} } as any);
 
-  fireEvent.click(screen.getAllByText("Hapus")[1]);
+    document.body.appendChild(footer);
 
-  await waitFor(() => {
-    expect(screen.getByText("Bob")).toBeInTheDocument();
+    // Trigger the resize listener so measure() runs again and finds our footer
+    window.dispatchEvent(new Event("resize"));
+
+    const main = document.getElementsByTagName("main")[0] as HTMLElement;
+    await waitFor(() => {
+      // 50 + 16 buffer
+      expect(main.style.paddingBottom).toBe("66px");
+    });
+
+    // cleanup
+    footer.remove();
   });
-
-  // pastikan fetch tidak dipanggil
-  expect(global.fetch).toHaveBeenCalledTimes(1); // hanya GET awal
-});
-
-test("uses fallback API_BASE when NEXT_PUBLIC_API_BASE_URL is not set", async () => {
-  const old = process.env.NEXT_PUBLIC_API_BASE_URL;
-  delete (process as any).env.NEXT_PUBLIC_API_BASE_URL;
-
-  global.fetch = jest.fn().mockResolvedValueOnce({
-    ok: true,
-    json: async () => USERS,
-  } as any);
-
-  render(<Page />);
-
-  await waitFor(() => {
-    const url = (global.fetch as jest.Mock).mock.calls[0][0];
-    expect(url).toBe("http://localhost:8000/admin-feature/users");
-  });
-
-  // restore original env
-  if (old) {
-    process.env.NEXT_PUBLIC_API_BASE_URL = old;
-  }
-});
-
-
 });
