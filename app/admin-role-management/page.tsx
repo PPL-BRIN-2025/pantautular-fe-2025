@@ -84,7 +84,7 @@ export default function Page() {
         const data: User[] = await res.json();
         setUsers(data);
       } catch (e: any) {
-        setErr(e.message ?? "Failed to load");
+        setErr(e.message ?? "Load gagal");
       } finally {
         setLoading(false);
       }
@@ -125,7 +125,7 @@ export default function Page() {
       }
     } catch {
       setUsers(prev);
-      alert("Failed to delete user");
+      alert("Gagal menghapus user");
     }
   };
 
@@ -158,7 +158,7 @@ export default function Page() {
       }
     } catch {
       setUsers(prev);
-      alert("Failed to save role change");
+      alert("Gagal menyimpan perubahan role");
     }
   };
 
@@ -177,8 +177,8 @@ export default function Page() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari berdasarkan Nama / Email / Peran"
-            aria-label="Cari berdasarkan Nama / Email / Peran"
+            placeholder="Cari Nama / Email / Peran"
+            aria-label="Cari Nama / Email / Peran"
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 pr-12 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
           />
         </div>
@@ -193,10 +193,10 @@ export default function Page() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-[#0069CF] text-white">
-                  <th className="px-4 py-3 text-left font-medium">Name</th>
+                  <th className="px-4 py-3 text-left font-medium">Nama</th>
                   <th className="px-4 py-3 text-left font-medium">Email</th>
-                  <th className="px-4 py-3 text-left font-medium">Role</th>
-                  <th className="px-4 py-3 text-left font-medium">Action</th>
+                  <th className="px-4 py-3 text-left font-medium">Peran</th>
+                  <th className="px-4 py-3 text-left font-medium">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -218,13 +218,13 @@ export default function Page() {
                           onClick={() => setEditing(u)}
                           className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
                         >
-                          Edit
+                          Ubah
                         </button>
                         <button
                           onClick={() => onDelete(u.id)}
                           className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
                         >
-                          Delete
+                          Hapus
                         </button>
                       </div>
                     </td>
@@ -236,7 +236,7 @@ export default function Page() {
                       colSpan={4}
                       className="px-4 py-6 text-center text-sm text-gray-500"
                     >
-                      No data matches your search.
+                      Tidak ada data yang cocok dengan pencarian Anda.
                     </td>
                   </tr>
                 )}
@@ -277,7 +277,7 @@ function RoleModal({
       />
       <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-800">Edit Role</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Edit Peran</h2>
           <button
             onClick={onClose}
             className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
@@ -323,13 +323,13 @@ function RoleModal({
             onClick={onClose}
             className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            Batal
           </button>
           <button
             onClick={() => onSave(role)}
             className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
-            Save
+            Simpan
           </button>
         </div>
       </div>

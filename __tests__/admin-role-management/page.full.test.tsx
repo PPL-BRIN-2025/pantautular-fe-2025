@@ -59,7 +59,7 @@ describe("Admin Role Management Page (full render)", () => {
     await screen.findByText("Bob");
 
     fireEvent.click(screen.getAllByText("Ubah")[1]);
-    await screen.findByText(/Edit Role/i);
+    await screen.findByText(/Edit Peran/i);
 
     const select = screen.getByLabelText("Role");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
@@ -68,7 +68,7 @@ describe("Admin Role Management Page (full render)", () => {
     fireEvent.click(screen.getByText("Simpan"));
 
     await waitFor(() => {
-      expect(screen.queryByText(/Edit Role/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Edit Peran/i)).not.toBeInTheDocument();
       expect(screen.getByText("EXP_USER")).toBeInTheDocument();
     });
   });
@@ -78,7 +78,7 @@ describe("Admin Role Management Page (full render)", () => {
     await screen.findByText("Bob");
 
     fireEvent.click(screen.getAllByText("Ubah")[1]);
-    await screen.findByText(/Edit Role/i);
+    await screen.findByText(/Edit Peran/i);
 
     const select = screen.getByLabelText("Role");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
@@ -190,14 +190,14 @@ describe("authHeaders branch coverage", () => {
 
     // buka modal edit
     fireEvent.click(screen.getAllByText("Ubah")[1]);
-    await screen.findByText(/Edit Role/i);
+    await screen.findByText(/Edit Peran/i);
 
     // klik tombol Batal
     fireEvent.click(screen.getByText("Batal"));
 
     // modal harus hilang
     await waitFor(() => {
-      expect(screen.queryByText(/Edit Role/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Edit Peran/i)).not.toBeInTheDocument();
     });
   });
 });
@@ -248,7 +248,7 @@ describe("Extra branch coverage", () => {
     await screen.findByText("Bob");
 
     fireEvent.click(screen.getAllByText("Ubah")[1]);
-    await screen.findByText(/Edit Role/i);
+    await screen.findByText(/Edit Peran/i);
 
     const select = screen.getByLabelText("Role");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
@@ -321,7 +321,7 @@ test("PUT error path triggers catch{} when res.json throws", async () => {
   await screen.findByText("Bob");
 
   fireEvent.click(screen.getAllByText("Ubah")[1]);
-  await screen.findByText(/Edit Role/i);
+  await screen.findByText(/Edit Peran/i);
 
   const select = screen.getByLabelText("Role");
   fireEvent.change(select, { target: { value: "EXP_USER" } });

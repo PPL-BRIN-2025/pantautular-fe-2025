@@ -41,16 +41,16 @@ describe("Admin Role Management Page (full render)", () => {
 
     // Pastikan header kolom tabel ada
     expect(
-      screen.getByRole("columnheader", { name: /Username/i })
+      screen.getByRole("columnheader", { name: /Nama/i })
     ).toBeInTheDocument();
     expect(
       screen.getByRole("columnheader", { name: /Email/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: /Role/i })
+      screen.getByRole("columnheader", { name: /Peran/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: /Action/i })
+      screen.getByRole("columnheader", { name: /Aksi/i })
     ).toBeInTheDocument();
   });
 });
