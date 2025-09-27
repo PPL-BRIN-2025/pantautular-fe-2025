@@ -57,6 +57,27 @@ export default function Page() {
   // ➕ state untuk 403
   const [blocked403Detail, setBlocked403Detail] = useState<string | undefined>();
 
+  // ➕ padding dinamis agar tidak ketiban footer fixed
+  const [footerPadPx, setFooterPadPx] = useState<number>(0);
+
+  useEffect(() => {
+    // ukur tinggi footer fixed & set paddingBottom main
+    const measure = () => {
+      const footer = document.querySelector("footer");
+      if (!footer) return;
+      const rect = footer.getBoundingClientRect();
+      // +16px buffer kecil agar ada napas
+      setFooterPadPx(Math.ceil(rect.height + 16));
+    };
+
+    // ukur sekali saat mount
+    measure();
+
+    // re-measure saat window di-resize (layout responsif)
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -235,12 +256,16 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
       {!isTest && <Navbar />}
-      <main className="mx-auto max-w-6xl px-4 py-8">
+
+      {/* Fallback pb-40 + paddingBottom dinamis dari measured footer */}
+      <main
+        className="mx-auto max-w-6xl px-4 py-8 pb-40"
+        style={footerPadPx ? { paddingBottom: `${footerPadPx}px` } : undefined}
+      >
         <h1 className="text-xl font-semibold text-gray-800">Daftar Pengguna</h1>
         <p className="mt-1 text-sm text-gray-500">
           Kelola peran: perbarui/hapus. Perubahan berlaku pada login berikutnya.
         </p>
-        
 
         {/* search */}
         <div className="relative mt-4">
@@ -271,10 +296,7 @@ export default function Page() {
               </thead>
               <tbody>
                 {filtered.map((u, idx) => (
-                  <tr
-                    key={u.id}
-                    className={idx % 2 ? "bg-gray-50/50" : "bg-white"}
-                  >
+                  <tr key={u.id} className={idx % 2 ? "bg-gray-50/50" : "bg-white"}>
                     <td className="px-4 py-3 text-gray-700">{u.name}</td>
                     <td className="px-4 py-3 text-gray-700">{u.email}</td>
                     <td className="px-4 py-3">
@@ -302,10 +324,7 @@ export default function Page() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={4}
-                      className="px-4 py-6 text-center text-sm text-gray-500"
-                    >
+                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
                       Tidak ada data yang cocok dengan pencarian Anda.
                     </td>
                   </tr>
@@ -316,13 +335,6 @@ export default function Page() {
         </div>
       </main>
 
-      {editing && (
-        <RoleModal
-          user={editing}
-          onClose={() => setEditing(null)}
-          onSave={(newRole) => onSaveRole(editing, newRole)}
-        />
-      )}
       {!isTest && <Footer />}
     </div>
   );
