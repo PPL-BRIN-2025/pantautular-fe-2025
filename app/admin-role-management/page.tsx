@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 type Role = "Admin" | "EXP_USER" | "CURATOR" | "CONTRIBUTOR";
 type User = {
@@ -16,29 +18,25 @@ const ROLES: Role[] = ["Admin", "EXP_USER", "CURATOR", "CONTRIBUTOR"];
 /* istanbul ignore next */
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
-const isTest = process.env.NODE_ENV === "test"; 
+const isTest = process.env.NODE_ENV === "test";
 
 function getToken(): string | null {
   if (typeof window === "undefined") {
     void 0; // no-op
     return null;
   }
-  // Try multiple common keys
   const keys = ["access_token", "token", "accessToken", "jwt"];
   for (const k of keys) {
     const v = localStorage.getItem(k);
     if (v) return v;
   }
-
-  // Fallback: read from cookie named access_token
   const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
   if (m) return decodeURIComponent(m[1]);
-
   return null;
 }
 
 function authHeaders(): Record<string, string> {
-  const h: Record<string, string> = { "Content-Type": "application/json" };
+  const h: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
   const token = getToken();
   if (token) h["Authorization"] = `Bearer ${token}`;
   if (process.env.NEXT_PUBLIC_API_KEY) {
@@ -56,35 +54,59 @@ export default function Page() {
   const [err, setErr] = useState<string | null>(null);
   const [editing, setEditing] = useState<User | null>(null);
 
-  // load data
+  // ➕ state untuk 403
+  const [blocked403Detail, setBlocked403Detail] = useState<string | undefined>();
+
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
         setErr(null);
-        console.log("[admin-role] headers", authHeaders());
+        setBlocked403Detail(undefined);
+
         const res = await fetch(`${API_BASE}/admin-feature/users`, {
           method: "GET",
           headers: authHeaders(),
           credentials: "include",
+          cache: "no-store",
         });
+
+        if (res.status === 401) {
+          // redirect ke login
+          const next =
+            typeof window !== "undefined"
+              ? encodeURIComponent(window.location.pathname)
+              : encodeURIComponent("/admin-dashboard/roles");
+          window.location.href = `/login?next=${next}`;
+          return;
+        }
+
+        if (res.status === 403) {
+          // tampilkan detail “Akses Ditolak”
+          try {
+            const blocked = await res.json();
+            setBlocked403Detail(typeof blocked?.detail === "string" ? blocked.detail : "Akses Ditolak");
+          } catch {
+            setBlocked403Detail("Akses Ditolak");
+          }
+          return;
+        }
+
         if (!res.ok) {
           let detail = "";
-          /* istanbul ignore next */
           try {
-            const j = await res.json();
-            detail = j?.detail || JSON.stringify(j);
+            // coba text dulu (lebih tahan banting), kalau JSON juga oke
+            detail = await res.text();
           } catch {
             void 0;
           }
-          throw new Error(
-            `GET /admin-feature/users failed: ${res.status} ${detail}`.trim()
-          );
+          throw new Error(`GET /admin-feature/users gagal: ${res.status}${detail ? " | " + detail : ""}`);
         }
+
         const data: User[] = await res.json();
         setUsers(data);
       } catch (e: any) {
-        setErr(e.message ?? "Load gagal");
+        setErr(e?.message ?? "Gagal memuat");
       } finally {
         setLoading(false);
       }
@@ -96,15 +118,13 @@ export default function Page() {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter((u) => {
-      const hay = [u.name, u.email, u.role, u.last_login ?? "", String(u.id)]
-        .join(" ")
-        .toLowerCase();
+      const hay = [u.name, u.email, u.role, u.last_login ?? "", String(u.id)].join(" ").toLowerCase();
       return hay.includes(q);
     });
   }, [query, users]);
 
   const onDelete = async (id: string | number) => {
-    if (!confirm("Delete this user?")) return;
+    if (!confirm("Hapus pengguna ini?")) return;
     const prev = users;
     setUsers((p) => p.filter((u) => u.id !== id));
     try {
@@ -113,54 +133,104 @@ export default function Page() {
         headers: authHeaders(),
         credentials: "include",
       });
+      if (res.status === 401) {
+        const next =
+          typeof window !== "undefined"
+            ? encodeURIComponent(window.location.pathname)
+            : encodeURIComponent("/admin-dashboard/roles");
+        window.location.href = `/login?next=${next}`;
+        return;
+      }
+      if (res.status === 403) {
+        let detail = "Akses Ditolak";
+        try {
+          const j = await res.json();
+          detail = j?.detail || detail;
+        } catch {}
+        alert(detail);
+        throw new Error(detail);
+      }
       if (!res.ok) {
         let detail = "";
         try {
-          const j = await res.json();
-          detail = j?.detail || JSON.stringify(j);
-        } catch {
-          console.debug("json parse failed");
-        }
-        throw new Error(`DELETE failed: ${res.status} ${detail}`.trim());
+          detail = await res.text();
+        } catch {}
+        throw new Error(`DELETE gagal: ${res.status}${detail ? " | " + detail : ""}`);
       }
     } catch {
       setUsers(prev);
-      alert("Gagal menghapus user");
+      alert("Gagal menghapus pengguna");
     }
   };
 
   const onSaveRole = async (user: User, newRole: Role) => {
     const prev = users;
-    setUsers((p) =>
-      p.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))
-    );
+    setUsers((p) => p.map((u) => (u.id === user.id ? { ...u, role: newRole } : u)));
     setEditing(null);
 
     try {
-      const res = await fetch(
-        `${API_BASE}/admin-feature/users/${user.id}/role`,
-        {
-          method: "PUT",
-          headers: authHeaders(),
-          credentials: "include",
-          body: JSON.stringify({ role_name: newRole }),
-        }
-      );
+      const res = await fetch(`${API_BASE}/admin-feature/users/${user.id}/role`, {
+        method: "PUT",
+        headers: authHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ role_name: newRole }),
+      });
+
+      if (res.status === 401) {
+        const next =
+          typeof window !== "undefined"
+            ? encodeURIComponent(window.location.pathname)
+            : encodeURIComponent("/admin-dashboard/roles");
+        window.location.href = `/login?next=${next}`;
+        return;
+      }
+      if (res.status === 403) {
+        let detail = "Akses Ditolak";
+        try {
+          const j = await res.json();
+          detail = j?.detail || detail;
+        } catch {}
+        alert(detail);
+        throw new Error(detail);
+      }
       if (!res.ok) {
         let detail = "";
         try {
-          const j = await res.json();
-          detail = j?.detail || JSON.stringify(j);
-        } catch {
-          console.debug("json parse failed");
-        }
-        throw new Error(`PUT role failed: ${res.status} ${detail}`.trim());
+          detail = await res.text();
+        } catch {}
+        throw new Error(`PUT role gagal: ${res.status}${detail ? " | " + detail : ""}`);
       }
     } catch {
       setUsers(prev);
-      alert("Gagal menyimpan perubahan role");
+      alert("Gagal menyimpan perubahan peran");
     }
   };
+
+  // Tampilan blokir 403 (Bahasa Indonesia)
+  if (blocked403Detail) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+          <div className="text-sm font-semibold text-amber-700">Informasi Akses</div>
+          <div className="mt-2 text-2xl font-semibold text-amber-900">{blocked403Detail}</div>
+          <p className="mt-2 text-sm text-amber-800">
+            Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
+          </p>
+          <div className="mt-4 flex gap-2">
+            <Link href="/" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Kembali
+            </Link>
+            <Link
+              href={`/login?next=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "/admin-dashboard/roles")}`}
+              className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            >
+              Masuk
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
@@ -253,6 +323,7 @@ export default function Page() {
           onSave={(newRole) => onSaveRole(editing, newRole)}
         />
       )}
+      {!isTest && <Footer />}
     </div>
   );
 }
@@ -270,11 +341,7 @@ function RoleModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-        aria-hidden
-      />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
       <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-800">Edit Peran</h2>
@@ -289,21 +356,13 @@ function RoleModal({
         </div>
 
         <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-2">
-          <FormGroup label="Name">
-            <input
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm"
-              value={user.name}
-              readOnly
-            />
+          <FormGroup label="Nama">
+            <input className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm" value={user.name} readOnly />
           </FormGroup>
           <FormGroup label="Email">
-            <input
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm"
-              value={user.email}
-              readOnly
-            />
+            <input className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm" value={user.email} readOnly />
           </FormGroup>
-          <FormGroup label="Role">
+          <FormGroup label="Peran">
             <select
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
               value={role}
@@ -319,16 +378,10 @@ function RoleModal({
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+          <button onClick={onClose} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
             Batal
           </button>
-          <button
-            onClick={() => onSave(role)}
-            className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-          >
+          <button onClick={() => onSave(role)} className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
             Simpan
           </button>
         </div>
@@ -337,18 +390,10 @@ function RoleModal({
   );
 }
 
-function FormGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FormGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-gray-600">
-        {label}
-      </span>
+      <span className="mb-1 block text-xs font-medium text-gray-600">{label}</span>
       {children}
     </label>
   );
