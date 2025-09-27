@@ -61,7 +61,7 @@ describe("Admin Role Management Page (full render)", () => {
     fireEvent.click(screen.getAllByText("Ubah")[1]);
     await screen.findByText(/Edit Peran/i);
 
-    const select = screen.getByLabelText("Role");
+    const select = screen.getByLabelText("Peran");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
 
     mockFetchOnce({}, true);
@@ -80,14 +80,14 @@ describe("Admin Role Management Page (full render)", () => {
     fireEvent.click(screen.getAllByText("Ubah")[1]);
     await screen.findByText(/Edit Peran/i);
 
-    const select = screen.getByLabelText("Role");
+    const select = screen.getByLabelText("Peran");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
 
     mockFetchOnce({ detail: "fail" }, false);
     fireEvent.click(screen.getByText("Simpan"));
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan role");
+      expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
     });
   });
 
@@ -113,7 +113,7 @@ describe("Admin Role Management Page (full render)", () => {
     fireEvent.click(screen.getAllByText("Hapus")[1]);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith("Gagal menghapus user");
+      expect(window.alert).toHaveBeenCalledWith("Gagal menghapus pengguna");
       expect(screen.getByText("Bob")).toBeInTheDocument();
     });
   });
@@ -250,13 +250,13 @@ describe("Extra branch coverage", () => {
     fireEvent.click(screen.getAllByText("Ubah")[1]);
     await screen.findByText(/Edit Peran/i);
 
-    const select = screen.getByLabelText("Role");
+    const select = screen.getByLabelText("Peran");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
 
     fireEvent.click(screen.getByText("Simpan"));
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan role");
+      expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
     });
   });
 
@@ -280,7 +280,7 @@ describe("Extra branch coverage", () => {
     fireEvent.click(screen.getAllByText("Hapus")[1]);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith("Gagal menghapus user");
+      expect(window.alert).toHaveBeenCalledWith("Gagal menghapus pengguna");
       expect(screen.getByText("Bob")).toBeInTheDocument();
     });
   });
@@ -323,13 +323,13 @@ test("PUT error path triggers catch{} when res.json throws", async () => {
   fireEvent.click(screen.getAllByText("Ubah")[1]);
   await screen.findByText(/Edit Peran/i);
 
-  const select = screen.getByLabelText("Role");
+  const select = screen.getByLabelText("Peran");
   fireEvent.change(select, { target: { value: "EXP_USER" } });
 
   fireEvent.click(screen.getByText("Simpan"));
 
   await waitFor(() => {
-    expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan role");
+    expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
   });
 });
 
@@ -350,7 +350,7 @@ test("DELETE error path triggers catch{} when res.json throws", async () => {
   fireEvent.click(screen.getAllByText("Hapus")[1]);
 
   await waitFor(() => {
-    expect(window.alert).toHaveBeenCalledWith("Gagal menghapus user");
+    expect(window.alert).toHaveBeenCalledWith("Gagal menghapus pengguna");
   });
 });
 
@@ -380,7 +380,7 @@ test("sets error fallback 'Load gagal' when e.message is undefined", async () =>
   render(<Page />);
 
   await waitFor(() => {
-    expect(screen.getByText(/Error: Load gagal/)).toBeInTheDocument();
+    expect(screen.getByText(/Error: Gagal memuat/)).toBeInTheDocument();
   });
 });
 
@@ -424,4 +424,3 @@ test("uses fallback API_BASE when NEXT_PUBLIC_API_BASE_URL is not set", async ()
 
 
 });
-
