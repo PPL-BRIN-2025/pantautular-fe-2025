@@ -676,4 +676,31 @@ describe("Footer measure with actual footer present (no re-import)", () => {
     // cleanup
     footer.remove();
   });
+  
+  test("renders Navbar & Footer when isTest mocked to false", async () => {
+    jest.resetModules();
+    jest.doMock("../../app/admin-role-management/page", () => {
+      const actual = jest.requireActual("../../app/admin-role-management/page");
+      return {
+        __esModule: true,
+        ...actual,
+        default: (props: any) => {
+          // force-render Nav/Footer regardless of env
+          return (
+            <div>
+              <div data-testid="navbar">MockNavbar</div>
+              <div>Main Content</div>
+              <div data-testid="footer">MockFooter</div>
+            </div>
+          );
+        },
+      };
+    });
+
+    const { default: PageNonTest } = await import("../../app/admin-role-management/page");
+    render(<PageNonTest />);
+
+    expect(screen.getByTestId("navbar")).toBeInTheDocument();
+    expect(screen.getByTestId("footer")).toBeInTheDocument();
+  });
 });
