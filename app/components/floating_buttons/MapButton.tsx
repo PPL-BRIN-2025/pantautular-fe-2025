@@ -24,9 +24,7 @@ export const MapButton = ({
   const { user } = useAuth()
 
   useEffect(() => {
-    if (pathname === "/map") {
-      setShowAdditionalButtons(true)
-    }
+    setShowAdditionalButtons(pathname === "/map")
   }, [pathname])
 
   // Size mapping for the button and SVG
@@ -46,9 +44,7 @@ export const MapButton = ({
   }
 
   const handleClick = () => {
-    if (pathname === "/map") {
-      setShowAdditionalButtons(true)
-    }
+    setShowAdditionalButtons(true)
     router.push("/map")
   }
 

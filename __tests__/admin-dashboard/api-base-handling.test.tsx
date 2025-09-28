@@ -86,7 +86,7 @@ describe('Admin Dashboard - No API Base Handling', () => {
     expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(screen.getByText('Expert')).toBeInTheDocument();
     expect(screen.getByText('Kurator')).toBeInTheDocument();
-    expect(screen.getByText('Contributor')).toBeInTheDocument();
+  expect(screen.getByText('Kontributor')).toBeInTheDocument();
     
     // Clean up
     warnSpy.mockRestore();

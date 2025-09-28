@@ -1,16 +1,26 @@
 "use client";
 
 /* eslint-disable sonarjs/cognitive-complexity */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import StatCard from "./_components/StatCard";
 import RolePills from "./_components/RolePills";
 import UserInfo from "./_components/UserInfo";
+import { API_BASE, API_BASE_RAW } from '@/config';
+import Footer from "../components/Footer";
+
+const warnWhenApiBaseMissing = () => {
+  const configured = typeof API_BASE_RAW === "string" && API_BASE_RAW.trim() !== "";
+  if (!configured) {
+    console.warn("NEXT_PUBLIC_API_URL is not set. Using demo defaults for stats.");
+  }
+};
+
+warnWhenApiBaseMissing();
 
 /** === Auth helpers (SAME STYLE AS FEATURE 1) === */
 type HeadersMap = Record<string, string>;
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -23,7 +33,7 @@ function getToken(): string | null {
   }
 
   // Fallback: read from cookie named access_token
-  const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+  const m = new RegExp(/(?:^|;\s*)access_token=([^;]+)/).exec(document.cookie);
   if (m) return decodeURIComponent(m[1]);
 
   return null;
@@ -36,13 +46,29 @@ function authHeaders(): HeadersMap {
   return h;
 }
 
+function pickMessage(
+  primary?: string | null,
+  secondary?: string | null,
+  tertiary?: string | null
+): string | undefined {
+  if (primary) return primary;
+  if (secondary) return secondary;
+  return tertiary ?? undefined;
+}
+
+export const __testables = {
+  getToken,
+  authHeaders,
+  pickMessage,
+};
+
 /** === Page === */
 export default function AdminDashboardPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [activeUsers, setActiveUsers] = useState(0);
   const [datasets, setDatasets] = useState(0);
   const [failedLogins, setFailedLogins] = useState(0);
-  const [roles, setRoles] = useState<string[]>(["Admin", "Expert", "Kurator", "Contributor"]); // fallback
+  const [roles, setRoles] = useState<string[]>(["Admin", "Expert", "Kurator", "Kontributor"]); // fallback
   const [usersMessage, setUsersMessage] = useState<string | undefined>();
   const [datasetsMessage, setDatasetsMessage] = useState<string | undefined>();
   const [activityMessage, setActivityMessage] = useState<string | undefined>();
@@ -52,7 +78,6 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     (async () => {
       if (!API_BASE) {
-        console.warn("NEXT_PUBLIC_API_URL is not set. Using demo defaults for stats.");
         setLoading(false);
         return;
       }
@@ -102,10 +127,11 @@ export default function AdminDashboardPage() {
         setFailedLogins(data?.failedLogins ?? data?.failed_logins ?? data?.failed ?? 0);
         if (Array.isArray(data?.roles) && data.roles.length > 0) setRoles(data.roles);
 
-        const msgs = data?.messages || {};
-        setUsersMessage(data?.usersMessage || msgs?.usersMessage || msgs?.users);
-        setDatasetsMessage(data?.datasetsMessage || msgs?.datasetsMessage || msgs?.datasets);
-        setActivityMessage(data?.activityMessage || msgs?.activityMessage || msgs?.activity);
+  const msgs = data?.messages as Record<string, string> | undefined;
+
+  setUsersMessage(pickMessage(data?.usersMessage, msgs?.usersMessage, msgs?.users));
+  setDatasetsMessage(pickMessage(data?.datasetsMessage, msgs?.datasetsMessage, msgs?.datasets));
+  setActivityMessage(pickMessage(data?.activityMessage, msgs?.activityMessage, msgs?.activity));
       } catch (e) {
         console.error("Failed to fetch admin stats:", e);
       } finally {
@@ -139,91 +165,88 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <main className={styles.container}>
-      <header className={styles.headerCard}>
-        <div className={styles.headerContent}>
-          <nav className={styles.navShortcuts} aria-label="Admin dashboard quick links">
-            <span className={styles.navLabel}>Navigation:</span>
-            <Link href="/admin-dashboard/roles" className={styles.navLink}>
-              Role Management
-            </Link>
-            <span className={styles.dot} aria-hidden="true">
-              •
-            </span>
-            <Link href="/admin-dashboard/logs" className={styles.navLink}>
-              User Log
-            </Link>
-          </nav>
-
-          {/* User Info Component → Display logged-in admin’s name & role */}
-          <UserInfo />
-        </div>
-      </header>
-
-      {/* Top stat cards */}
-      <section className={styles.topGrid}>
-        <StatCard
-          label={loading ? "Total Users (loading…)" : "Total Users"}
-          value={totalUsers}
-          icon={<span>👥</span>}
-          hint={usersMessage}
-        />
-        <StatCard
-          label={loading ? "Datasets (loading…)" : "Datasets"}
-          value={datasets}
-          icon={<span>📁</span>}
-          hint={datasetsMessage}
-        />
-
-        <div className={styles.card}>
-          <div className={styles.cardLabel}>Role Defined</div>
-          <div className={styles.roleCount}>{roles.length}</div>
-          <RolePills roles={roles} />
-        </div>
-      </section>
-
-      {/* Summary row with actions */}
-      <section className={styles.summaryWrapper}>
-        <div className={styles.summaryHeader}>
-          <div className={styles.summaryTitle}>Ringkasan Sistem</div>
-          <div className={styles.actions}>
-            <Link href="/admin-dashboard/logs" className={styles.buttonSecondary}>
-              See Log
-            </Link>
-            <Link href="/admin-dashboard/roles" className={styles.buttonPrimary}>
-              Manage Role
-            </Link>
-          </div>
-        </div>
-
-        <div className={styles.summaryGrid}>
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryCardLabel}>Total Active Users</div>
-            <div className={styles.summaryRow}>
-              <div className={styles.iconLarge}>👥</div>
-              <div className={styles.summaryValue}>{activeUsers}</div>
-            </div>
-            {/* Keep your test hint line if needed */}
-            <div className={styles.summaryNote}>Estimasi, demo stat.</div>
-          </div>
-
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryCardLabel}>Failed Login</div>
-            <div className={styles.summaryRow}>
-              <div className={styles.iconLarge}>👥</div>
-              <div className={styles.summaryValue}>{failedLogins}</div>
-            </div>
-            {activityMessage ? (
-              <div className={styles.hint}>{activityMessage}</div>
-            ) : (
-              <Link href="/admin-dashboard/logs" className={styles.linkSmall}>
-                See on User Log Page
+    <>
+      <main className={styles.container}>
+        <header className={styles.headerCard}>
+          <div className={styles.headerContent}>
+            <nav className={styles.navShortcuts} aria-label="Admin dashboard quick links">
+              <span className={styles.navLabel}>Navigasi:</span>
+              <Link href="/admin-dashboard/roles" className={styles.navLink}>
+                Pengelolaan Roles
               </Link>
-            )}
-          </div>
-        </div>
-      </section>
+              <span className={styles.dot} aria-hidden="true">
+                •
+              </span>
+              <Link href="/admin-dashboard/logs" className={styles.navLink}>
+                Log Pengguna
+              </Link>
+            </nav>
 
-    </main>
+            {/* User Info Component → Display logged-in admin's name & role */}
+            <UserInfo />
+          </div>
+        </header>
+
+        {/* Top stat cards */}
+        <section className={styles.topGrid}>
+          <StatCard
+            label={loading ? "Jumlah Pengguna (Memuat…)" : "Jumlah Pengguna"}
+            value={totalUsers}
+            icon={<span>👥</span>}
+            hint={usersMessage}
+          />
+          <StatCard
+            label={loading ? "Jumlah Dataset (Memuat…)" : "Jumlah Dataset"}
+            value={datasets}
+            icon={<span>📁</span>}
+            hint={datasetsMessage}
+          />
+
+          <div className={styles.card}>
+            <div className={styles.cardLabel}>Roles</div>
+            <div className={styles.roleCount}>{roles.length}</div>
+            <RolePills roles={roles} />
+          </div>
+        </section>
+
+        {/* Summary row with actions */}
+        <section className={styles.summaryWrapper}>
+          <div className={styles.summaryHeader}>
+            <div className={styles.summaryTitle}>Ringkasan Sistem</div>
+            <div className={styles.actions}>
+              <Link href="/admin-dashboard/logs" className={styles.buttonSecondary}>
+                Lihat Log
+              </Link>
+              <Link href="/admin-dashboard/roles" className={styles.buttonPrimary}>
+                Kelola Role
+              </Link>
+            </div>
+          </div>
+
+          <div className={styles.summaryGrid}>
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryCardLabel}>Jumlah Pengguna Aktif</div>
+              <div className={styles.summaryRow}>
+                <div className={styles.iconLarge}>👥</div>
+                <div className={styles.summaryValue}>{activeUsers}</div>
+              </div>
+            </div>
+
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryCardLabel}>Jumlah Login Gagal</div>
+              <div className={styles.summaryRow}>
+                <div className={styles.iconLarge}>👥</div>
+                <div className={styles.summaryValue}>{failedLogins}</div>
+                <div className={styles.hint}>{activityMessage}</div>
+              </div>
+              <a href="/admin-dashboard/logs" className={styles.linkSmall}>
+                Lihat di Halaman Log Pengguna
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
   );
 }

@@ -4,11 +4,12 @@ module.exports = {
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }], // Tambahin regex biar JSX/TSX bisa diproses
   },
-  "transformIgnorePatterns": [
+  transformIgnorePatterns: [
     "node_modules/(?!@amcharts|d3-|internmap)"
   ],
   moduleNameMapper: {
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+    "^@/config$": "<rootDir>/config.ts",
     "^@/(.*)$": "<rootDir>/app/$1",
     "^@amcharts/amcharts5$": "<rootDir>/__mocks__/amcharts5.js",
     "^@amcharts/amcharts5/map$": "<rootDir>/__mocks__/amcharts5-map.js",
@@ -16,4 +17,12 @@ module.exports = {
     "^@amcharts/amcharts5-geodata/indonesiaLow$": "<rootDir>/__mocks__/amcharts5-geodata-indonesiaLow.js"
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+
+  collectCoverage: true,
+  coverageDirectory: "coverage",
+  coverageReporters: ["lcov", "text", "cobertura"],
+  collectCoverageFrom: [
+  "app/**/*.{ts,tsx}",   // include all app code
+  "!app/**/_components/*", // optional: ignore small presentational components
+],
 };

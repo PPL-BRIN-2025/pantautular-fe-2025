@@ -76,7 +76,7 @@ describe('JWTStrategy', () => {
 
   it('logs out correctly', async () => {
     await jwt.logout();
-    expect(localStorage.removeItem).toHaveBeenCalledWith('token');
+    expect(localStorage.removeItem).toHaveBeenCalledWith('accessToken');
     expect(localStorage.removeItem).toHaveBeenCalledWith('user');
   });
 });

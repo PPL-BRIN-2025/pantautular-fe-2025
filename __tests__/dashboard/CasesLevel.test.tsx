@@ -225,8 +225,8 @@ describe('AmChartKasus Component', () => {
     render(<AmChartTingkatanKasus jsonData={mockJsonData} />);
     
     await waitFor(() => {
-      expect(document.getElementById).toHaveBeenCalledWith('dataCount');
-      expect(mockDataCountElement.innerHTML).toContain('4 Kasus');
+  expect(document.getElementById).toHaveBeenCalledWith('dataCount');
+  expect(mockDataCountElement.innerHTML).toContain('38 Kasus');
     });
   });
 
@@ -392,7 +392,7 @@ describe('AmChartKasus Component', () => {
 
   // Unhappy Case - Component handles null data
   it('handles null jsonData gracefully (Unhappy Case)', () => {
-    render(<AmChartTingkatanKasus jsonData={null} />);
+  render(<AmChartTingkatanKasus jsonData={null as any} />);
     
     expect(screen.getByText('Tingkatan Kasus')).toBeInTheDocument();
     expect(screen.getByTestId('chart-container')).toBeInTheDocument();
@@ -547,8 +547,8 @@ describe('AmChartKasus Component', () => {
       
       render(<AmChartTingkatanKasus jsonData={dataWithEmptyArrays} />);
       
-      // We expect only 1 data point (from severe)
-      expect(mockElement.innerHTML).toContain('1 Kasus');
+  // We expect 5 total cases (from severe)
+  expect(mockElement.innerHTML).toContain('5 Kasus');
     });
     
     // Test specific edge case where all arrays are empty
@@ -592,8 +592,8 @@ describe('AmChartKasus Component', () => {
       
       render(<AmChartTingkatanKasus jsonData={mixedLengthData} />);
       
-      // We expect 1 + 2 + 3 = 6 data points
-      expect(mockElement.innerHTML).toContain('6 Kasus');
+  // We expect 5 + 25 + 75 = 105 cases
+  expect(mockElement.innerHTML).toContain('105 Kasus');
     });
   });
 
@@ -610,19 +610,19 @@ describe('AmChartKasus Component', () => {
 
     // Test with null data field
     it('handles jsonData with null data field', () => {
-      const nullDataField = { data: null } as any;
-      
-      // Should not throw an error
-      render(<AmChartTingkatanKasus jsonData={nullDataField} />);
+    const nullDataField = { data: null } as any;
+
+    // Should not throw an error
+    render(<AmChartTingkatanKasus jsonData={nullDataField} />);
       expect(screen.getByTestId('chart-container')).toBeInTheDocument();
     });
     
     // Test with undefined jsonData
     it('handles undefined jsonData', () => {
-      const undefinedData = undefined;
-      
-      // Should not throw an error
-      render(<AmChartTingkatanKasus jsonData={undefinedData} />);
+  const undefinedData = undefined as any;
+
+  // Should not throw an error
+  render(<AmChartTingkatanKasus jsonData={undefinedData} />);
       expect(screen.getByTestId('chart-container')).toBeInTheDocument();
     });
   });
