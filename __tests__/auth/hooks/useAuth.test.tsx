@@ -47,29 +47,29 @@ describe('useAuth hook', () => {
       strategy: { name: 'test-strategy' }
     };
     
+    // Import the necessary modules
+    const { AuthContext } = require('../../../app/auth/context');
+    const { useAuth } = require('../../../app/auth/hooks/useAuth');
+    
+    // Create a wrapper component that provides the mock context
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthContext.Provider value={mockAuthContext}>
+        {children}
+      </AuthContext.Provider>
+    );
+    
+    // Create a component that uses the hook
+    const Consumer = () => {
+      const auth = useAuth();
+      return (
+        <div data-testid="auth-result">
+          {auth === mockAuthContext ? 'Context returned successfully' : 'Wrong context'}
+        </div>
+      );
+    };
+    
     // Create a test component that uses the hook within the provider
     const TestComponent = () => {
-      // Import the necessary modules
-      const { AuthContext } = require('../../../app/auth/context');
-      const { useAuth } = require('../../../app/auth/hooks/useAuth');
-      
-      // Create a wrapper component that provides the mock context
-      const Wrapper = ({ children }: { children: React.ReactNode }) => (
-        <AuthContext.Provider value={mockAuthContext}>
-          {children}
-        </AuthContext.Provider>
-      );
-      
-      // Create a component that uses the hook
-      const Consumer = () => {
-        const auth = useAuth();
-        return (
-          <div data-testid="auth-result">
-            {auth === mockAuthContext ? 'Context returned successfully' : 'Wrong context'}
-          </div>
-        );
-      };
-      
       return (
         <Wrapper>
           <Consumer />

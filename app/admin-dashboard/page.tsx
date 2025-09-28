@@ -140,10 +140,25 @@ export default function AdminDashboardPage() {
 
   return (
     <main className={styles.container}>
-      {/* User Info Component → Display logged-in admin’s name & role */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <UserInfo />
-      </div>
+      <header className={styles.headerCard}>
+        <div className={styles.headerContent}>
+          <nav className={styles.navShortcuts} aria-label="Admin dashboard quick links">
+            <span className={styles.navLabel}>Navigation:</span>
+            <Link href="/admin-dashboard/roles" className={styles.navLink}>
+              Role Management
+            </Link>
+            <span className={styles.dot} aria-hidden="true">
+              •
+            </span>
+            <Link href="/admin-dashboard/logs" className={styles.navLink}>
+              User Log
+            </Link>
+          </nav>
+
+          {/* User Info Component → Display logged-in admin’s name & role */}
+          <UserInfo />
+        </div>
+      </header>
 
       {/* Top stat cards */}
       <section className={styles.topGrid}>
@@ -209,17 +224,6 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Bottom navigation shortcuts */}
-      <nav className={styles.bottomNav}>
-        <span>Navigation: </span>
-        <Link href="/admin-dashboard/roles" className={styles.navLink}>
-          Role Management
-        </Link>
-        <span className={styles.dot}>•</span>
-        <Link href="/admin-dashboard/logs" className={styles.navLink}>
-          User Log
-        </Link>
-      </nav>
     </main>
   );
 }

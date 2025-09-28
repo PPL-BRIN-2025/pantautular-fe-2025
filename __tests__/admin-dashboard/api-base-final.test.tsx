@@ -1,5 +1,4 @@
 import React from 'react';
-import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 describe('Admin Dashboard Page - API_BASE check', () => {
