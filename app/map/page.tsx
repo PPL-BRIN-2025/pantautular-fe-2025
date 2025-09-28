@@ -75,13 +75,14 @@ export default function MapPage() {
 
         {/* Conditionally render the filter form */}
         {isFilterVisible && (
-          <div className="fixed top-[calc(5rem+5rem)] left-4 bg-white shadow-lg rounded-lg p-4 z-20 max-w-lg overflow-auto max-h-[70vh]">
+          <div
+            className="fixed top-[calc(5rem+5rem)] left-4 bg-white shadow-lg rounded-lg p-4 z-20 max-w-lg overflow-auto max-h-[70vh]"
+            data-testid="filter-form"
+          >
             <MultiSelectForm
               onSubmitFilterState={(state) => {
 
                 setFilterState(state);
-                // Optional: close filter form after submission
-                setIsFilterVisible(false);
               }}
               initialFilterState={filterState}
               onError={

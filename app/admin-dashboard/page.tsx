@@ -7,8 +7,17 @@ import styles from "./page.module.css";
 import StatCard from "./_components/StatCard";
 import RolePills from "./_components/RolePills";
 import UserInfo from "./_components/UserInfo";
-import { API_BASE } from '@/config';
+import { API_BASE, API_BASE_RAW } from '@/config';
 import Footer from "../components/Footer";
+
+const warnWhenApiBaseMissing = () => {
+  const configured = typeof API_BASE_RAW === "string" && API_BASE_RAW.trim() !== "";
+  if (!configured) {
+    console.warn("NEXT_PUBLIC_API_URL is not set. Using demo defaults for stats.");
+  }
+};
+
+warnWhenApiBaseMissing();
 
 /** === Auth helpers (SAME STYLE AS FEATURE 1) === */
 type HeadersMap = Record<string, string>;
@@ -69,7 +78,6 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     (async () => {
       if (!API_BASE) {
-        console.warn("NEXT_PUBLIC_API_URL is not set. Using demo defaults for stats.");
         setLoading(false);
         return;
       }
