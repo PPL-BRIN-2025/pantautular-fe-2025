@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable sonarjs/cognitive-complexity */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 import StatCard from "./_components/StatCard";
@@ -24,7 +24,7 @@ function getToken(): string | null {
   }
 
   // Fallback: read from cookie named access_token
-  const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+  const m = RegExp(/(?:^|;\s*)access_token=([^;]+)/).exec(document.cookie);
   if (m) return decodeURIComponent(m[1]);
 
   return null;

@@ -57,7 +57,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV };
     process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
-    (global.fetch as any) = jest.fn();
+  (globalThis.fetch as any) = jest.fn();
     window.localStorage.clear();
     document.cookie = '';
     window.location.href = '';
@@ -82,7 +82,7 @@ describe('Admin Dashboard - Stats Binding', () => {
       },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => payload,
     });
@@ -111,7 +111,7 @@ describe('Admin Dashboard - Stats Binding', () => {
 
     expect(screen.getByTestId('user-info')).toBeInTheDocument();
 
-    expect(global.fetch).toHaveBeenCalledWith(
+  expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/admin-feature/stats'),
       expect.objectContaining({
         method: 'GET',
@@ -207,7 +207,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('handles 403 forbidden response with custom detail', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 403,
       json: async () => ({ detail: 'Admin access required' }),
@@ -267,7 +267,7 @@ describe('Admin Dashboard - Stats Binding', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -291,7 +291,7 @@ describe('Admin Dashboard - Stats Binding', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -348,7 +348,7 @@ describe('Admin Dashboard - Stats Binding', () => {
         expect(warnSpy).toHaveBeenCalledWith(
           'NEXT_PUBLIC_API_URL is not set. Using demo defaults for stats.'
         );
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(globalThis.fetch).not.toHaveBeenCalled();
       });
     });
 
@@ -356,7 +356,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('keeps default roles when API response has no roles array', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         totalUsers: 3,
@@ -378,7 +378,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('uses nested message keys when top-level message fields are missing', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         totalUsers: 9,
@@ -420,7 +420,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('handles response without messages payload', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         totalUsers: 2,
@@ -440,7 +440,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('handles null messages payload gracefully', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         totalUsers: 4,
@@ -464,6 +464,6 @@ describe('Admin Dashboard - Stats Binding', () => {
     expect(__testables.pickMessage('primary', 'secondary', 'tertiary')).toBe('primary');
     expect(__testables.pickMessage(undefined, 'secondary', 'tertiary')).toBe('secondary');
     expect(__testables.pickMessage(undefined, undefined, 'tertiary')).toBe('tertiary');
-    expect(__testables.pickMessage(undefined, undefined, undefined)).toBeUndefined();
+    expect(__testables.pickMessage()).toBeUndefined();
   });
 });
