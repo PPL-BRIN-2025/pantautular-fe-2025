@@ -2,6 +2,11 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+const renderPage = async () => {
+  const { default: AdminDashboardPage } = await import('../../app/admin-dashboard/page');
+  return render(<AdminDashboardPage />);
+};
+
 // Mock window location
 Object.defineProperty(window, 'location', {
   value: {
@@ -12,7 +17,9 @@ Object.defineProperty(window, 'location', {
 
 // Mock cookies forwarding
 jest.mock('next/headers', () => ({
-  headers: () => Promise.resolve({ get: (k: string) => (k.toLowerCase() === 'cookie' ? 'sessionid=abc' : null) }),
+  headers: () => Promise.resolve({
+    get: (k: string) => (k.toLowerCase() === 'cookie' ? 'sessionid=abc' : null),
+  }),
 }));
 
 // Mock UserInfo to keep this test focused on stats
@@ -21,14 +28,19 @@ jest.mock('../../app/admin-dashboard/_components/UserInfo', () => () => (
 ));
 
 // Mock localStorage
-const localStorageMock = (function() {
+const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value.toString(); },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; },
-    _getStore: () => store,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
   };
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
@@ -39,18 +51,17 @@ Object.defineProperty(document, 'cookie', {
   value: '',
 });
 
-import AdminDashboardPage from '../../app/admin-dashboard/page';
-
 const ORIGINAL_ENV = { ...process.env };
 
 describe('Admin Dashboard - Stats Binding', () => {
   beforeEach(() => {
-    jest.resetModules();
     process.env = { ...ORIGINAL_ENV };
+    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
     (global.fetch as any) = jest.fn();
     window.localStorage.clear();
     document.cookie = '';
     window.location.href = '';
+    jest.clearAllMocks();
   });
 
   afterAll(() => {
@@ -58,298 +69,401 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('binds numbers from backend (200 OK)', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
-    
-    const payload = { 
-      totalUsers: 12, 
+    const payload = {
+      totalUsers: 12,
       activeUsers: 8,
-      datasets: 5, 
-      failedLogins: 2, 
-      roles: ['Admin','Expert'],
+      datasets: 5,
+      failedLogins: 2,
+      roles: ['Admin', 'Expert'],
       messages: {
-        usersMessage: "Total registered users",
-        datasetsMessage: "Available datasets",
-        activityMessage: "Recent activity"
-      }
+        usersMessage: 'Total registered users',
+        datasetsMessage: 'Available datasets',
+        activityMessage: 'Recent activity',
+      },
     };
-    
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
-      ok: true, 
-      json: async () => payload 
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => payload,
     });
 
-    render(<AdminDashboardPage />);
-    
-    // Wait for state updates after fetch
+    await renderPage();
+
     await waitFor(() => {
-      // Check for specific content that indicates a successful API response
-      expect(screen.getByText('Total Users')).toBeInTheDocument();
-    });
-    
-    // Check for the expected data values using specific queries to avoid ambiguity
-    await waitFor(() => {
-      // Check totalUsers value is 12
-      const totalUsersValue = screen.getAllByText('12');
-      expect(totalUsersValue.length).toBeGreaterThan(0);
-      
-      // Check datasets value is 5
-      const datasetsValue = screen.getAllByText('5');
-      expect(datasetsValue.length).toBeGreaterThan(0);
-      
-      // Check activeUsers value is 8
-      const activeUsersValue = screen.getAllByText('8');
-      expect(activeUsersValue.length).toBeGreaterThan(0);
+      expect(screen.getByText('Jumlah Pengguna')).toBeInTheDocument();
     });
 
-    // Check for role pills
+    await waitFor(() => {
+      expect(screen.getAllByText('12').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('5').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('8').length).toBeGreaterThan(0);
+    });
+
     expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(screen.getByText('Expert')).toBeInTheDocument();
-    
-    // Check for role count (using role count class)
+
     const roleCount = screen.getByText('2', { selector: '.roleCount' });
     expect(roleCount).toBeInTheDocument();
 
-    // Hints/messages rendered
     expect(screen.getByText('Total registered users')).toBeInTheDocument();
     expect(screen.getByText('Available datasets')).toBeInTheDocument();
     expect(screen.getByText('Recent activity')).toBeInTheDocument();
 
-    // UserInfo placeholder rendered
     expect(screen.getByTestId('user-info')).toBeInTheDocument();
 
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/admin-feature/stats'), 
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/admin-feature/stats'),
       expect.objectContaining({
-        method: "GET",
-        cache: "no-store",
+        method: 'GET',
+        cache: 'no-store',
         headers: expect.any(Object),
-        credentials: "include",
+        credentials: 'include',
       })
     );
   });
 
+  it('falls back to default API_BASE when NEXT_PUBLIC_API_URL is undefined', async () => {
+    delete process.env.NEXT_PUBLIC_API_URL;
+    let apiBase: string | undefined;
+
+    await jest.isolateModulesAsync(async () => {
+      const mod = await import('../../config');
+      apiBase = mod.API_BASE;
+    });
+
+    expect(apiBase).toBe('http://localhost:8000');
+  });
+
   it('handles alternative API response formats', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
-    
-    // Different property naming in API response
-    const payload = { 
-      total_users: 15, 
+    const payload = {
+      total_users: 15,
       active_users: 10,
-      dataset: 7, 
+      dataset: 7,
       failed: 3,
       roles: ['Admin', 'User', 'Guest'],
-      usersMessage: "User count message",
-      datasetsMessage: "Dataset message",
-      activityMessage: "Activity message"
+      usersMessage: 'User count message',
+      datasetsMessage: 'Dataset message',
+      activityMessage: 'Activity message',
     };
-    
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
-      ok: true, 
-      json: async () => payload 
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => payload,
     });
 
-    render(<AdminDashboardPage />);
+    await renderPage();
 
-    // Wait for async state updates and check values
     await waitFor(() => {
-      // Check totalUsers value (total_users in the payload)
-      const cardValues = screen.getAllByText('15');
-      expect(cardValues.length).toBeGreaterThan(0);
+      expect(screen.getAllByText('15').length).toBeGreaterThan(0);
     });
-    
-    // Check activeUsers value (active_users in the payload)
-    const activeUsers = screen.getAllByText('10');
-    expect(activeUsers.length).toBeGreaterThan(0);
-    
-    // Check datasets value (dataset in the payload)
-    const datasets = screen.getAllByText('7');
-    expect(datasets.length).toBeGreaterThan(0);
-    
-    // Check messages are displayed
+
+    expect(screen.getAllByText('10').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('7').length).toBeGreaterThan(0);
+
     expect(screen.getByText('User count message')).toBeInTheDocument();
     expect(screen.getByText('Dataset message')).toBeInTheDocument();
     expect(screen.getByText('Activity message')).toBeInTheDocument();
-    
-    // Check roles
+
     expect(screen.getByText('User')).toBeInTheDocument();
     expect(screen.getByText('Guest')).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
-    
-    // The role count should be 3 in the roleCount div
+
     const roleCountDiv = screen.getAllByText('3')[0];
     expect(roleCountDiv).toBeInTheDocument();
   });
 
   it('redirects to login when auth token is missing and receives 401', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
-    
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
-      status: 401
+      status: 401,
     });
 
-    render(<AdminDashboardPage />);
-    
-    // Wait for the redirect to happen
+    await renderPage();
+
     await waitFor(() => {
       expect(window.location.href).toBe('/login?next=%2Fadmin-dashboard');
     });
   });
 
   it('shows fallbacks and logs error on 500', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
-      ok: false, 
-      status: 500, 
-      text: async () => 'ISE' 
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'ISE',
     });
 
-    render(<AdminDashboardPage />);
-    
-    // Wait for the component to finish rendering
+    await renderPage();
+
     await waitFor(() => {
       expect(errorSpy).toHaveBeenCalled();
     });
-    
-    // Check that default values are shown (without using regex)
-    const zeroValues = screen.getAllByText('0');
-    expect(zeroValues.length).toBeGreaterThan(0);
-    
-    // Verify the error contains the specific text
-    const has500 = errorSpy.mock.calls.some(c => String(c[0]).includes('Admin stats HTTP error: 500'));
+
+    expect(screen.getAllByText('0').length).toBeGreaterThan(0);
+
+    const has500 = errorSpy.mock.calls.some((c) => String(c[0]).includes('Admin stats HTTP error: 500'));
     expect(has500).toBe(true);
     errorSpy.mockRestore();
   });
 
   it('handles 403 forbidden response with custom detail', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
-    
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 403,
-      json: async () => ({ detail: "Admin access required" })
+      json: async () => ({ detail: 'Admin access required' }),
     });
 
-    render(<AdminDashboardPage />);
-    
-    // Wait for the component to update with the 403 response
+    await renderPage();
+
     await waitFor(() => {
       expect(screen.getByText('Informasi Akses')).toBeInTheDocument();
     });
-    
+
     expect(screen.getByText('Admin access required')).toBeInTheDocument();
     expect(screen.getByText(/Anda tidak memiliki izin/)).toBeInTheDocument();
   });
 
   it('handles 403 forbidden response with default message when no detail', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
-    
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 403,
-      json: async () => ({}) // No detail provided
+      json: async () => ({}),
     });
 
-    render(<AdminDashboardPage />);
-    
-    // Wait for the component to update with the 403 response
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Akses Ditolak')).toBeInTheDocument();
+    });
+  });
+
+  it('handles 403 forbidden response when parsing detail fails', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => {
+        throw new Error('bad json');
+      },
+    });
+
+    await renderPage();
+
     await waitFor(() => {
       expect(screen.getByText('Akses Ditolak')).toBeInTheDocument();
     });
   });
 
   it('gets auth token from localStorage', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
     window.localStorage.setItem('token', 'test-token-value');
-    
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
-      ok: true, 
-      json: async () => ({ totalUsers: 5 }) 
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ totalUsers: 5 }),
     });
 
-    render(<AdminDashboardPage />);
-    
+    await renderPage();
+
     await waitFor(() => {
-      // Check that fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
-    
-    // Check that Authorization header was set with token
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(String), 
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: 'Bearer test-token-value'
-        })
+          Authorization: 'Bearer test-token-value',
+        }),
       })
     );
   });
 
   it('gets auth token from cookie when not in localStorage', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
     document.cookie = 'access_token=cookie-token-value';
-    
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ 
-      ok: true, 
-      json: async () => ({ totalUsers: 5 }) 
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ totalUsers: 5 }),
     });
 
-    render(<AdminDashboardPage />);
-    
+    await renderPage();
+
     await waitFor(() => {
-      // Check that fetch was called
       expect(global.fetch).toHaveBeenCalled();
     });
-    
-    // Check that Authorization header was set with token from cookie
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(String), 
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: 'Bearer cookie-token-value'
-        })
+          Authorization: 'Bearer cookie-token-value',
+        }),
       })
     );
   });
 
   it('handles empty API_URL gracefully', async () => {
-    // Simply test with a null fetch response instead of trying to mock API_BASE
-    (global.fetch as jest.Mock).mockResolvedValueOnce(null); 
+    (global.fetch as jest.Mock).mockResolvedValueOnce(null);
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
-    render(<AdminDashboardPage />);
-    
-    // Give the component time to render with default values
+
+    await renderPage();
+
     await waitFor(() => {
       expect(screen.getAllByText('0').length).toBeGreaterThan(0);
     });
-    
-    // Check that we got an error (would happen with null fetch result)
+
     expect(errorSpy).toHaveBeenCalled();
-    
-    // Check for default values (zero stats)
-    const zeroValues = screen.getAllByText('0');
-    expect(zeroValues.length).toBeGreaterThan(0);
-    
-    // Restore
+
     errorSpy.mockRestore();
   });
 
   it('handles fetch error gracefully', async () => {
-    process.env.NEXT_PUBLIC_API_URL = 'http://api.local';
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 
-    render(<AdminDashboardPage />);
-    
+    await renderPage();
+
     await waitFor(() => {
-      // Should log error
       expect(errorSpy).toHaveBeenCalledWith('Failed to fetch admin stats:', expect.any(Error));
     });
-    
-    // Check for default values (zero stats)
-    const zeroValues = screen.getAllByText('0');
-    expect(zeroValues.length).toBeGreaterThan(0);
-    
+
+    expect(screen.getAllByText('0').length).toBeGreaterThan(0);
+
     errorSpy.mockRestore();
+  });
+
+  it('logs a warning and stops loading when API_BASE is not set', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await jest.isolateModulesAsync(async () => {
+      jest.doMock('../../config', () => ({
+        API_BASE: '',
+      }));
+
+      const { render: isolatedRender, waitFor: isolatedWaitFor } = await import('@testing-library/react/pure');
+      const { default: AdminDashboardPage } = await import('../../app/admin-dashboard/page');
+
+      isolatedRender(<AdminDashboardPage />);
+
+      await isolatedWaitFor(() => {
+        expect(warnSpy).toHaveBeenCalledWith(
+          'NEXT_PUBLIC_API_URL is not set. Using demo defaults for stats.'
+        );
+        expect(global.fetch).not.toHaveBeenCalled();
+      });
+    });
+
+    warnSpy.mockRestore();
+  });
+
+  it('keeps default roles when API response has no roles array', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        totalUsers: 3,
+        activeUsers: 2,
+        datasets: 1,
+        failedLogins: 0,
+        messages: {},
+      }),
+    });
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jumlah Pengguna')).toBeInTheDocument();
+    });
+
+    const rolePills = screen.getAllByText('Kontributor');
+    expect(rolePills.length).toBeGreaterThan(0);
+  });
+
+  it('uses nested message keys when top-level message fields are missing', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        totalUsers: 9,
+        activeUsers: 4,
+        datasets: 2,
+        failedLogins: 1,
+        messages: {
+          users: 'Users fallback',
+          datasets: 'Datasets fallback',
+          activity: 'Activity fallback',
+        },
+      }),
+    });
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Users fallback')).toBeInTheDocument();
+      expect(screen.getByText('Datasets fallback')).toBeInTheDocument();
+      expect(screen.getByText('Activity fallback')).toBeInTheDocument();
+    });
+  });
+
+  it('returns null token when window is undefined (server-side guard)', async () => {
+    const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      writable: true,
+      value: undefined,
+    });
+
+    const { __testables } = await import('../../app/admin-dashboard/page');
+    expect(__testables.getToken()).toBeNull();
+
+    if (windowDescriptor) {
+      Object.defineProperty(globalThis, 'window', windowDescriptor);
+    }
+  });
+
+  it('handles response without messages payload', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        totalUsers: 2,
+        activeUsers: 1,
+        datasets: 0,
+        failedLogins: 0,
+      }),
+    });
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByText('2').length).toBeGreaterThan(0);
+    });
+
+    expect(screen.queryByText('Users fallback')).not.toBeInTheDocument();
+  });
+
+  it('handles null messages payload gracefully', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        totalUsers: 4,
+        activeUsers: 2,
+        datasets: 1,
+        failedLogins: 0,
+        messages: null,
+      }),
+    });
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByText('4').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('pickMessage helper returns first available message', async () => {
+    const { __testables } = await import('../../app/admin-dashboard/page');
+
+    expect(__testables.pickMessage('primary', 'secondary', 'tertiary')).toBe('primary');
+    expect(__testables.pickMessage(undefined, 'secondary', 'tertiary')).toBe('secondary');
+    expect(__testables.pickMessage(undefined, undefined, 'tertiary')).toBe('tertiary');
+    expect(__testables.pickMessage(undefined, undefined, undefined)).toBeUndefined();
   });
 });
