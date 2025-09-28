@@ -157,28 +157,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-  <>
-    {blocked403Detail ? (
-      <main className={styles.container}>
-        <div className={styles.card} role="alert" aria-live="polite">
-          <div className={styles.cardLabel}>Informasi Akses</div>
-          <div className={styles.cardValue} style={{ fontSize: 24 }}>
-            {blocked403Detail}
-          </div>
-          <div className={styles.hint} style={{ marginTop: 8 }}>
-            Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau login sebagai admin.
-          </div>
-          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-            <Link href="/" className={styles.buttonSecondary}>
-              Kembali
-            </Link>
-            <Link href="/login?next=/admin-dashboard" className={styles.buttonPrimary}>
-              Login
-            </Link>
-          </div>
-        </div>
-      </main>
-    ) : (
+    <>
       <main className={styles.container}>
         <header className={styles.headerCard}>
           <div className={styles.headerContent}>
@@ -259,8 +238,7 @@ export default function AdminDashboardPage() {
           </div>
         </section>
       </main>
-    )}
-    <Footer />
-  </>
-);
+      <Footer />
+    </>
+  );
 }
