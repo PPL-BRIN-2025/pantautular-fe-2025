@@ -21,4 +21,8 @@ module.exports = {
   collectCoverage: true,
   coverageDirectory: "coverage",
   coverageReporters: ["lcov", "text", "cobertura"],
+  collectCoverageFrom: [
+  "app/**/*.{ts,tsx}",   // include all app code
+  "!app/**/_components/*", // optional: ignore small presentational components
+],
 };
