@@ -24,7 +24,7 @@ function getToken(): string | null {
   }
 
   // Fallback: read from cookie named access_token
-  const m = RegExp(/(?:^|;\s*)access_token=([^;]+)/).exec(document.cookie);
+  const m = new RegExp(/(?:^|;\s*)access_token=([^;]+)/).exec(document.cookie);
   if (m) return decodeURIComponent(m[1]);
 
   return null;

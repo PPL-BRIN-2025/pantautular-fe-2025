@@ -7,6 +7,19 @@ const renderPage = async () => {
   return render(<AdminDashboardPage />);
 };
 
+const assertAuthorizationHeader = async (token: string) => {
+  await waitFor(() => {
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: `Bearer ${token}`,
+        }),
+      })
+    );
+  });
+};
+
 // Mock window location
 Object.defineProperty(window, 'location', {
   value: {
@@ -111,7 +124,7 @@ describe('Admin Dashboard - Stats Binding', () => {
 
     expect(screen.getByTestId('user-info')).toBeInTheDocument();
 
-  expect(globalThis.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/admin-feature/stats'),
       expect.objectContaining({
         method: 'GET',
@@ -146,7 +159,7 @@ describe('Admin Dashboard - Stats Binding', () => {
       activityMessage: 'Activity message',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => payload,
     });
@@ -173,7 +186,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('redirects to login when auth token is missing and receives 401', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 401,
     });
@@ -186,8 +199,8 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('shows fallbacks and logs error on 500', async () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 500,
       text: async () => 'ISE',
@@ -224,7 +237,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('handles 403 forbidden response with default message when no detail', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 403,
       json: async () => ({}),
@@ -238,7 +251,7 @@ describe('Admin Dashboard - Stats Binding', () => {
   });
 
   it('handles 403 forbidden response when parsing detail fails', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 403,
       json: async () => {
@@ -256,53 +269,29 @@ describe('Admin Dashboard - Stats Binding', () => {
   it('gets auth token from localStorage', async () => {
     window.localStorage.setItem('token', 'test-token-value');
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ totalUsers: 5 }),
     });
 
     await renderPage();
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled();
-    });
-
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: 'Bearer test-token-value',
-        }),
-      })
-    );
+    await assertAuthorizationHeader('test-token-value');
   });
 
   it('gets auth token from cookie when not in localStorage', async () => {
     document.cookie = 'access_token=cookie-token-value';
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ totalUsers: 5 }),
     });
 
     await renderPage();
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled();
-    });
-
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: 'Bearer cookie-token-value',
-        }),
-      })
-    );
+    await assertAuthorizationHeader('cookie-token-value');
   });
 
   it('handles empty API_URL gracefully', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce(null);
+  (globalThis.fetch as jest.Mock).mockResolvedValueOnce(null);
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await renderPage();
@@ -318,7 +307,7 @@ describe('Admin Dashboard - Stats Binding', () => {
 
   it('handles fetch error gracefully', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+  (globalThis.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 
     await renderPage();
 
