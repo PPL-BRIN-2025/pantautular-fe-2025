@@ -8,6 +8,7 @@ import StatCard from "./_components/StatCard";
 import RolePills from "./_components/RolePills";
 import UserInfo from "./_components/UserInfo";
 import { API_BASE } from '@/config';
+import Footer from "../components/Footer";
 
 /** === Auth helpers (SAME STYLE AS FEATURE 1) === */
 type HeadersMap = Record<string, string>;
@@ -156,85 +157,110 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <main className={styles.container}>
-      {/* User Info Component → Display logged-in admin’s name & role */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <UserInfo />
-      </div>
-
-      {/* Top stat cards */}
-      <section className={styles.topGrid}>
-        <StatCard
-          label={loading ? "Jumlah Pengguna (Memuat…)" : "Jumlah Pengguna"}
-          value={totalUsers}
-          icon={<span>👥</span>}
-          hint={usersMessage}
-        />
-        <StatCard
-          label={loading ? "Jumlah Dataset (Memuat…)" : "Jumlah Dataset"}
-          value={datasets}
-          icon={<span>📁</span>}
-          hint={datasetsMessage}
-        />
-
-        <div className={styles.card}>
-          <div className={styles.cardLabel}>Roles</div>
-          <div className={styles.roleCount}>{roles.length}</div>
-          <RolePills roles={roles} />
-        </div>
-      </section>
-
-      {/* Summary row with actions */}
-      <section className={styles.summaryWrapper}>
-        <div className={styles.summaryHeader}>
-          <div className={styles.summaryTitle}>Ringkasan Sistem</div>
-          <div className={styles.actions}>
-            <Link href="/admin-dashboard/logs" className={styles.buttonSecondary}>
-              Lihat Log
+  <>
+    {blocked403Detail ? (
+      <main className={styles.container}>
+        <div className={styles.card} role="alert" aria-live="polite">
+          <div className={styles.cardLabel}>Informasi Akses</div>
+          <div className={styles.cardValue} style={{ fontSize: 24 }}>
+            {blocked403Detail}
+          </div>
+          <div className={styles.hint} style={{ marginTop: 8 }}>
+            Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau login sebagai admin.
+          </div>
+          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+            <Link href="/" className={styles.buttonSecondary}>
+              Kembali
             </Link>
-            <Link href="/admin-dashboard/roles" className={styles.buttonPrimary}>
-              Kelola Role
+            <Link href="/login?next=/admin-dashboard" className={styles.buttonPrimary}>
+              Login
             </Link>
           </div>
         </div>
-
-        <div className={styles.summaryGrid}>
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryCardLabel}>Jumlah Pengguna Aktif</div>
-            <div className={styles.summaryRow}>
-              <div className={styles.iconLarge}>👥</div>
-              <div className={styles.summaryValue}>{activeUsers}</div>
-            </div>
-          </div>
-
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryCardLabel}>Jumlah Login Gagal</div>
-            <div className={styles.summaryRow}>
-              <div className={styles.iconLarge}>👥</div>
-              <div className={styles.summaryValue}>{failedLogins}</div>
-            </div>
-            {activityMessage ? (
-              <div className={styles.hint}>{activityMessage}</div>
-            ) : (
-              <Link href="/admin-dashboard/logs" className={styles.linkSmall}>
-                Lihat di Halaman Log Pengguna
+      </main>
+    ) : (
+      <main className={styles.container}>
+        <header className={styles.headerCard}>
+          <div className={styles.headerContent}>
+            <nav className={styles.navShortcuts} aria-label="Admin dashboard quick links">
+              <span className={styles.navLabel}>Navigasi:</span>
+              <Link href="/admin-dashboard/roles" className={styles.navLink}>
+                Pengelolaan Roles
               </Link>
-            )}
-          </div>
-        </div>
-      </section>
+              <span className={styles.dot} aria-hidden="true">
+                •
+              </span>
+              <Link href="/admin-dashboard/logs" className={styles.navLink}>
+                Log Pengguna
+              </Link>
+            </nav>
 
-      {/* Bottom navigation shortcuts */}
-      <nav className={styles.bottomNav}>
-        <span>Navigasi: </span>
-        <Link href="/admin-dashboard/roles" className={styles.navLink}>
-          Pengelolaan Role
-        </Link>
-        <span className={styles.dot}>•</span>
-        <Link href="/admin-dashboard/logs" className={styles.navLink}>
-          Log Pengguna
-        </Link>
-      </nav>
-    </main>
-  );
+            {/* User Info Component → Display logged-in admin's name & role */}
+            <UserInfo />
+          </div>
+        </header>
+
+        {/* Top stat cards */}
+        <section className={styles.topGrid}>
+          <StatCard
+            label={loading ? "Jumlah Pengguna (Memuat…)" : "Jumlah Pengguna"}
+            value={totalUsers}
+            icon={<span>👥</span>}
+            hint={usersMessage}
+          />
+          <StatCard
+            label={loading ? "Jumlah Dataset (Memuat…)" : "Jumlah Dataset"}
+            value={datasets}
+            icon={<span>📁</span>}
+            hint={datasetsMessage}
+          />
+
+          <div className={styles.card}>
+            <div className={styles.cardLabel}>Roles</div>
+            <div className={styles.roleCount}>{roles.length}</div>
+            <RolePills roles={roles} />
+          </div>
+        </section>
+
+        {/* Summary row with actions */}
+        <section className={styles.summaryWrapper}>
+          <div className={styles.summaryHeader}>
+            <div className={styles.summaryTitle}>Ringkasan Sistem</div>
+            <div className={styles.actions}>
+              <Link href="/admin-dashboard/logs" className={styles.buttonSecondary}>
+                Lihat Log
+              </Link>
+              <Link href="/admin-dashboard/roles" className={styles.buttonPrimary}>
+                Kelola Role
+              </Link>
+            </div>
+          </div>
+
+          <div className={styles.summaryGrid}>
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryCardLabel}>Jumlah Pengguna Aktif</div>
+              <div className={styles.summaryRow}>
+                <div className={styles.iconLarge}>👥</div>
+                <div className={styles.summaryValue}>{activeUsers}</div>
+              </div>
+            </div>
+
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryCardLabel}>Jumlah Login Gagal</div>
+              <div className={styles.summaryRow}>
+                <div className={styles.iconLarge}>👥</div>
+                <div className={styles.summaryValue}>{failedLogins}</div>
+                <div className={styles.hint}>{activityMessage}</div>
+              </div>
+              <a href="/admin-dashboard/logs" className={styles.linkSmall}>
+                Lihat di Halaman Log Pengguna
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
+    )}
+    <Footer />
+  </>
+);
 }
