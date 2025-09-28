@@ -9,6 +9,7 @@ module.exports = {
   ],
   moduleNameMapper: {
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+    '^@/config$': '<rootDir>/config.ts',
     "^@/(.*)$": "<rootDir>/app/$1",
     "^@amcharts/amcharts5$": "<rootDir>/__mocks__/amcharts5.js",
     "^@amcharts/amcharts5/map$": "<rootDir>/__mocks__/amcharts5-map.js",
