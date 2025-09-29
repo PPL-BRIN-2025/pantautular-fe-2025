@@ -10,9 +10,9 @@ type UserLog = {
   username: string;
   email: string;
   timestamp: string;
-  detail: "Login success" | "Login Failed" | "Change Role" | string;
-  note?: string;
+  detail: "Login success" | "Login Failed" | string;
   action?: string;
+  created_at: string;
 };
 
 type Query = {
@@ -20,13 +20,13 @@ type Query = {
   pageSize?: number;
   search?: string;
   start?: string; // ISO
-  end?: string;   // ISO will add later
+  end?: string;
   sort?: "timestamp:asc" | "timestamp:desc";
 };
 
 type Resp = { data: UserLog[]; page: number; pageSize: number; total: number };
 
-// inserting the real fetch from the database, probably wont work
+// API
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 async function fetchUserLogs(params: Query): Promise<Resp> {
@@ -47,7 +47,14 @@ async function fetchUserLogs(params: Query): Promise<Resp> {
   return (await res.json()) as Resp;
 }
 
-// helpers
+async function deleteUserLog(id: number) {
+  const res = await fetch(`${API}/api/admin/user-logs/${id}/`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+}
+
 function fmtDate(iso: string) {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -66,7 +73,6 @@ function StatusBadge({ detail }: { detail: string }) {
   return <span className={`font-normal ${cls}`}>{detail}</span>;
 }
 
-// page
 export default function UserLogPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
@@ -124,34 +130,19 @@ export default function UserLogPage() {
     run({ page: 1 });
   }
 
-  const visibleRows = rows;
-
-  function filterRows() {
-    let filtered = [...rows];
-
-    if (searchInputText) {
-      const q = searchInputText.toLowerCase();
-      filtered = filtered.filter(
-        (r) =>
-          r.username.toLowerCase().includes(q) ||
-          r.email.toLowerCase().includes(q) ||
-          r.detail.toLowerCase().includes(q)
-      );
+  async function handleDelete() {
+    if (!opened) return;
+    try {
+      await deleteUserLog(opened.id);
+      await run();
+      setOpenId(null);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menghapus log");
     }
-
-    if (startDate || endDate) {
-      filtered = filtered.filter((r) => {
-        const t = new Date(r.timestamp);
-        const after = !startDate || t >= startDate;
-        const before = !endDate || t <= endDate;
-        return after && before;
-      });
-    }
-
-    return filtered;
   }
 
-  const visibleRows = filterRows();
+  const visibleRows = rows;
 
   return (
     <div className="min-h-screen w-full bg-slate-100 font-sans">
@@ -333,25 +324,23 @@ export default function UserLogPage() {
                 <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.timestamp)}</div>
               </div>
               <div className="sm:col-span-2">
-                <p className="text-black font-medium">Catatan</p>
-                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2 min-h-[44px]">
-                  {opened.note ?? "-"}
-                </div>
+                <p className="text-black font-medium">Kapan Akun Dibuat</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.created_at)}</div>
               </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
               <button
-                onClick={() => setOpenId(null)}
+                onClick={handleDelete}
                 className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                Keluar
+                Hapus
               </button>
               <button
-                className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
                 onClick={() => setOpenId(null)}
+                className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
               >
-                Simpan
+                Tutup
               </button>
             </div>
           </div>
