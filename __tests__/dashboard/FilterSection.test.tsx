@@ -1,14 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import FilterSection from "../../app/components/dashboard/FilterSection";
-import { FilterState } from "../../types";
+import { FilterStateDashboard } from "../../types";
 
 // Mock FilterForm component
 jest.mock("../../app/components/dashboard/FilterForm", () => ({
   __esModule: true,
   default: ({ onSubmitFilterState, initialFilterState, onError }: {
-    onSubmitFilterState?: (filterState: FilterState) => void;
-    initialFilterState?: FilterState | null;
+    onSubmitFilterState?: (filterState: FilterStateDashboard) => void;
+    initialFilterState?: FilterStateDashboard | null;
     onError: (message: string) => void;
   }) => (
     <div data-testid="filter-form">
@@ -20,9 +20,12 @@ jest.mock("../../app/components/dashboard/FilterForm", () => ({
 describe("FilterSection Component", () => {
   const mockOnSubmit = jest.fn();
   const mockOnError = jest.fn();
-  const mockInitialState: FilterState = {
+  const mockInitialState: FilterStateDashboard = {
     diseases: [],
-    locations: [],
+    locations: {
+      provinces: [],
+      cities: [],
+    },
     level_of_alertness: 0,
     portals: [],
     start_date: null,
@@ -57,6 +60,20 @@ describe("FilterSection Component", () => {
     
     // Check if the container has the correct classes
     const container = screen.getByTestId("filter-form").parentElement?.parentElement;
-    expect(container).toHaveClass("fixed", "flex", "flex-col", "h-full", "bg-transparent", "text-xl", "p-2", "pt-8", "pl-20", "z-50");
+    expect(container).toHaveClass(
+      "lg:sticky",
+      "lg:top-16",
+      "lg:bottom-16",
+      "flex",
+      "flex-col",
+      "lg:h-screen",
+      "bg-transparent",
+      "text-xl",
+      "p-2",
+      "pt-8",
+      "pl-20",
+      "z-30",
+      "pb-32"
+    );
   });
 });
