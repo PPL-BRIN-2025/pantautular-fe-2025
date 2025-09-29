@@ -58,7 +58,7 @@ describe("Admin User Log Page", () => {
     expect(screen.getByTestId("navbar")).toBeInTheDocument();
     expect(screen.getByText(/Menampilkan/i)).toHaveTextContent("Menampilkan 10 dari 25");
     expect(screen.getByText(/1 \/ 3/)).toBeInTheDocument();
-    ["Username", "Email", "Date", "Detail", "Action"].forEach((h) =>
+    ["Username", "Email", "Date", "Activity", "Action"].forEach((h) => 
       expect(screen.getByText(h)).toBeInTheDocument()
     );
   });
