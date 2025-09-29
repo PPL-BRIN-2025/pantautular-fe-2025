@@ -63,6 +63,13 @@ describe("Admin User Log Page", () => {
     );
   });
 
+  test("renders initial table with correct headers", async () => {
+    await renderPage();
+    ["Username", "Email", "Date", "Action"].forEach(header => 
+      expect(screen.getByText(header)).toBeInTheDocument()
+    );
+  });
+
   test("open modal (>), close via Escape, then via buttons", async () => {
     await renderPage();
     const openButtons = screen.getAllByRole("button", { name: /lihat detail/i });
