@@ -4,32 +4,29 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Navbar from "../components/Navbar";
 
-// types
-type UserLog = {
+// types 
+type UserRow = {
   id: number;
-  username: string;
+  name: string;
   email: string;
-  timestamp: string;
-  detail: "Login success" | "Login Failed" | string;
-  action?: string;
-  created_at: string;
+  last_login: string | null;
 };
 
 type Query = {
   page?: number;
   pageSize?: number;
   search?: string;
-  start?: string; // ISO
-  end?: string;
-  sort?: "timestamp:asc" | "timestamp:desc";
+  start?: string; // ISO (filter last_login >= start)
+  end?: string;   // ISO (filter last_login <= end)
+  sort?: "last_login:asc" | "last_login:desc";
 };
 
-type Resp = { data: UserLog[]; page: number; pageSize: number; total: number };
+type Resp = { data: UserRow[]; page: number; pageSize: number; total: number };
 
-// API
+//  API 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
-async function fetchUserLogs(params: Query): Promise<Resp> {
+async function fetchUsers(params: Query): Promise<Resp> {
   const qs = new URLSearchParams();
   if (params.page) qs.set("page", String(params.page));
   if (params.pageSize) qs.set("pageSize", String(params.pageSize));
@@ -39,24 +36,16 @@ async function fetchUserLogs(params: Query): Promise<Resp> {
   if (params.sort) qs.set("sort", params.sort);
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const key = process.env.NEXT_PUBLIC_API_KEY;
-  // if (key) headers["x-api-key"] = key; // gonna add this later
-
   const res = await fetch(`${API}/api/admin/user-logs/?${qs}`, { headers, cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as Resp;
 }
 
-async function deleteUserLog(id: number) {
-  const res = await fetch(`${API}/api/admin/user-logs/${id}/`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-  });
-  if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
-}
-
-function fmtDate(iso: string) {
+// Utils 
+function fmtDate(iso?: string | null) {
+  if (!iso) return "-";
   const d = new Date(iso);
+  if (isNaN(d.getTime())) return "-";
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
     d.getHours()
@@ -73,11 +62,12 @@ function StatusBadge({ detail }: { detail: string }) {
   return <span className={`font-normal ${cls}`}>{detail}</span>;
 }
 
-export default function UserLogPage() {
+// page 
+export default function AdminUserLogMenuPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<UserLog[]>([]);
+  const [rows, setRows] = useState<UserRow[]>([]);
   const [total, setTotal] = useState(0);
 
   // filters
@@ -94,13 +84,13 @@ export default function UserLogPage() {
   const run = async (p?: Partial<Query>) => {
     setLoading(true);
     try {
-      const res = await fetchUserLogs({
+      const res = await fetchUsers({
         page,
         pageSize,
         search: searchInputText || undefined,
         start: startDate ? startDate.toISOString() : undefined,
         end: endDate ? endDate.toISOString() : undefined,
-        sort: "timestamp:desc",
+        sort: "last_login:desc",
         ...(p || {}),
       });
       setRows(res.data);
@@ -108,6 +98,8 @@ export default function UserLogPage() {
       if (p?.page) setPage(p.page);
     } catch (e) {
       console.error(e);
+      setRows([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -130,19 +122,8 @@ export default function UserLogPage() {
     run({ page: 1 });
   }
 
-  async function handleDelete() {
-    if (!opened) return;
-    try {
-      await deleteUserLog(opened.id);
-      await run();
-      setOpenId(null);
-    } catch (err) {
-      console.error(err);
-      alert("Gagal menghapus log");
-    }
-  }
-
   const visibleRows = rows;
+  const DEFAULT_ACTIVITY = "Login success";
 
   return (
     <div className="min-h-screen w-full bg-slate-100 font-sans">
@@ -194,8 +175,8 @@ export default function UserLogPage() {
             <div className="min-w-[960px]">
               {/* Header */}
               <div className="bg-blue-500 text-white ring-1 ring-black rounded-t-[10px]">
-                <div className="grid grid-cols-[1.2fr_1.6fr_1.4fr_1.1fr_0.6fr]">
-                  {["Username", "Email", "Date", "Detail", "Action"].map((label, idx) => (
+                <div className="grid grid-cols-[1.2fr_1.6fr_1.2fr_1.1fr_0.6fr]">
+                  {["Username", "Email", "Date", "Activity", "Action"].map((label, idx) => (
                     <div
                       key={label}
                       className={`px-4 py-2.5 sm:py-3 text-sm sm:text-base leading-loose font-normal ${
@@ -213,14 +194,14 @@ export default function UserLogPage() {
                 <ul className="divide-y">
                   {visibleRows.map((r) => (
                     <li key={r.id} className="px-4 py-4 sm:py-5 hover:bg-gray-50">
-                      <div className="grid grid-cols-[1.2fr_1.6fr_1.4fr_1.1fr_0.6fr] items-center">
-                        <div className="text-black text-sm sm:text-base leading-loose">{r.username}</div>
+                      <div className="grid grid-cols-[1.2fr_1.6fr_1.2fr_1.1fr_0.6fr] items-center">
+                        <div className="text-black text-sm sm:text-base leading-loose">{r.name}</div>
                         <div className="text-black text-sm sm:text-base leading-loose truncate">{r.email}</div>
                         <div className="text-black text-sm sm:text-base leading-loose tabular-nums">
-                          {fmtDate(r.timestamp)}
+                          {fmtDate(r.last_login)}
                         </div>
                         <div className="text-sm sm:text-base leading-loose">
-                          <StatusBadge detail={r.detail} />
+                          <StatusBadge detail={DEFAULT_ACTIVITY} />
                         </div>
                         <div className="text-right">
                           <button
@@ -280,73 +261,75 @@ export default function UserLogPage() {
           </div>
         </div>
 
-        <p className="mt-4 text-xs text-gray-500">Klik baris untuk melihat detail log.</p>
+        <p className="mt-4 text-xs text-gray-500">Klik baris untuk melihat detail user.</p>
       </div>
 
-      {/* Modal */}
-      {opened && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setOpenId(null)}
-        >
-          <div
-            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
+  {/* Modal */}
+  {opened && (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={() => setOpenId(null)}
+    >
+      <div
+        className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-blue-600">Detail Aktivitas</h3>
+          <button
+            className="rounded-lg px-2 py-1 text-sm hover:bg-gray-100"
+            onClick={() => setOpenId(null)}
+            aria-label="Tutup"
           >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-blue-600">Detail Aktivitas</h3>
-              <button
-                className="rounded-lg px-2 py-1 text-sm hover:bg-gray-100"
-                onClick={() => setOpenId(null)}
-                aria-label="Tutup"
-              >
-                ✕
-              </button>
-            </div>
+            ✕
+          </button>
+        </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
-              <div>
-                <p className="text-black font-medium">Nama</p>
-                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.username}</div>
-              </div>
-              <div>
-                <p className="text-black font-medium">Email</p>
-                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.email}</div>
-              </div>
-              <div>
-                <p className="text-black font-medium">Activity</p>
-                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.detail}</div>
-              </div>
-              <div>
-                <p className="text-black font-medium">Time</p>
-                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.timestamp)}</div>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-black font-medium">Kapan Akun Dibuat</p>
-                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.created_at)}</div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={handleDelete}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-              >
-                Hapus
-              </button>
-              <button
-                onClick={() => setOpenId(null)}
-                className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
-              >
-                Tutup
-              </button>
-            </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
+          <div>
+            <p className="text-black font-medium">Nama</p>
+            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.username}</div>
+          </div>
+          <div>
+            <p className="text-black font-medium">Email</p>
+            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.email}</div>
+          </div>
+          <div>
+            <p className="text-black font-medium">Activity</p>
+            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.detail}</div>
+          </div>
+          <div>
+            <p className="text-black font-medium">Time</p>
+            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.timestamp)}</div>
+          </div>
+          <div className="sm:col-span-2">
+            <p className="text-black font-medium">Kapan Akun Dibuat</p>
+            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.created_at)}</div>
           </div>
         </div>
-      )}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            onClick={handleDelete}
+            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          >
+            Hapus
+          </button>
+          <button
+            onClick={() => setOpenId(null)}
+            className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
     </div>
   );
 }
-export { fetchUserLogs };
+
+export { fetchUsers as fetchUserLogs };
