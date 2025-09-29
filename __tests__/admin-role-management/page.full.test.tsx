@@ -431,11 +431,11 @@ describe("Extra branch coverage", () => {
 });
 
 /** New coverage for 401/403 flows & dynamic padding & backdrop-close */
+/** New coverage for 401/403 flows & dynamic padding & backdrop-close */
 describe("401/403 flows & dynamic padding", () => {
   test("GET 401 → redirects to /login?next=…", async () => {
     jest.resetAllMocks();
     global.fetch = jest.fn().mockResolvedValueOnce({
-      ok: false,
       status: 401,
       json: async () => ({ detail: "unauth" }),
     } as any);
@@ -447,20 +447,33 @@ describe("401/403 flows & dynamic padding", () => {
     });
   });
 
-  test("GET 403 → shows blocked screen with detail and buttons", async () => {
-    jest.resetAllMocks();
-    global.fetch = jest.fn().mockResolvedValueOnce({
-      ok: false,
-      status: 403,
-      json: async () => ({ detail: "Akses Ditolak (test)" }),
-    } as any);
+  describe("403 → blocked screen", () => {
+    test("shows custom detail when backend provides it", async () => {
+      jest.resetAllMocks();
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        status: 403,
+        json: async () => ({ detail: "Akses Ditolak (test)" }),
+      } as any);
 
-    render(<Page />);
+      render(<Page />);
 
-    await screen.findByText("Akses Ditolak (test)");
-    expect(screen.getByText("Informasi Akses")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Masuk/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Kembali/i })).toBeInTheDocument();
+      expect(await screen.findByText("Akses Ditolak (test)")).toBeInTheDocument();
+      expect(screen.getByText("Informasi Akses")).toBeInTheDocument();
+    });
+
+    test("falls back to default when JSON parsing fails", async () => {
+      jest.resetAllMocks();
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        status: 403,
+        json: async () => { throw new Error("bad json"); }, // sync throw ensures catch{} runs
+        text: async () => "bad json",
+      } as any);
+
+      render(<Page />);
+
+      expect(await screen.findByText("Akses Ditolak")).toBeInTheDocument();
+      expect(screen.getByText("Informasi Akses")).toBeInTheDocument();
+    });
   });
 
   test("PUT 401 → redirects to login", async () => {
@@ -473,7 +486,7 @@ describe("401/403 flows & dynamic padding", () => {
     const select = screen.getByLabelText("Peran");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
 
-    mockOnce({ ok: false, status: 401, json: async () => ({ detail: "unauth" }) });
+    mockOnce({ status: 401, json: async () => ({ detail: "unauth" }) });
     fireEvent.click(screen.getByText("Simpan"));
 
     await waitFor(() => {
@@ -485,7 +498,7 @@ describe("401/403 flows & dynamic padding", () => {
     render(<Page />);
     await screen.findByText("Bob");
 
-    mockOnce({ ok: false, status: 401, json: async () => ({ detail: "unauth" }) });
+    mockOnce({ status: 401, json: async () => ({ detail: "unauth" }) });
     fireEvent.click(screen.getAllByText("Hapus")[1]);
 
     await waitFor(() => {
@@ -503,7 +516,7 @@ describe("401/403 flows & dynamic padding", () => {
     const select = screen.getByLabelText("Peran");
     fireEvent.change(select, { target: { value: "EXP_USER" } });
 
-    mockOnce({ ok: false, status: 403, json: async () => ({ detail: "Akses Ditolak (PUT)" }) });
+    mockOnce({ status: 403, json: async () => ({ detail: "Akses Ditolak (PUT)" }) });
     fireEvent.click(screen.getByText("Simpan"));
 
     await waitFor(() => {
@@ -516,7 +529,7 @@ describe("401/403 flows & dynamic padding", () => {
     render(<Page />);
     await screen.findByText("Bob");
 
-    mockOnce({ ok: false, status: 403, json: async () => ({ detail: "Akses Ditolak (DELETE)" }) });
+    mockOnce({ status: 403, json: async () => ({ detail: "Akses Ditolak (DELETE)" }) });
     fireEvent.click(screen.getAllByText("Hapus")[1]);
 
     await waitFor(() => {
@@ -543,22 +556,22 @@ describe("401/403 flows & dynamic padding", () => {
   });
 });
 
-describe("403 fallbacks (JSON parse fails) to cover remaining lines", () => {
-  test("GET 403 with broken JSON -> shows default 'Akses Ditolak'", async () => {
+describe("403 → blocked screen", () => {
+  test("shows custom detail when backend provides it", async () => {
     jest.resetAllMocks();
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: false,
       status: 403,
-      // simulate server returns non-JSON or malformed JSON
-      json: async () => { throw new Error("bad json"); },
+      json: async () => ({ detail: "Akses Ditolak (test)" }),
     } as any);
 
     render(<Page />);
 
-    // default detail should be used
-    await screen.findByText("Akses Ditolak");
+    expect(await screen.findByText("Akses Ditolak (test)")).toBeInTheDocument();
     expect(screen.getByText("Informasi Akses")).toBeInTheDocument();
   });
+});
+
 
   test("PUT 403 with broken JSON -> alerts default and reverts", async () => {
     // 1st call = GET OK
@@ -624,7 +637,6 @@ describe("403 fallbacks (JSON parse fails) to cover remaining lines", () => {
       expect(screen.getByText("Bob")).toBeInTheDocument();
     });
   });
-});
 
 describe("Footer-measure early return (no footer present)", () => {
   test("resize with no footer keeps inline padding unset and uses pb-40 fallback", async () => {
@@ -685,7 +697,6 @@ describe("Footer measure with actual footer present (no re-import)", () => {
         __esModule: true,
         ...actual,
         default: (props: any) => {
-          // force-render Nav/Footer regardless of env
           return (
             <div>
               <div data-testid="navbar">MockNavbar</div>

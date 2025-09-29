@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -76,99 +76,74 @@ export default function Page() {
   // ➕ padding dinamis agar tidak ketiban footer fixed
   const [footerPadPx, setFooterPadPx] = useState<number>(0);
 
-  // Measure footer height (DOM-only, layout-dependent)
-  useEffect(
-    /* istanbul ignore next -- DOM layout/resize is flaky to test */
-    () => {
-      /* istanbul ignore next -- DOM API */
-      const measure = () => {
-        const footer = document.querySelector("footer");
-        /* istanbul ignore next -- branch depends on DOM structure */
-        if (!footer) return;
-        const rect = footer.getBoundingClientRect();
-        /* istanbul ignore next -- numeric rounding not business-critical */
-        setFooterPadPx(Math.ceil(rect.height + 16));
-      };
+  // ➕ help/hints panel
+  const [showHelp, setShowHelp] = useState(false);
 
-      /* istanbul ignore next */
-      measure();
-      /* istanbul ignore next -- window resize listener not covered reliably */
-      window.addEventListener("resize", measure);
-      return () => window.removeEventListener("resize", measure);
-    },
-    []
-  );
+  // Measure footer height (DOM-only, layout-dependent)
+  useEffect(() => {
+    const measure = () => {
+      const footer = document.querySelector("footer");
+      if (!footer) return;
+      const rect = footer.getBoundingClientRect();
+      setFooterPadPx(Math.ceil(rect.height + 16));
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   // Fetch users (network + redirects)
-  useEffect(
-    /* istanbul ignore next -- network side-effects & redirects are noisy to cover */
-    () => {
-      (async () => {
-        try {
-          setLoading(true);
-          setErr(null);
-          setBlocked403Detail(undefined);
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        setErr(null);
+        setBlocked403Detail(undefined);
 
-          /* istanbul ignore next -- external API call */
-          const res = await fetch(`${API_BASE}/admin-feature/users`, {
-            method: "GET",
-            headers: authHeaders(),
-            credentials: "include",
-            cache: "no-store",
-          });
+        const res = await fetch(`${API_BASE}/admin-feature/users`, {
+          method: "GET",
+          headers: authHeaders(),
+          credentials: "include",
+          cache: "no-store",
+        });
 
-          /* istanbul ignore else -- login redirect path */
-          if (res.status === 401) {
-            /* istanbul ignore next -- depends on window */
-            const next =
-              typeof window !== "undefined"
-                ? encodeURIComponent(window.location.pathname)
-                : encodeURIComponent("/admin-dashboard/roles");
-            /* istanbul ignore next -- navigation side effect */
-            window.location.href = `/login?next=${next}`;
-            return;
-          }
-
-          /* istanbul ignore next -- 403 handling branch */
-          if (res.status === 403) {
-            try {
-              /* istanbul ignore next */
-              const blocked = await res.json();
-              setBlocked403Detail(typeof (blocked as any)?.detail === "string" ? (blocked as any).detail : "Akses Ditolak");
-            } catch {
-              /* istanbul ignore next */
-              setBlocked403Detail("Akses Ditolak");
-            }
-            return;
-          }
-
-          /* istanbul ignore next -- error branch depends on API behavior */
-          if (!res.ok) {
-            let detail = "";
-            try {
-              /* istanbul ignore next */
-              detail = await res.text();
-            } catch {
-              /* istanbul ignore next */
-              void 0;
-            }
-            throw new Error(`GET /admin-feature/users gagal: ${res.status}${detail ? " | " + detail : ""}`);
-          }
-
-          /* istanbul ignore next -- JSON shape depends on backend */
-          const data: User[] = await res.json();
-          setUsers(data);
-        } catch (e: any) {
-          /* istanbul ignore next -- network/catch coverage noise */
-          setErr(e?.message ?? "Gagal memuat");
-        } finally {
-          /* istanbul ignore next -- timing dependent */
-          setLoading(false);
+        if (res.status === 401) {
+          const next =
+            typeof window !== "undefined"
+              ? encodeURIComponent(window.location.pathname)
+              : encodeURIComponent("/admin-dashboard/roles");
+          window.location.href = `/login?next=${next}`;
+          return;
         }
-      })();
-    },
-    []
-  );
+
+        if (res.status === 403) {
+          try {
+            const blocked = await res.json();
+            setBlocked403Detail(typeof (blocked as any)?.detail === "string" ? (blocked as any).detail : "Akses Ditolak");
+          } catch {
+            setBlocked403Detail("Akses Ditolak");
+          }
+          return;
+        }
+
+        if (!res.ok) {
+          let detail = "";
+          try {
+            detail = await res.text();
+          } catch {}
+          throw new Error(`GET /admin-feature/users gagal: ${res.status}${detail ? " | " + detail : ""}`);
+        }
+
+        const data: User[] = await res.json();
+        setUsers(data);
+      } catch (e: any) {
+        setErr(e?.message ?? "Gagal memuat");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   // filter (keep covered—simple and deterministic)
   const filtered = useMemo(() => {
@@ -180,77 +155,59 @@ export default function Page() {
     });
   }, [query, users]);
 
-  /* istanbul ignore next -- UI confirm & network make this flaky */
   const onDelete = async (id: string | number) => {
-    /* istanbul ignore next -- confirm dialog not unit-test friendly */
     if (!confirm("Hapus pengguna ini?")) return;
     const prev = users;
     setUsers((p) => p.filter((u) => u.id !== id));
     try {
-      /* istanbul ignore next */
       const res = await fetch(`${API_BASE}/admin-feature/users/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
         credentials: "include",
       });
 
-      /* istanbul ignore next -- redirect path */
       if (res.status === 401) {
         const next =
           typeof window !== "undefined"
             ? encodeURIComponent(window.location.pathname)
             : encodeURIComponent("/admin-dashboard/roles");
-        /* istanbul ignore next */
         window.location.href = `/login?next=${next}`;
         return;
       }
 
-      /* istanbul ignore next -- 403 handling */
       if (res.status === 403) {
         let detail = "Akses Ditolak";
         try {
-          /* istanbul ignore next */
           const j = await res.json();
           detail = (j as any)?.detail || detail;
-        } catch {
-          /* istanbul ignore next */
-        }
-        /* istanbul ignore next -- revert & notify */
+        } catch {}
         setUsers(prev);
         alert(detail);
         throw new Error(detail);
       }
 
-      /* istanbul ignore next -- failure branch depends on server */
       if (!res.ok) {
         let detail = "";
         try {
-          /* istanbul ignore next */
           detail = await res.text();
-        } catch {
-          /* istanbul ignore next */
-        }
-        setUsers(prev); // revert
+        } catch {}
+        setUsers(prev);
         throw new Error(`DELETE gagal: ${res.status}${detail ? " | " + detail : ""}`);
       }
 
-      // ✅ Success popup
       alert("Pengguna berhasil dihapus");
-    } catch (e: any) {
-      /* istanbul ignore next -- UI revert+alert side effects */
+    } catch {
       setUsers(prev);
       alert("Gagal menghapus pengguna");
     }
   };
 
-  /* istanbul ignore next -- network + UI side effects */
   const onSaveRole = async (user: User, newRole: Role) => {
     const prev = users;
     setUsers((p) => p.map((u) => (u.id === user.id ? { ...u, role: newRole } : u)));
     setEditing(null);
 
     try {
-      /* istanbul ignore next */
       const res = await fetch(`${API_BASE}/admin-feature/users/${user.id}/role`, {
         method: "PUT",
         headers: authHeaders(),
@@ -258,198 +215,248 @@ export default function Page() {
         body: JSON.stringify({ role_name: newRole }),
       });
 
-      /* istanbul ignore next -- redirect path */
       if (res.status === 401) {
         const next =
           typeof window !== "undefined"
             ? encodeURIComponent(window.location.pathname)
             : encodeURIComponent("/admin-dashboard/roles");
-        /* istanbul ignore next */
         window.location.href = `/login?next=${next}`;
         return;
       }
 
-      /* istanbul ignore next -- 403 handling */
       if (res.status === 403) {
         let detail = "Akses Ditolak";
         try {
-          /* istanbul ignore next */
           const j = await res.json();
           detail = (j as any)?.detail || detail;
-        } catch {
-          /* istanbul ignore next */
-        }
-        /* istanbul ignore next */
-        setUsers(prev); // revert
+        } catch {}
+        setUsers(prev);
         alert(detail);
         throw new Error(detail);
       }
 
-      /* istanbul ignore next -- failure branch depends on server */
       if (!res.ok) {
         let detail = "";
         try {
-          /* istanbul ignore next */
           detail = await res.text();
-        } catch {
-          /* istanbul ignore next */
-        }
-        setUsers(prev); // revert
+        } catch {}
+        setUsers(prev);
         throw new Error(`PUT role gagal: ${res.status}${detail ? " | " + detail : ""}`);
       }
 
-      // ✅ Success popup
       alert("Peran berhasil disimpan");
     } catch {
-      /* istanbul ignore next -- UI revert+alert side effects */
       setUsers(prev);
       alert("Gagal menyimpan perubahan peran");
     }
   };
 
-  // Tampilan blokir 403 (Bahasa Indonesia)
-  /* istanbul ignore next -- UI-only branch */
-  if (blocked403Detail) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 py-10">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-          <div className="text-sm font-semibold text-amber-700">Informasi Akses</div>
-          <div className="mt-2 text-2xl font-semibold text-amber-900">{blocked403Detail}</div>
-          <p className="mt-2 text-sm text-amber-800">
-            Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
-          </p>
-          <div className="mt-4 flex gap-2">
-            <Link
-              href="/"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Kembali
-            </Link>
-            <Link
-              href={`/login?next=${encodeURIComponent(
-                typeof window !== "undefined" ? window.location.pathname : "/admin-dashboard/roles"
-              )}`}
-              className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-            >
-              Masuk
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  // close help on Esc
+  const onKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Escape") setShowHelp(false);
+  }, []);
 
-/* istanbul ignore next -- presentational toggle not covered in tests */
-const NAVBAR = isTest ? null : <Navbar />;
-/* istanbul ignore next -- purely presentational, hidden in tests */
-const FOOTER = isTest ? null : <Footer />;
+  const NAVBAR = isTest ? null : <Navbar />;
+  const FOOTER = isTest ? null : <Footer />;
+
   return (
-    <div className="min-h-screen bg-[#F3F7FB]">
-      {/* istanbul ignore next -- purely presentational, hidden in tests */}
+    <div className="min-h-screen bg-[#F3F7FB]" onKeyDown={onKeyDown}>
       {NAVBAR}
 
-      {/* Fallback pb-40 + paddingBottom dinamis dari measured footer */}
-      <main
-        className="mx-auto max-w-6xl px-4 py-8 pb-40"
-        /* istanbul ignore next -- style calculation depends on DOM footer */
-        style={footerPadPx ? { paddingBottom: `${footerPadPx}px` } : undefined}
-      >
-        <h1 className="text-xl font-semibold text-gray-800">Daftar Pengguna</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Kelola peran: perbarui/hapus. Perubahan berlaku pada login berikutnya.
-        </p>
+      {blocked403Detail ? (
+        <main className="mx-auto max-w-3xl px-4 py-10">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <div className="text-sm font-semibold text-amber-700">Informasi Akses</div>
+            <div className="mt-2 text-2xl font-semibold text-amber-900">{blocked403Detail}</div>
+            <p className="mt-2 text-sm text-amber-800">
+              Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Link
+                href="/"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Kembali
+              </Link>
+              <Link
+                href={`/login?next=${encodeURIComponent(
+                  typeof window !== "undefined" ? window.location.pathname : "/admin-dashboard/roles"
+                )}`}
+                className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Masuk
+              </Link>
+            </div>
+          </div>
+        </main>
+      ) : (
+        <main
+          className="relative mx-auto max-w-6xl px-4 py-8 pb-40"
+          style={footerPadPx ? { paddingBottom: `${footerPadPx}px` } : undefined}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-800">Daftar Pengguna</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Kelola peran: perbarui/hapus. Perubahan berlaku pada login berikutnya.
+              </p>
+            </div>
 
-        {/* search */}
-        <div className="relative mt-4">
-          <input
-            value={query}
-            onChange={
-              /* istanbul ignore next -- trivial input wiring */
-              (e) => setQuery(e.target.value)
-            }
-            placeholder="Cari Nama / Email / Peran"
-            aria-label="Cari Nama / Email / Peran"
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 pr-12 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
-          />
-        </div>
+            <button
+              type="button"
+              aria-label="Bantuan dan Tips"
+              onClick={() => setShowHelp((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              title="Bantuan"
+            >
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#0069CF]/10 font-bold text-[#0069CF]">
+                ?
+              </span>
+              Bantuan
+            </button>
+          </div>
 
-        {/* table */}
-        <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          {/* istanbul ignore next -- UI loading/error branches */}
-          {loading ? (
-            <div className="p-6 text-sm text-gray-500">Memuat pengguna…</div>
-          ) : err ? (
-            <div className="p-6 text-sm text-red-600">Error: {err}</div>
-          ) : (
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-[#0069CF] text-white">
-                  <th className="px-4 py-3 text-left font-medium">Nama</th>
-                  <th className="px-4 py-3 text-left font-medium">Email</th>
-                  <th className="px-4 py-3 text-left font-medium">Peran</th>
-                  <th className="px-4 py-3 text-left font-medium">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((u, idx) => (
-                  <tr key={u.id} className={idx % 2 ? "bg-gray-50/50" : "bg-white"}>
-                    <td className="px-4 py-3 text-gray-700">{u.name}</td>
-                    <td className="px-4 py-3 text-gray-700">{u.email}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full border border-[#0069CF]/20 bg-[#0069CF]/5 px-3 py-1 text-xs font-medium text-[#0069CF]">
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          /* istanbul ignore next -- UI handler */
-                          onClick={() => setEditing(u)}
-                          className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                        >
-                          Ubah
-                        </button>
-                        <button
-                          /* istanbul ignore next -- UI handler */
-                          onClick={() => onDelete(u.id)}
-                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                    </td>
+          <div className="relative mt-4">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari Nama / Email / Peran"
+              aria-label="Cari Nama / Email / Peran"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 pr-12 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
+            />
+          </div>
+
+          <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {loading ? (
+              <div className="p-6 text-sm text-gray-500">Memuat pengguna…</div>
+            ) : err ? (
+              <div className="p-6 text-sm text-red-600">Error: {err}</div>
+            ) : (
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-[#0069CF] text-white">
+                    <th className="px-4 py-3 text-left font-medium">Nama</th>
+                    <th className="px-4 py-3 text-left font-medium">Email</th>
+                    <th className="px-4 py-3 text-left font-medium">Peran</th>
+                    <th className="px-4 py-3 text-left font-medium">Aksi</th>
                   </tr>
-                ))}
-                {/* istanbul ignore next -- UI empty state */}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
-                      Tidak ada data yang cocok dengan pencarian Anda.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((u, idx) => (
+                    <tr key={u.id} className={idx % 2 ? "bg-gray-50/50" : "bg-white"}>
+                      <td className="px-4 py-3 text-gray-700">{u.name}</td>
+                      <td className="px-4 py-3 text-gray-700">{u.email}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center rounded-full border border-[#0069CF]/20 bg-[#0069CF]/5 px-3 py-1 text-xs font-medium text-[#0069CF]">
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditing(u)}
+                            className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                          >
+                            Ubah
+                          </button>
+                          <button
+                            onClick={() => onDelete(u.id)}
+                            className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
+                        Tidak ada data yang cocok dengan pencarian Anda.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {showHelp && (
+            <>
+              <button
+                aria-label="Tutup bantuan"
+                className="fixed inset-0 z-40 cursor-default bg-transparent"
+                onClick={() => setShowHelp(false)}
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="help-title"
+                className="fixed right-4 top-20 z-50 w-[22rem] max-w-[90vw] rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 id="help-title" className="text-sm font-semibold text-gray-800">
+                    Bantuan & Tips
+                  </h2>
+                  <button
+                    onClick={() => setShowHelp(false)}
+                    className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
+                    aria-label="Tutup"
+                    title="Tutup"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="mt-3 space-y-3 text-sm text-gray-700">
+                  <div>
+                    <div className="font-medium text-gray-900">Mengubah Peran</div>
+                    <p>
+                      Klik <span className="rounded bg-gray-100 px-1 py-0.5">Ubah</span>, pilih peran baru, lalu{" "}
+                      <span className="rounded bg-gray-100 px-1 py-0.5">Simpan</span>. Perubahan berlaku saat login
+                      berikutnya.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="font-medium text-gray-900">Menghapus Pengguna</div>
+                    <p>
+                      Gunakan <span className="rounded bg-gray-100 px-1 py-0.5">Hapus</span>. Anda akan diminta
+                      konfirmasi untuk mencegah aksi tidak sengaja.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="font-medium text-gray-900">Pencarian Cepat</div>
+                    <p>
+                      Ketik nama, email, peran, atau ID di kotak pencarian untuk memfilter daftar secara instan.
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="font-medium text-gray-900">Pencegahan Error</div>
+                    <ul className="ml-4 list-disc space-y-1">
+                      <li>Konfirmasi sebelum hapus untuk mencegah klik tidak sengaja.</li>
+                      <li>Hanya peran yang valid tersedia pada pilihan (select).</li>
+                      <li>Pastikan token/izin valid untuk menghindari kegagalan saat menyimpan.</li>
+                    </ul>
+                  </div>
+
+                  <div className="rounded-lg bg-blue-50 p-2 text-blue-800">
+                    Tip: Ingin popup non-blocking? Ganti <code>alert()</code> dengan toast kecil di sudut (saya bisa
+                    siapkan kodenya).
+                  </div>
+                </div>
+              </div>
+            </>
           )}
-        </div>
-      </main>
-
-      {/* istanbul ignore next -- modal rendering branch */}
-      {editing && (
-        <RoleModal
-          user={editing}
-          onClose={
-            /* istanbul ignore next -- UI handler */
-            () => setEditing(null)
-          }
-          onSave={
-            /* istanbul ignore next -- UI->network bridge */
-            (role) => onSaveRole(editing, role)
-          }
-        />
+        </main>
       )}
 
-      {/* istanbul ignore next -- purely presentational, hidden in tests */}
+      {editing && (
+        <RoleModal user={editing} onClose={() => setEditing(null)} onSave={(role) => onSaveRole(editing, role)} />
+      )}
+
       {FOOTER}
     </div>
   );
@@ -465,18 +472,15 @@ function RoleModal({
   onClose: () => void;
   onSave: (role: Role) => void;
 }) {
-  /* istanbul ignore next -- UI-only local state */
   const [role, setRole] = useState<Role>(user.role);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* istanbul ignore next -- backdrop click behavior */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
       <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-800">Edit Peran</h2>
           <button
-            /* istanbul ignore next -- UI handler */
             onClick={onClose}
             className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
             aria-label="Close"
@@ -505,7 +509,6 @@ function RoleModal({
             <select
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
               value={role}
-              /* istanbul ignore next -- trivial UI binding */
               onChange={(e) => setRole(e.target.value as Role)}
             >
               {ROLES.map((r) => (
@@ -519,14 +522,12 @@ function RoleModal({
 
         <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
           <button
-            /* istanbul ignore next -- UI handler */
             onClick={onClose}
             className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Batal
           </button>
           <button
-            /* istanbul ignore next -- UI handler -> parent callback */
             onClick={() => onSave(role)}
             className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
