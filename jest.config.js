@@ -20,6 +20,9 @@ module.exports = {
     "^react$": "<rootDir>/node_modules/react/index.js",
     "^react-dom$": "<rootDir>/node_modules/react-dom/index.js",
 
+    // Alias untuk admin dashboard
+    '^@/config$': '<rootDir>/config.ts',
+
     // Mocks yang sudah kamu punya
     "^@amcharts/amcharts5$": "<rootDir>/__mocks__/amcharts5.js",
     "^@amcharts/amcharts5/map$": "<rootDir>/__mocks__/amcharts5-map.js",
