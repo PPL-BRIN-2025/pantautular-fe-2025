@@ -12,25 +12,36 @@ module.exports = {
   ],
 
   moduleNameMapper: {
-  "\\.(css|less|scss|sass)$": "identity-obj-proxy",
-  "^@/(.*)$": "<rootDir>/app/$1",
-  "^@/app/(.*)$": "<rootDir>/app/$1",  
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
 
-    // Paksa jest pakai satu instance react & react-dom (dedupe)
+    // Aliases
+    "^@/(.*)$": "<rootDir>/app/$1",
+    "^@/app/(.*)$": "<rootDir>/app/$1",
+    "^@/config$": "<rootDir>/config.ts",
+
+    // Force single React instance (dedupe)
     "^react$": "<rootDir>/node_modules/react/index.js",
     "^react-dom$": "<rootDir>/node_modules/react-dom/index.js",
 
-    // Mocks yang sudah kamu punya
+    // Mocks
     "^@amcharts/amcharts5$": "<rootDir>/__mocks__/amcharts5.js",
     "^@amcharts/amcharts5/map$": "<rootDir>/__mocks__/amcharts5-map.js",
     "^@amcharts/amcharts5/themes/Animated$": "<rootDir>/__mocks__/amcharts5-themes-Animated.js",
     "^@amcharts/amcharts5-geodata/indonesiaLow$": "<rootDir>/__mocks__/amcharts5-geodata-indonesiaLow.js",
   },
 
-  // Penting di Next 15/React 19 supaya Jest resolve entrypoint "browser/client"
+  // Important for Next 15 / React 19 so Jest resolves "browser/client"
   testEnvironmentOptions: {
     customExportConditions: ["browser", "development", "default"],
   },
 
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+
+  collectCoverage: true,
+  coverageDirectory: "coverage",
+  coverageReporters: ["lcov", "text", "cobertura"],
+  collectCoverageFrom: [
+    "app/**/*.{ts,tsx}",   // include all app code
+    "!app/**/_components/*", // optional: ignore small presentational components
+  ],
 };

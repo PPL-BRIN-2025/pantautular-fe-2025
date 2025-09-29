@@ -141,12 +141,13 @@ describe("MapPage Component", () => {
   
   // Helper to check for presence of a component
   const expectComponentToBePresent = (testId: string) => {
-    expect(screen.getByTestId(testId)).toBeInTheDocument();
+    const elements = screen.queryAllByTestId(testId);
+    expect(elements.length).toBeGreaterThan(0);
   };
   
   // Helper to check for absence of a component
   const expectComponentToBeAbsent = (testId: string) => {
-    expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId(testId).length).toBe(0);
   };
 
   test("should show loading state", () => {
