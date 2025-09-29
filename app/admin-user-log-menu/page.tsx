@@ -175,15 +175,51 @@ export default function AdminUserLogMenuPage() {
             <div className="min-w-[960px]">
               {/* Header */}
               <div className="bg-blue-500 text-white ring-1 ring-black rounded-t-[10px]">
-                <div className="grid grid-cols-[1.2fr_1.6fr_1.2fr_1.1fr_0.6fr]">
-                  {["Username", "Email", "Date", "Activity", "Action"].map((label, idx) => (
-                    <div
-                      key={label}
-                      className={`px-4 py-2.5 sm:py-3 text-sm sm:text-base leading-loose font-normal ${
-                        idx === 0 ? "" : "border-l border-white/80"
-                      }`}
+                <div role="rowgroup">
+                  <div role="row" className="grid grid-cols-[1.2fr_1.6fr_1.2fr_1.1fr_0.6fr]">
+                    {["Username", "Email", "Date", "Activity", "Action"].map((label, idx) => (
+                      <div
+                        key={label}
+                        role="columnheader"
+                        className={`px-4 py-2.5 sm:py-3 text-sm sm:text-base leading-loose font-normal ${
+                          idx === 0 ? "" : "border-l border-white/80"
+                        }`}
+                      >
+                        {idx === 4 ? <span className="block text-right">{label}</span> : label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div role="rowgroup">
+                  {visibleRows.map((r) => (
+                    <div 
+                      key={r.id} 
+                      role="row"
+                      className="px-4 py-4 sm:py-5 hover:bg-gray-50 grid grid-cols-[1.2fr_1.6fr_1.2fr_1.1fr_0.6fr] items-center"
                     >
-                      {idx === 4 ? <span className="block text-right">{label}</span> : label}
+                      <div role="cell" className="text-black text-sm sm:text-base leading-loose">
+                        {r.name}
+                      </div>
+                      <div role="cell" className="text-black text-sm sm:text-base leading-loose truncate">
+                        {r.email}
+                      </div>
+                      <div role="cell" className="text-black text-sm sm:text-base leading-loose tabular-nums">
+                        {fmtDate(r.last_login)}
+                      </div>
+                      <div role="cell" className="text-sm sm:text-base leading-loose">
+                        <StatusBadge detail={DEFAULT_ACTIVITY} />
+                      </div>
+                      <div className="text-right">
+                        <button
+                          className="text-black text-xl sm:text-2xl leading-loose px-2 py-1 hover:bg-gray-100 rounded-lg"
+                          aria-label="lihat detail"
+                          onClick={() => setOpenId(r.id)}
+                          title="Lihat detail"
+                        >
+                          &gt;
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

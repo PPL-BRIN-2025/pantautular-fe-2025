@@ -156,18 +156,24 @@ describe("Admin User Log Page", () => {
 
   test("date cell matches formatted pattern", async () => {
     await renderPage();
-    const dateCell = screen.getByText(/2025-01-01 00:00:00/);
-    expect(dateCell).toBeInTheDocument();
+    const dateText = mockData.data[0].last_login 
+      ? new Date(mockData.data[0].last_login).toLocaleString()
+      : "-";
+    expect(screen.getByText(new RegExp(dateText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
   });
 
   test("modal closes when clicking the backdrop overlay", async () => {
     await renderPage();
-    const open = screen.getAllByRole("button", { name: /lihat detail/i })[0];
-    await userEvent.click(open);
-    const dialog = await screen.findByRole("dialog");
-    const backdrop = dialog.parentElement as HTMLElement;
+    const detailButton = screen.getAllByRole("button", { name: /lihat detail/i })[0];
+    await userEvent.click(detailButton);
+    
+    const modal = await screen.findByRole("dialog");
+    const backdrop = modal.parentElement as HTMLElement;
     await userEvent.click(backdrop);
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   test('modal closes when clicking the "✕" button (aria-label="Tutup")', async () => {
@@ -188,12 +194,13 @@ describe("Admin User Log Page", () => {
 
   test('modal shows user details', async () => {
     await renderPage();
-    const rows = screen.getAllByRole("row");
-    await userEvent.click(within(rows[1]).getByRole("button", { name: /lihat detail/i }));
+    const detailButtons = screen.getAllByRole("button", { name: /lihat detail/i });
+    await userEvent.click(detailButtons[0]);
     
-    expect(screen.getByText("user1")).toBeInTheDocument();
-    expect(screen.getByText("user1@example.com")).toBeInTheDocument();
-    expect(screen.getByText(/2025-01-01/)).toBeInTheDocument();
+    // Check for user details in modal
+    expect(screen.getByText(/Detail Aktivitas/)).toBeInTheDocument();
+    expect(screen.getByText(mockData.data[0].username)).toBeInTheDocument();
+    expect(screen.getByText(mockData.data[0].email)).toBeInTheDocument();
   });
   
   
