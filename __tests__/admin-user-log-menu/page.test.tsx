@@ -23,6 +23,27 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+const mockData = {
+  data: Array.from({ length: 10 }, (_, i) => ({
+    id: i + 1,
+    username: `user${i + 1}`,
+    email: `user${i + 1}@example.com`,
+    last_login: i % 2 === 0 ? "2025-01-01T00:00:00Z" : null,
+  })),
+  page: 1,
+  pageSize: 10,
+  total: 25,
+};
+
+beforeEach(() => {
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve(mockData),
+    })
+  );
+});
+
 async function renderPage() {
   const ui = render(<Page />);
   await waitFor(() => expect(screen.queryByText(/Loading…/i)).not.toBeInTheDocument(), {
