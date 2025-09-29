@@ -215,7 +215,8 @@ export default function Page() {
         } catch {
           /* istanbul ignore next */
         }
-        /* istanbul ignore next -- alert non-deterministic */
+        /* istanbul ignore next -- revert & notify */
+        setUsers(prev);
         alert(detail);
         throw new Error(detail);
       }
@@ -229,9 +230,13 @@ export default function Page() {
         } catch {
           /* istanbul ignore next */
         }
+        setUsers(prev); // revert
         throw new Error(`DELETE gagal: ${res.status}${detail ? " | " + detail : ""}`);
       }
-    } catch {
+
+      // ✅ Success popup
+      alert("Pengguna berhasil dihapus");
+    } catch (e: any) {
       /* istanbul ignore next -- UI revert+alert side effects */
       setUsers(prev);
       alert("Gagal menghapus pengguna");
@@ -275,6 +280,7 @@ export default function Page() {
           /* istanbul ignore next */
         }
         /* istanbul ignore next */
+        setUsers(prev); // revert
         alert(detail);
         throw new Error(detail);
       }
@@ -288,8 +294,12 @@ export default function Page() {
         } catch {
           /* istanbul ignore next */
         }
+        setUsers(prev); // revert
         throw new Error(`PUT role gagal: ${res.status}${detail ? " | " + detail : ""}`);
       }
+
+      // ✅ Success popup
+      alert("Peran berhasil disimpan");
     } catch {
       /* istanbul ignore next -- UI revert+alert side effects */
       setUsers(prev);
