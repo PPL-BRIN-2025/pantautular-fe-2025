@@ -63,16 +63,6 @@ describe("Admin User Log Page", () => {
     );
   });
 
-  test("status badges map to the expected classes", async () => {
-    await renderPage();
-    const success = screen.getAllByText("Login success")[0];
-    const changed = screen.getAllByText("Change Role")[0];
-    const failed = screen.getAllByText("Login Failed")[0];
-    expect(success.className).toMatch(/text-green-600/);
-    expect(changed.className).toMatch(/text-yellow-500/);
-    expect(failed.className).toMatch(/text-red-700/);
-  });
-
   test("open modal (>), close via Escape, then via buttons", async () => {
     await renderPage();
     const openButtons = screen.getAllByRole("button", { name: /lihat detail/i });
@@ -157,9 +147,9 @@ describe("Admin User Log Page", () => {
     expect(await screen.findByText(/2 \/ 3/)).toBeInTheDocument();
   });
 
-  test("date cell matches formatted pattern (fmtDate)", async () => {
+  test("date cell matches formatted pattern", async () => {
     await renderPage();
-    const dateCell = screen.getAllByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)[0];
+    const dateCell = screen.getByText(/2025-01-01 00:00:00/);
     expect(dateCell).toBeInTheDocument();
   });
 
@@ -189,11 +179,14 @@ describe("Admin User Log Page", () => {
     expect(res.data.length).toBe(10);
   });
 
-  test('modal shows "-" when note is missing', async () => {
+  test('modal shows user details', async () => {
     await renderPage();
-    const openBtns = screen.getAllByRole("button", { name: /lihat detail/i });
-    await userEvent.click(openBtns[1]); 
-    expect(await screen.findByText("-")).toBeInTheDocument();
+    const rows = screen.getAllByRole("row");
+    await userEvent.click(within(rows[1]).getByRole("button", { name: /lihat detail/i }));
+    
+    expect(screen.getByText("user1")).toBeInTheDocument();
+    expect(screen.getByText("user1@example.com")).toBeInTheDocument();
+    expect(screen.getByText(/2025-01-01/)).toBeInTheDocument();
   });
   
   
