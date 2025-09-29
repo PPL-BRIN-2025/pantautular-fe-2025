@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Page, { authHeaders, getToken } from "../../app/admin-role-management/page";
+import { FormGroup } from "../../app/admin-role-management/page";
 
 /** Mock Navbar & Footer so we can control layout (footer height measurement) */
 jest.mock("../../app/components/Navbar", () => () => <div data-testid="navbar" />);
@@ -119,6 +120,29 @@ describe("Admin Role Management Page (full render)", () => {
     });
   });
 
+  
+
+  test("DELETE generic failure triggers throw", async () => {
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "server broke",
+    } as any);
+
+  (window.confirm as jest.Mock).mockReturnValue(true);
+  render(<Page />);
+  await screen.findByText("Bob");
+
+  fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+  await waitFor(() => {
+    expect(window.alert).toHaveBeenCalledWith("Gagal menghapus pengguna");
+  });
+});
+
+
   test("delete flow: confirm=true, DELETE ok removes row", async () => {
     (window.confirm as jest.Mock).mockReturnValue(true);
     render(<Page />);
@@ -176,6 +200,28 @@ describe("Admin Role Management Page (full render)", () => {
     });
   });
 });
+
+test("DELETE generic error executes throw path", async () => {
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // initial GET
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "server error",
+    } as any);
+
+  (window.confirm as jest.Mock).mockReturnValue(true);
+
+  render(<Page />);
+  await screen.findByText("Bob");
+
+  fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+  await waitFor(() => {
+    expect(window.alert).toHaveBeenCalledWith("Gagal menghapus pengguna");
+  });
+});
+
 
 describe("authHeaders branch coverage", () => {
   beforeEach(() => {
@@ -249,6 +295,55 @@ describe("Extra branch coverage", () => {
     });
   });
 
+  test("PUT triggers throw on generic failure", async () => {
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "server error",
+    } as any);
+
+  render(<Page />);
+  await screen.findByText("Bob");
+
+  fireEvent.click(screen.getAllByText("Ubah")[1]);
+  await screen.findByText(/Edit Peran/i);
+
+  const select = screen.getByLabelText("Peran");
+  fireEvent.change(select, { target: { value: "EXP_USER" } });
+  fireEvent.click(screen.getByText("Simpan"));
+
+  await waitFor(() => {
+    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("Gagal menyimpan perubahan peran"));
+  });
+});
+
+test("PUT generic error executes throw path", async () => {
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // initial GET
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "server error",
+    } as any);
+
+  render(<Page />);
+  await screen.findByText("Bob");
+
+  fireEvent.click(screen.getAllByText("Ubah")[1]);
+  await screen.findByText(/Edit Peran/i);
+
+  const select = screen.getByLabelText("Peran");
+  fireEvent.change(select, { target: { value: "EXP_USER" } });
+  fireEvent.click(screen.getByText("Simpan"));
+
+  await waitFor(() => {
+    expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
+  });
+});
+
+
   test("PUT error path with broken JSON triggers catch{}", async () => {
     jest.resetAllMocks();
     global.fetch = jest.fn()
@@ -276,6 +371,30 @@ describe("Extra branch coverage", () => {
       expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
     });
   });
+
+  test("PUT generic failure triggers throw", async () => {
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "server broke",
+    } as any);
+
+  render(<Page />);
+  await screen.findByText("Bob");
+
+  fireEvent.click(screen.getAllByText("Ubah")[1]);
+  await screen.findByText(/Edit Peran/i);
+  const select = screen.getByLabelText("Peran");
+  fireEvent.change(select, { target: { value: "EXP_USER" } });
+  fireEvent.click(screen.getByText("Simpan"));
+
+  await waitFor(() => {
+    expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
+  });
+});
+
 
   test("DELETE error path with broken JSON triggers catch{}", async () => {
     jest.resetAllMocks();
@@ -713,5 +832,64 @@ describe("Footer measure with actual footer present (no re-import)", () => {
 
     expect(screen.getByTestId("navbar")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();
+  });
+});
+
+describe("Uncovered lines final sweep", () => {
+  test("DELETE generic error covers throw line", async () => {
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => "fatal",
+      } as any);
+
+    (window.confirm as jest.Mock).mockReturnValue(true);
+
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    // force the DELETE call
+    fireEvent.click(screen.getAllByText("Hapus")[1]);
+
+    // this ensures the error path (with throw) gets executed
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Gagal menghapus pengguna");
+    });
+  });
+
+  test("PUT generic error covers throw line", async () => {
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => USERS } as any) // GET
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => "fatal",
+      } as any);
+
+    render(<Page />);
+    await screen.findByText("Bob");
+
+    fireEvent.click(screen.getAllByText("Ubah")[1]);
+    await screen.findByText(/Edit Peran/i);
+
+    const select = screen.getByLabelText("Peran");
+    fireEvent.change(select, { target: { value: "EXP_USER" } });
+    fireEvent.click(screen.getByText("Simpan"));
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith("Gagal menyimpan perubahan peran");
+    });
+  });
+
+  test("FormGroup renders label and children", () => {
+    render(
+      <FormGroup label="TestLabel">
+        <input data-testid="child" />
+      </FormGroup>
+    );
+    expect(screen.getByText("TestLabel")).toBeInTheDocument();
+    expect(screen.getByTestId("child")).toBeInTheDocument();
   });
 });
