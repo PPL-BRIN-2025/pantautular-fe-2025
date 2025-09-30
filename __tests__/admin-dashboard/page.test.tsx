@@ -35,10 +35,6 @@ jest.mock('next/headers', () => ({
   }),
 }));
 
-// Mock UserInfo to keep this test focused on stats
-jest.mock('../../app/admin-dashboard/_components/UserInfo', () => () => (
-  <div data-testid="user-info">Mock User Info</div>
-));
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -109,9 +105,10 @@ describe('Admin Dashboard - Stats Binding', () => {
     await waitFor(() => {
       expect(screen.getAllByText('12').length).toBeGreaterThan(0);
       expect(screen.getAllByText('5').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('8').length).toBeGreaterThan(0);
     });
 
+    expect(screen.getByRole('heading', { name: /pantautular admin/i })).toBeInTheDocument();
+    expect(screen.getByText(/Kelola akses dan pantau metrik utama/i)).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(screen.getByText('Expert')).toBeInTheDocument();
 
@@ -120,9 +117,14 @@ describe('Admin Dashboard - Stats Binding', () => {
 
     expect(screen.getByText('Total registered users')).toBeInTheDocument();
     expect(screen.getByText('Available datasets')).toBeInTheDocument();
-    expect(screen.getByText('Recent activity')).toBeInTheDocument();
+  expect(screen.queryByText('Ringkasan Sistem')).not.toBeInTheDocument();
+  expect(screen.queryByText('Jumlah Pengguna Aktif')).not.toBeInTheDocument();
+  expect(screen.queryByText('Jumlah Login Gagal')).not.toBeInTheDocument();
 
-    expect(screen.getByTestId('user-info')).toBeInTheDocument();
+  const logLink = screen.getByRole('link', { name: 'Lihat Log' });
+  const roleLink = screen.getByRole('link', { name: 'Kelola Role' });
+  expect(logLink).toBeInTheDocument();
+  expect(roleLink).toBeInTheDocument();
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/admin-feature/stats'),
@@ -170,12 +172,11 @@ describe('Admin Dashboard - Stats Binding', () => {
       expect(screen.getAllByText('15').length).toBeGreaterThan(0);
     });
 
-    expect(screen.getAllByText('10').length).toBeGreaterThan(0);
     expect(screen.getAllByText('7').length).toBeGreaterThan(0);
 
     expect(screen.getByText('User count message')).toBeInTheDocument();
     expect(screen.getByText('Dataset message')).toBeInTheDocument();
-    expect(screen.getByText('Activity message')).toBeInTheDocument();
+  expect(screen.queryByText('Activity message')).not.toBeInTheDocument();
 
     expect(screen.getByText('User')).toBeInTheDocument();
     expect(screen.getByText('Guest')).toBeInTheDocument();
@@ -387,8 +388,9 @@ describe('Admin Dashboard - Stats Binding', () => {
     await waitFor(() => {
       expect(screen.getByText('Users fallback')).toBeInTheDocument();
       expect(screen.getByText('Datasets fallback')).toBeInTheDocument();
-      expect(screen.getByText('Activity fallback')).toBeInTheDocument();
     });
+
+    expect(screen.queryByText('Activity fallback')).not.toBeInTheDocument();
   });
 
   it('returns null token when window is undefined (server-side guard)', async () => {
