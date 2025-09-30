@@ -29,16 +29,24 @@ function LoginForm() {
       try {
         const credentials: LoginRequestBody = { email, password };
         await login(credentials);
-        console.log('Login successful!');
         router.push('/');
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat login');
+        if (err instanceof Error) {
+          const normalized = err.message.toLowerCase();
+          if (normalized.includes('network') || normalized.includes('fetch')) {
+            setError('Tidak dapat terhubung ke server. Silakan periksa koneksi internet Anda.');
+          } else if (normalized.includes('server')) {
+            setError('Terjadi gangguan pada server. Silakan coba lagi nanti.');
+          } else {
+            setError(err.message || 'Terjadi kesalahan saat login');
+          }
+        } else {
+          setError('Terjadi kesalahan saat login');
+        }
       } finally {
         setLoading(false);
       }
     };
-    console.log('User from Login:', user);
-
     return (
       <div className="flex flex-col md:flex-row items-center justify-center bg-white px-4 sm:mx-6 my-8 sm:my-12">
         <div className="w-full md:w-1/2 lg:w-2/5 mb-6 md:mb-0 md:mr-8 lg:mr-16 flex justify-center">
