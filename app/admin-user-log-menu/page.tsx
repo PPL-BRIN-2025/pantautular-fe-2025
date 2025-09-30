@@ -4,7 +4,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Navbar from "../components/Navbar";
 
-// types 
+// ===== Types =====
 type UserRow = {
   id: number;
   name: string;
@@ -23,7 +23,7 @@ type Query = {
 
 type Resp = { data: UserRow[]; page: number; pageSize: number; total: number };
 
-//  API 
+// ===== API =====
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 async function fetchUsers(params: Query): Promise<Resp> {
@@ -41,7 +41,7 @@ async function fetchUsers(params: Query): Promise<Resp> {
   return (await res.json()) as Resp;
 }
 
-// Utils 
+// ===== Utils =====
 function fmtDate(iso?: string | null) {
   if (!iso) return "-";
   const d = new Date(iso);
@@ -62,7 +62,7 @@ function StatusBadge({ detail }: { detail: string }) {
   return <span className={`font-normal ${cls}`}>{detail}</span>;
 }
 
-// page 
+// ===== Page =====
 export default function AdminUserLogMenuPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
@@ -175,51 +175,15 @@ export default function AdminUserLogMenuPage() {
             <div className="min-w-[960px]">
               {/* Header */}
               <div className="bg-blue-500 text-white ring-1 ring-black rounded-t-[10px]">
-                <div role="rowgroup">
-                  <div role="row" className="grid grid-cols-[1.2fr_1.6fr_1.2fr_1.1fr_0.6fr]">
-                    {["Username", "Email", "Date", "Activity", "Action"].map((label, idx) => (
-                      <div
-                        key={label}
-                        role="columnheader"
-                        className={`px-4 py-2.5 sm:py-3 text-sm sm:text-base leading-loose font-normal ${
-                          idx === 0 ? "" : "border-l border-white/80"
-                        }`}
-                      >
-                        {idx === 4 ? <span className="block text-right">{label}</span> : label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div role="rowgroup">
-                  {visibleRows.map((r) => (
-                    <div 
-                      key={r.id} 
-                      role="row"
-                      className="px-4 py-4 sm:py-5 hover:bg-gray-50 grid grid-cols-[1.2fr_1.6fr_1.2fr_1.1fr_0.6fr] items-center"
+                <div className="grid grid-cols-[1.2fr_1.6fr_1.2fr_1.1fr_0.6fr]">
+                  {["Username", "Email", "Date", "Activity", "Action"].map((label, idx) => (
+                    <div
+                      key={label}
+                      className={`px-4 py-2.5 sm:py-3 text-sm sm:text-base leading-loose font-normal ${
+                        idx === 0 ? "" : "border-l border-white/80"
+                      }`}
                     >
-                      <div role="cell" className="text-black text-sm sm:text-base leading-loose">
-                        {r.name}
-                      </div>
-                      <div role="cell" className="text-black text-sm sm:text-base leading-loose truncate">
-                        {r.email}
-                      </div>
-                      <div role="cell" className="text-black text-sm sm:text-base leading-loose tabular-nums">
-                        {fmtDate(r.last_login)}
-                      </div>
-                      <div role="cell" className="text-sm sm:text-base leading-loose">
-                        <StatusBadge detail={DEFAULT_ACTIVITY} />
-                      </div>
-                      <div className="text-right">
-                        <button
-                          className="text-black text-xl sm:text-2xl leading-loose px-2 py-1 hover:bg-gray-100 rounded-lg"
-                          aria-label="lihat detail"
-                          onClick={() => setOpenId(r.id)}
-                          title="Lihat detail"
-                        >
-                          &gt;
-                        </button>
-                      </div>
+                      {idx === 4 ? <span className="block text-right">{label}</span> : label}
                     </div>
                   ))}
                 </div>
@@ -300,70 +264,61 @@ export default function AdminUserLogMenuPage() {
         <p className="mt-4 text-xs text-gray-500">Klik baris untuk melihat detail user.</p>
       </div>
 
-  {/* Modal */}
-  {opened && (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={() => setOpenId(null)}
-    >
-      <div
-        className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-blue-600">Detail Aktivitas</h3>
-          <button
-            className="rounded-lg px-2 py-1 text-sm hover:bg-gray-100"
-            onClick={() => setOpenId(null)}
-            aria-label="Tutup"
+      {/* Modal */}
+      {opened && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setOpenId(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
           >
-            ✕
-          </button>
-        </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-blue-600">Detail User</h3>
+              <button
+                className="rounded-lg px-2 py-1 text-sm hover:bg-gray-100"
+                onClick={() => setOpenId(null)}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
-          <div>
-            <p className="text-black font-medium">Nama</p>
-            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.username}</div>
-          </div>
-          <div>
-            <p className="text-black font-medium">Email</p>
-            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.email}</div>
-          </div>
-          <div>
-            <p className="text-black font-medium">Activity</p>
-            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.detail}</div>
-          </div>
-          <div>
-            <p className="text-black font-medium">Time</p>
-            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.timestamp)}</div>
-          </div>
-          <div className="sm:col-span-2">
-            <p className="text-black font-medium">Kapan Akun Dibuat</p>
-            <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.created_at)}</div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
+              <div>
+                <p className="text-black font-medium">Name</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.name}</div>
+              </div>
+              <div>
+                <p className="text-black font-medium">Email</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{opened.email}</div>
+              </div>
+              <div>
+                <p className="text-black font-medium">Last Login</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">{fmtDate(opened.last_login)}</div>
+              </div>
+              <div>
+                <p className="text-black font-medium">Activity</p>
+                <div className="mt-1 rounded-md bg-gray-50 px-3 py-2">
+                  <StatusBadge detail={DEFAULT_ACTIVITY} />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setOpenId(null)}
+                className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
-
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            onClick={handleDelete}
-            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-          >
-            Hapus
-          </button>
-          <button
-            onClick={() => setOpenId(null)}
-            className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
-          >
-            Tutup
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
-
+      )}
     </div>
   );
 }
