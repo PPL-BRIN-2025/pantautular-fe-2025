@@ -11,21 +11,72 @@ export interface RegisterData {
 
 // Helper function to handle API error responses
 const handleApiError = async (response: Response, defaultMessage: string) => {
-  const errorData = await response.json();
-  let errorMessage = defaultMessage;
-  
-  if (errorData.detail) {
-    if (Array.isArray(errorData.detail)) {
-      // Get the first error message and clean it
-      const rawMessage = errorData.detail[0];
-      // Remove all special characters and quotes
-      errorMessage = rawMessage.replace(/[[\]'"]/g, '');
-    } else if (typeof errorData.detail === 'string') {
-      errorMessage = errorData.detail;
-    }
+  let detail: unknown;
+  try {
+    const errorData = await response.json();
+    detail = errorData?.detail ?? errorData?.message;
+  } catch {
+    detail = undefined;
   }
-  
-  throw new Error(errorMessage);
+
+  const extractDetail = (): string | undefined => {
+    if (!detail) return undefined;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+      return String(detail[0]).replace(/[[\]'\"]/g, '');
+    }
+    if (typeof detail === 'object') {
+      const values = Object.values(detail as Record<string, unknown>);
+      if (values.length > 0) {
+        return String(values[0]);
+      }
+    }
+    return undefined;
+  };
+
+  const detailMessage = extractDetail();
+  const normalizedDetail = detailMessage?.toLowerCase() ?? '';
+  const status = response.status;
+  const isLoginContext = defaultMessage.toLowerCase().includes('masuk');
+
+  const pickMessage = (): string => {
+    if (
+      status === 401 ||
+      normalizedDetail.includes('unauthorized') ||
+      normalizedDetail.includes('invalid credentials') ||
+      normalizedDetail.includes('wrong password')
+    ) {
+      return isLoginContext ? 'Email atau kata sandi salah.' : 'Akses ditolak. Hubungi administrator Anda.';
+    }
+
+    if (status === 404 || normalizedDetail.includes('not found')) {
+      return isLoginContext ? 'Akun tidak ditemukan.' : 'Data tidak ditemukan.';
+    }
+
+    if (status === 403 || normalizedDetail.includes('inactive') || normalizedDetail.includes('forbidden')) {
+      return isLoginContext ? 'Akses login ditolak. Hubungi administrator Anda.' : 'Akses ditolak. Hubungi administrator Anda.';
+    }
+
+    if (status === 429 || normalizedDetail.includes('too many')) {
+      return isLoginContext
+        ? 'Terlalu banyak percobaan login. Silakan coba lagi beberapa menit lagi.'
+        : 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
+    }
+
+    if (status === 400 || status === 422 || normalizedDetail.includes('validation')) {
+      return isLoginContext
+        ? 'Data login tidak valid. Periksa kembali email dan kata sandi Anda.'
+        : 'Data yang Anda kirimkan tidak valid. Silakan periksa kembali.';
+    }
+
+    if (status >= 500) {
+      return 'Terjadi gangguan pada server. Silakan coba lagi nanti.';
+    }
+
+    return detailMessage ?? defaultMessage;
+  };
+
+  throw new Error(pickMessage());
 };
 
 export const authService = {
@@ -40,7 +91,7 @@ export const authService = {
     });
 
     if (!response.ok) {
-      return handleApiError(response, 'Terjadi kesalahan saat mendaftar');
+  return handleApiError(response, 'Terjadi kesalahan saat mendaftar');
     }
 
     return response.json();
@@ -59,7 +110,7 @@ export const authService = {
     });
 
     if (!response.ok) {
-      return handleApiError(response, 'Terjadi kesalahan saat masuk');
+  return handleApiError(response, 'Terjadi kesalahan saat masuk');
     }
     return response.json();
   }

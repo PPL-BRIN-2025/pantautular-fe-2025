@@ -86,7 +86,6 @@ async function fetchUsers(params: Query): Promise<Resp> {
   return res.json();
 }
 
-
 function fmtDate(iso?: string | null) {
   if (!iso) return "-";
   const d = new Date(iso);
