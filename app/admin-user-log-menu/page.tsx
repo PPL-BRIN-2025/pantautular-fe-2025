@@ -123,10 +123,17 @@ export default function AdminUserLogMenuPage() {
 
   // popup state
   const [openId, setOpenId] = useState<number | null>(null);
-  const opened = useMemo(() => rows.find((r) => r.id === openId) || null, [rows, openId]);
 
-  // default activity (modal)
-  const DEFAULT_ACTIVITY = "Login success";
+  // inject dummy activity when resolving opened user
+  const opened = useMemo(() => {
+    const base = rows.find((r) => r.id === openId) || null;
+    if (!base) return null;
+
+    // pick a dummy activity randomly
+    const activities = ["Login success", "Uploaded CSV"];
+    const dummyActivity = activities[base.id % activities.length];
+    return { ...base, activity: dummyActivity };
+  }, [rows, openId]);
 
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
@@ -361,7 +368,7 @@ export default function AdminUserLogMenuPage() {
       {opened && (
         <DetailModal
           user={opened}
-          activity={DEFAULT_ACTIVITY}
+          activity={opened.activity}
           onClose={() => setOpenId(null)}
         />
       )}
@@ -374,7 +381,7 @@ function DetailModal({
   activity,
   onClose,
 }: {
-  user: UserRow;
+  user: UserRow & { activity: string };
   activity: string;
   onClose: () => void;
 }) {
