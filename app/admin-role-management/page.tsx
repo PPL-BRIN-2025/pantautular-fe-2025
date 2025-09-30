@@ -4,7 +4,11 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+<<<<<<< HEAD
 import { API_BASE } from "../../config";
+=======
+import { API_BASE } from "@/config";
+>>>>>>> 92b88768afc7dfb3b5a6a399182dcee4cf9b19b4
 
 type Role = "Admin" | "EXP_USER" | "CURATOR" | "CONTRIBUTOR";
 type User = {
