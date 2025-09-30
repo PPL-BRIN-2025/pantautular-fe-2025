@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation"; 
-import { User } from "lucide-react";
+import { User, ChevronDown, ArrowUpRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui-profile/dropdown-menu";
 import PasswordSettings from "./password-settings";
 import { useAuth } from '../auth/hooks/useAuth';
@@ -38,6 +38,84 @@ export const ProfileIcon = ({ logout }: { logout: () => void }) => {
     </>
   );
 };
+
+type RoleNavLink = {
+  label: string;
+  href: string;
+  disabled?: boolean;
+  description?: string;
+};
+
+const DEFAULT_ROLE_LINKS: RoleNavLink[] = [{ label: "Dashboard", href: "/dashboard" }];
+
+const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
+  ADMIN: [
+    { label: "Admin Dashboard", href: "/admin-dashboard" },
+    { label: "Role Management", href: "/admin-role-management" },
+    { label: "User Log", href: "/admin-user-log", disabled: true, description: "Segera hadir" },
+  ],
+  EXP_USER: [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Peta Sebaran", href: "/map" },
+  ],
+  CURATOR: [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Bantuan", href: "/help" },
+  ],
+  CONTRIBUTOR: [
+    { label: "Beranda", href: "/" },
+    { label: "Peta Sebaran", href: "/map" },
+  ],
+};
+
+function resolveRoleLinks(role: string): RoleNavLink[] {
+  const normalized = role?.trim();
+  if (!normalized) return DEFAULT_ROLE_LINKS;
+
+  return (
+    ROLE_NAV_LINKS[normalized] ||
+    ROLE_NAV_LINKS[normalized.toUpperCase()] ||
+    ROLE_NAV_LINKS[normalized.toLowerCase()] ||
+    DEFAULT_ROLE_LINKS
+  );
+}
+
+function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
+  const links = resolveRoleLinks(role);
+
+  if (!links.length) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="hidden sm:flex items-center gap-1 rounded-md border border-[#0069cf] px-3 py-1 text-sm font-medium text-[#0069cf] transition-colors hover:bg-[#0069cf]/10 focus:outline-none focus:ring-2 focus:ring-[#0069cf] focus:ring-offset-2"
+        aria-label="Halaman khusus peran"
+      >
+        <span>Akses Page</span>
+        <ChevronDown className="h-4 w-4" aria-hidden="true" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        {links.map((item) =>
+          item.disabled ? (
+            <DropdownMenuItem key={item.label} disabled className="cursor-not-allowed justify-start text-gray-400">
+              <div className="flex w-full flex-col">
+                <span>{item.label}</span>
+                <span className="text-xs text-gray-400">{item.description ?? "Segera hadir"}</span>
+              </div>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem key={item.label} asChild className="text-gray-700">
+              <Link href={item.href} className="flex w-full items-center justify-between">
+                <span>{item.label}</span>
+                <ArrowUpRight className="h-4 w-4 text-[#0069cf]" aria-hidden="true" />
+              </Link>
+            </DropdownMenuItem>
+          )
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 const NavLink = ({ href, label }: { href: string; label: string }) => {
   const pathname = usePathname();
@@ -84,6 +162,7 @@ function NavbarContent() {
         {user ? (
           <div className="flex items-center gap-3">
             <span className="hidden sm:block text-[#0f172a] font-medium select-none">{user.name} | {user.role}</span>
+            <RoleAccessMenu role={user.role} />
             <ProfileIcon logout={logout}/>
           </div>
         ) : (
