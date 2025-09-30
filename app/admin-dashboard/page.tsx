@@ -136,15 +136,13 @@ export default function AdminDashboardPage() {
 
   if (blocked403Detail) {
     return (
-      <main className={styles.container}>
-        <div className={styles.card} role="alert" aria-live="polite">
-          <div className={styles.cardLabel}>Informasi Akses</div>
-          <div className={styles.cardValue} style={{ fontSize: 24 }}>
-            {blocked403Detail}
-          </div>
-          <div className={styles.hint} style={{ marginTop: 8 }}>
-            Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau login sebagai admin.
-          </div>
+        <main className="mx-auto max-w-3xl px-4 py-10">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <div className="text-sm font-semibold text-amber-700">Informasi Akses</div>
+            <div className="mt-2 text-2xl font-semibold text-amber-900">Akses Ditolak</div>
+            <p className="mt-2 text-sm text-amber-800">
+              Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
+            </p>
           <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
             <Link href="/" className={styles.buttonSecondary}>
               Kembali
@@ -168,10 +166,10 @@ export default function AdminDashboardPage() {
               <p className={styles.subtitle}>Kelola akses dan pantau metrik utama platform.</p>
             </div>
             <div className={styles.actions}>
-              <Link href="/admin-dashboard/logs" className={styles.buttonSecondary}>
+              <Link href="/admin-user-log-menu/" className={styles.buttonSecondary}>
                 Lihat Log
               </Link>
-              <Link href="/admin-dashboard/roles" className={styles.buttonPrimary}>
+              <Link href="/admin-role-management/" className={styles.buttonPrimary}>
                 Kelola Role
               </Link>
             </div>

@@ -52,7 +52,7 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ADMIN: [
     { label: "Admin Dashboard", href: "/admin-dashboard" },
     { label: "Role Management", href: "/admin-role-management" },
-    { label: "User Log", href: "/admin-user-log", disabled: true, description: "Segera hadir" },
+    { label: "User Log", href: "/admin-user-log-menu" },
   ],
   EXP_USER: [
     { label: "Dashboard", href: "/dashboard" },
