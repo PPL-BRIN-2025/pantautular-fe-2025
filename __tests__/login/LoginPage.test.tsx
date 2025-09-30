@@ -78,17 +78,22 @@ describe('LoginPage', () => {
     { 
       name: 'network error',
       error: new Error('Network error'),
-      expectedMessage: 'Network error'
+      expectedMessage: 'Tidak dapat terhubung ke server. Silakan periksa koneksi internet Anda.'
     },
     {
       name: 'server error',
       error: new Error('Internal Server Error'),
-      expectedMessage: 'Internal Server Error'
+      expectedMessage: 'Terjadi gangguan pada server. Silakan coba lagi nanti.'
     },
     {
       name: 'unknown error',
       error: 'Unknown error',
       expectedMessage: 'Terjadi kesalahan saat login'
+    },
+    {
+      name: 'invalid credentials',
+      error: new Error('Email atau kata sandi salah.'),
+      expectedMessage: 'Email atau kata sandi salah.'
     }
   ];
   
