@@ -6,7 +6,6 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import StatCard from "./_components/StatCard";
 import RolePills from "./_components/RolePills";
-import UserInfo from "./_components/UserInfo";
 import { API_BASE, API_BASE_RAW } from '@/config';
 import Footer from "../components/Footer";
 
@@ -65,13 +64,10 @@ export const __testables = {
 /** === Page === */
 export default function AdminDashboardPage() {
   const [totalUsers, setTotalUsers] = useState(0);
-  const [activeUsers, setActiveUsers] = useState(0);
   const [datasets, setDatasets] = useState(0);
-  const [failedLogins, setFailedLogins] = useState(0);
   const [roles, setRoles] = useState<string[]>(["Admin", "Expert", "Kurator", "Kontributor"]); // fallback
   const [usersMessage, setUsersMessage] = useState<string | undefined>();
   const [datasetsMessage, setDatasetsMessage] = useState<string | undefined>();
-  const [activityMessage, setActivityMessage] = useState<string | undefined>();
   const [blocked403Detail, setBlocked403Detail] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
 
@@ -122,16 +118,13 @@ export default function AdminDashboardPage() {
         const data = await res.json();
 
         setTotalUsers(data?.totalUsers ?? data?.total_users ?? data?.users ?? 0);
-        setActiveUsers(data?.activeUsers ?? data?.active_users ?? 0);
         setDatasets(data?.datasets ?? data?.datasets_count ?? data?.dataset ?? 0);
-        setFailedLogins(data?.failedLogins ?? data?.failed_logins ?? data?.failed ?? 0);
         if (Array.isArray(data?.roles) && data.roles.length > 0) setRoles(data.roles);
 
-  const msgs = data?.messages as Record<string, string> | undefined;
+        const msgs = data?.messages as Record<string, string> | undefined;
 
-  setUsersMessage(pickMessage(data?.usersMessage, msgs?.usersMessage, msgs?.users));
-  setDatasetsMessage(pickMessage(data?.datasetsMessage, msgs?.datasetsMessage, msgs?.datasets));
-  setActivityMessage(pickMessage(data?.activityMessage, msgs?.activityMessage, msgs?.activity));
+        setUsersMessage(pickMessage(data?.usersMessage, msgs?.usersMessage, msgs?.users));
+        setDatasetsMessage(pickMessage(data?.datasetsMessage, msgs?.datasetsMessage, msgs?.datasets));
       } catch (e) {
         console.error("Failed to fetch admin stats:", e);
       } finally {
@@ -169,21 +162,18 @@ export default function AdminDashboardPage() {
       <main className={styles.container}>
         <header className={styles.headerCard}>
           <div className={styles.headerContent}>
-            <nav className={styles.navShortcuts} aria-label="Admin dashboard quick links">
-              <span className={styles.navLabel}>Navigasi:</span>
-              <Link href="/admin-dashboard/roles" className={styles.navLink}>
-                Pengelolaan Roles
+            <div className={styles.headerText}>
+              <h1 className={styles.title}>PantauTular Admin</h1>
+              <p className={styles.subtitle}>Kelola akses dan pantau metrik utama platform.</p>
+            </div>
+            <div className={styles.actions}>
+              <Link href="/admin-dashboard/logs" className={styles.buttonSecondary}>
+                Lihat Log
               </Link>
-              <span className={styles.dot} aria-hidden="true">
-                •
-              </span>
-              <Link href="/admin-dashboard/logs" className={styles.navLink}>
-                Log Pengguna
+              <Link href="/admin-dashboard/roles" className={styles.buttonPrimary}>
+                Kelola Role
               </Link>
-            </nav>
-
-            {/* User Info Component → Display logged-in admin's name & role */}
-            <UserInfo />
+            </div>
           </div>
         </header>
 
@@ -206,43 +196,6 @@ export default function AdminDashboardPage() {
             <div className={styles.cardLabel}>Roles</div>
             <div className={styles.roleCount}>{roles.length}</div>
             <RolePills roles={roles} />
-          </div>
-        </section>
-
-        {/* Summary row with actions */}
-        <section className={styles.summaryWrapper}>
-          <div className={styles.summaryHeader}>
-            <div className={styles.summaryTitle}>Ringkasan Sistem</div>
-            <div className={styles.actions}>
-              <Link href="/admin-dashboard/logs" className={styles.buttonSecondary}>
-                Lihat Log
-              </Link>
-              <Link href="/admin-dashboard/roles" className={styles.buttonPrimary}>
-                Kelola Role
-              </Link>
-            </div>
-          </div>
-
-          <div className={styles.summaryGrid}>
-            <div className={styles.summaryCard}>
-              <div className={styles.summaryCardLabel}>Jumlah Pengguna Aktif</div>
-              <div className={styles.summaryRow}>
-                <div className={styles.iconLarge}>👥</div>
-                <div className={styles.summaryValue}>{activeUsers}</div>
-              </div>
-            </div>
-
-            <div className={styles.summaryCard}>
-              <div className={styles.summaryCardLabel}>Jumlah Login Gagal</div>
-              <div className={styles.summaryRow}>
-                <div className={styles.iconLarge}>👥</div>
-                <div className={styles.summaryValue}>{failedLogins}</div>
-                <div className={styles.hint}>{activityMessage}</div>
-              </div>
-              <a href="/admin-dashboard/logs" className={styles.linkSmall}>
-                Lihat di Halaman Log Pengguna
-              </a>
-            </div>
           </div>
         </section>
       </main>
