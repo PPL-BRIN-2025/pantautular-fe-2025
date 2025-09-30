@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { API_BASE } from "../../config";
 
 type Role = "Admin" | "EXP_USER" | "CURATOR" | "CONTRIBUTOR";
 type User = {
@@ -16,8 +17,6 @@ type User = {
 
 const ROLES: Role[] = ["Admin", "EXP_USER", "CURATOR", "CONTRIBUTOR"];
 
-/* istanbul ignore next -- env-driven value hard to cover in tests */
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 /* istanbul ignore next -- env-driven value hard to cover in tests */
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 /* istanbul ignore next -- depends on runner env */
