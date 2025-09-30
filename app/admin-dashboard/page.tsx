@@ -6,7 +6,8 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import StatCard from "./_components/StatCard";
 import RolePills from "./_components/RolePills";
-import { API_BASE, API_BASE_RAW } from '@/config';
+import UserInfo from "./_components/UserInfo";
+import { API_BASE, API_BASE_RAW } from '../../config';
 import Footer from "../components/Footer";
 
 const warnWhenApiBaseMissing = () => {

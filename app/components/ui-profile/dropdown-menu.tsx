@@ -24,10 +24,13 @@ DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 export const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>
->(({ className, ...props }, ref) => (
+>(({ className = "", disabled, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
-    className={`relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-gray-100 ${className}`}
+    disabled={disabled}
+    className={`relative flex select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none ${
+      disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-100"
+    } ${className}`}
     {...props}
   />
 ))
