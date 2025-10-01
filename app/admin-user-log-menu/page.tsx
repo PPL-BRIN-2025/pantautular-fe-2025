@@ -7,7 +7,13 @@ import "react-datepicker/dist/react-datepicker.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-type UserRow = { id: number; name: string; email: string; last_login: string | null };
+type UserRow = {
+  id: number;
+  username?: string;
+  name?: string;
+  email: string;
+  last_login: string | null;
+};
 type Query = {
   page?: number;
   pageSize?: number;
@@ -76,11 +82,49 @@ async function fetchUsers(params: Query): Promise<Resp> {
   }
 
   if (!res.ok) {
-    let detail = "";
+    const contentType = res.headers.get("content-type") ?? "";
+    let raw = "";
     try {
-      detail = await res.text();
+      raw = await res.text();
     } catch {}
-    throw new Error(`HTTP ${res.status}${detail ? " | " + detail : ""}`);
+
+    let detail: string | undefined;
+    if (raw) {
+      if (contentType.includes("application/json")) {
+        try {
+          const parsed = JSON.parse(raw);
+          const candidate = (parsed as any)?.detail ?? (parsed as any)?.message;
+          if (typeof candidate === "string" && candidate.trim()) {
+            detail = candidate.trim();
+          }
+        } catch {
+          // ignore malformed JSON
+        }
+      }
+
+      if (!detail) {
+        const isHtml = /<\s*(!doctype|html|head|body)[\s>]/i.test(raw);
+        if (!isHtml) {
+          const textDetail = raw.trim();
+          if (textDetail) detail = textDetail;
+        }
+      }
+    }
+
+    if (res.status === 404) {
+      throw new Error(detail ?? "Data pengguna tidak ditemukan (404)");
+    }
+
+    if (res.status === 429) {
+      throw new Error(detail ?? "Terlalu banyak permintaan. Silakan coba lagi nanti.");
+    }
+
+    const fallback =
+      res.status >= 500
+        ? "Server sedang mengalami gangguan. Silakan coba lagi nanti."
+        : `Permintaan gagal (HTTP ${res.status})`;
+
+    throw new Error(detail ?? fallback);
   }
 
   return res.json();
@@ -136,23 +180,31 @@ export default function AdminUserLogMenuPage() {
 
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
-  const run = async (p?: Partial<Query>) => {
+  const run = async (opts?: {
+    page?: number;
+    searchText?: string;
+    startDate?: Date | null;
+    endDate?: Date | null;
+  }) => {
+    const targetPage = opts?.page ?? page;
+    const searchText = opts?.searchText ?? searchInputText;
+    const startValue = opts?.startDate ?? startDate;
+    const endValue = opts?.endDate ?? endDate;
     setLoading(true);
     setErr(null);
     setBlocked403Detail(undefined);
     try {
       const res = await fetchUsers({
-        page,
+        page: targetPage,
         pageSize,
-        search: searchInputText || undefined,
-        start: startDate ? startDate.toISOString() : undefined,
-        end: endDate ? endDate.toISOString() : undefined,
+        search: searchText ? searchText : undefined,
+        start: startValue ? startValue.toISOString() : undefined,
+        end: endValue ? endValue.toISOString() : undefined,
         sort: "last_login:desc",
-        ...(p || {}),
       });
       setRows(res.data);
       setTotal(res.total);
-      if (p?.page) setPage(p.page);
+      setPage(targetPage);
     } catch (e: any) {
       const msg: string = e?.message ?? "";
       if (msg.startsWith("403:")) {
@@ -181,7 +233,10 @@ export default function AdminUserLogMenuPage() {
 
   function applyFilters() {
     setPage(1);
-    run({ page: 1 });
+    setSearchInputText("");
+    setStartDate(null);
+    setEndDate(null);
+    run({ page: 1, searchText: "", startDate: null, endDate: null });
   }
 
   /* ===== Access denied page ===== */
@@ -221,13 +276,21 @@ export default function AdminUserLogMenuPage() {
     );
   }
 
-  const visibleRows = rows;
+  const visibleRows = useMemo(() => {
+    const search = searchInputText.trim().toLowerCase();
+    if (!search) return rows;
+    return rows.filter((row) => {
+      const name = (row.name ?? row.username ?? "").toLowerCase();
+      const email = row.email.toLowerCase();
+      return name.includes(search) || email.includes(search);
+    });
+  }, [rows, searchInputText]);
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
       {!isTest && <Navbar />}
 
-      <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[20rem] lg:pb-[18rem]">
         {err && (
           <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
             {err}
@@ -296,7 +359,9 @@ export default function AdminUserLogMenuPage() {
                   {visibleRows.map((r) => (
                     <li key={r.id} className="px-4 py-4 sm:py-5 hover:bg-gray-50">
                       <div className="grid grid-cols-[1.3fr_1.7fr_1.2fr_0.6fr] items-center">
-                        <div className="text-black text-sm sm:text-base leading-loose">{r.name}</div>
+                        <div className="text-black text-sm sm:text-base leading-loose">
+                          {r.name ?? r.username ?? "-"}
+                        </div>
                         <div className="text-black text-sm sm:text-base leading-loose truncate">{r.email}</div>
                         <div className="text-black text-sm sm:text-base leading-loose tabular-nums">
                           {fmtDate(r.last_login)}
@@ -385,29 +450,29 @@ function DetailModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       {/* backdrop */}
       <button
-        aria-label="Tutup"
+        aria-label="Tutup modal"
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
       />
       {/* card */}
       <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5">
         <div className="flex items-center justify-between border-b px-1 pb-4">
-          <h2 className="text-lg font-semibold text-blue-600">Detail User</h2>
+          <h2 className="text-lg font-semibold text-blue-600">Detail Aktivitas</h2>
           <button
             onClick={onClose}
             className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
-            aria-label="Close"
-            title="Close"
+            aria-label="Tutup dialog"
+            title="Tutup dialog"
           >
             ×
           </button>
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
-          <Field label="Name" value={user.name || "-"} />
+          <Field label="Name" value={user.name ?? user.username ?? "-"} />
           <Field label="Email" value={user.email || "-"} />
           <Field label="Last Login" value={fmtDate(user.last_login)} />
           <div>
