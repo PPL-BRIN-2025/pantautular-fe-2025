@@ -27,6 +27,7 @@ const mockData = {
   data: Array.from({ length: 10 }, (_, i) => ({
     id: i + 1,
     username: `user${i + 1}`,
+    name: `User ${i + 1}`,
     email: `user${i + 1}@example.com`,
     last_login: i % 2 === 0 ? "2025-01-01T00:00:00Z" : null,
   })),
@@ -36,12 +37,10 @@ const mockData = {
 };
 
 beforeEach(() => {
-  global.fetch = jest.fn(() =>
-    Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(mockData),
-    })
-  );
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => mockData,
+  })) as unknown as typeof fetch;
 });
 
 async function renderPage() {
@@ -55,39 +54,41 @@ async function renderPage() {
 describe("Admin User Log Page", () => {
   test("renders navbar and initial table with pagination meta", async () => {
     await renderPage();
-    expect(screen.getByTestId("navbar")).toBeInTheDocument();
+    expect(screen.queryByTestId("navbar")).not.toBeInTheDocument();
     expect(screen.getByText(/Menampilkan/i)).toHaveTextContent("Menampilkan 10 dari 25");
     expect(screen.getByText(/1 \/ 3/)).toBeInTheDocument();
-    ["Username", "Email", "Date", "Activity", "Action"].forEach((h) => 
+    ["Username", "Email", "Last Login", "Action"].forEach((h) =>
       expect(screen.getByText(h)).toBeInTheDocument()
     );
   });
 
   test("renders initial table with correct headers", async () => {
     await renderPage();
-    ["Username", "Email", "Date", "Action"].forEach(header => 
+    ["Username", "Email", "Last Login", "Action"].forEach((header) =>
       expect(screen.getByText(header)).toBeInTheDocument()
     );
   });
 
-  test("open modal (>), close via Escape, then via buttons", async () => {
+  test("open modal (>), close via Escape and available controls", async () => {
     await renderPage();
     const openButtons = screen.getAllByRole("button", { name: /lihat detail/i });
     await userEvent.click(openButtons[0]);
-    expect(await screen.findByText(/Detail Aktivitas/i)).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Detail Aktivitas/i)).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByText(/Detail Aktivitas/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+  await userEvent.click(openButtons[0]);
+  await screen.findByRole("dialog");
+    await userEvent.click(screen.getByRole("button", { name: /Tutup modal/i }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     await userEvent.click(openButtons[0]);
-    expect(await screen.findByText(/Detail Aktivitas/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /Keluar/i }));
-    await waitFor(() => expect(screen.queryByText(/Detail Aktivitas/i)).not.toBeInTheDocument());
-
-    await userEvent.click(openButtons[0]);
-    expect(await screen.findByText(/Detail Aktivitas/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /Simpan/i }));
-    await waitFor(() => expect(screen.queryByText(/Detail Aktivitas/i)).not.toBeInTheDocument());
+    const dialogWithControls = await screen.findByRole("dialog");
+  const closeButton = within(dialogWithControls).getByRole("button", { name: /^Tutup$/ });
+  await userEvent.click(closeButton);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   test("search filter narrows rows and empty state for unmatched query", async () => {
@@ -156,10 +157,18 @@ describe("Admin User Log Page", () => {
 
   test("date cell matches formatted pattern", async () => {
     await renderPage();
-    const dateText = mockData.data[0].last_login 
-      ? new Date(mockData.data[0].last_login).toLocaleString()
-      : "-";
-    expect(screen.getByText(new RegExp(dateText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
+    const formatDate = (iso?: string | null) => {
+      if (!iso) return "-";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "-";
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
+        d.getMinutes()
+      )}:${pad(d.getSeconds())}`;
+    };
+    const dateText = formatDate(mockData.data[0].last_login);
+    const cells = screen.getAllByText(dateText);
+    expect(cells.length).toBeGreaterThan(0);
   });
 
   test("modal closes when clicking the backdrop overlay", async () => {
@@ -167,20 +176,19 @@ describe("Admin User Log Page", () => {
     const detailButton = screen.getAllByRole("button", { name: /lihat detail/i })[0];
     await userEvent.click(detailButton);
     
-    const modal = await screen.findByRole("dialog");
-    const backdrop = modal.parentElement as HTMLElement;
-    await userEvent.click(backdrop);
+    await screen.findByRole("dialog");
+    await userEvent.click(screen.getByRole("button", { name: /Tutup modal/i }));
     
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 
-  test('modal closes when clicking the "✕" button (aria-label="Tutup")', async () => {
+  test('modal closes when clicking the "✕" button', async () => {
     await renderPage();
     const open = screen.getAllByRole("button", { name: /lihat detail/i })[0];
     await userEvent.click(open);
-    const closeX = await screen.findByRole("button", { name: "Tutup" });
+    const closeX = await screen.findByRole("button", { name: "Tutup dialog" });
     await userEvent.click(closeX);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
@@ -198,9 +206,10 @@ describe("Admin User Log Page", () => {
     await userEvent.click(detailButtons[0]);
     
     // Check for user details in modal
-    expect(screen.getByText(/Detail Aktivitas/)).toBeInTheDocument();
-    expect(screen.getByText(mockData.data[0].username)).toBeInTheDocument();
-    expect(screen.getByText(mockData.data[0].email)).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog");
+  expect(within(dialog).getByText(/Detail Aktivitas/)).toBeInTheDocument();
+  expect(within(dialog).getByText(mockData.data[0].name as string)).toBeInTheDocument();
+  expect(within(dialog).getByText(mockData.data[0].email)).toBeInTheDocument();
   });
   
   
