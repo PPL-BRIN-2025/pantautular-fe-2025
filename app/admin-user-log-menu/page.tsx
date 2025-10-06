@@ -225,27 +225,35 @@ export default function AdminUserLogMenuPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-2xl border shadow-sm bg-white">
+        <div className="rounded-2xl border shadow-sm bg-white">
           <div className="overflow-x-auto">
-            <div className="min-w-[980px]">
-              <div className="bg-blue-500 text-white ring-1 ring-black rounded-t-[10px]">
-                <div className="grid grid-cols-[1fr_1.6fr_1.2fr_1fr_2fr]">
+            <div className="min-w-[980px] max-h-[70vh] overflow-y-auto rounded-2xl">
+              {/* Sticky Header */}
+              <div className="sticky top-0 z-20 bg-blue-500 text-white rounded-t-2xl">
+                <div className="grid grid-cols-[1fr_1.6fr_1.2fr_1fr_2fr] border-b border-white/30">
                   {["Username","Email","Timestamp","Action","Detail"].map((label, idx) => (
-                    <div key={label} className={`px-4 py-2.5 text-sm sm:text-base ${idx===0?"":"border-l border-white/80"}`}>{label}</div>
+                    <div
+                      key={label}
+                      className={`px-4 py-3 text-sm sm:text-base font-semibold ${
+                        idx !== 0 ? "border-l border-white/50" : ""
+                      }`}
+                    >
+                      {label}
+                    </div>
                   ))}
                 </div>
               </div>
 
               {pageRows.length > 0 ? (
-                <ul className="divide-y">
+                <ul className="divide-y divide-gray-200">
                   {pageRows.map((r) => (
-                    <li key={r.id} className="px-4 py-4 sm:py-5 hover:bg-gray-50">
-                      <div className="grid grid-cols-[1fr_1.6fr_1.2fr_1fr_2fr] items-center">
-                        <div>{r.username || "-"}</div>
-                        <div className="truncate">{r.email || "-"}</div>
-                        <div className="tabular-nums">{fmtDate(r.timestamp)}</div>
-                        <div>{r.action || "-"}</div>
-                        <div className="truncate" title={r.detail || ""}>{r.detail || "-"}</div>
+                    <li key={r.id} className="hover:bg-gray-50">
+                      <div className="grid grid-cols-[1fr_1.6fr_1.2fr_1fr_2fr] items-center text-sm sm:text-base">
+                        <div className="px-4 py-3">{r.username || "-"}</div>
+                        <div className="px-4 py-3 truncate">{r.email || "-"}</div>
+                        <div className="px-4 py-3 tabular-nums">{fmtDate(r.timestamp)}</div>
+                        <div className="px-4 py-3">{r.action || "-"}</div>
+                        <div className="px-4 py-3 truncate" title={r.detail || ""}>{r.detail || "-"}</div>
                       </div>
                     </li>
                   ))}
@@ -256,7 +264,7 @@ export default function AdminUserLogMenuPage() {
                 </div>
               )}
 
-              {/* Pagination (client-side) */}
+              {/* Pagination */}
               <div className="flex items-center justify-between bg-white p-3 sm:p-4">
                 <p className="text-xs text-gray-600">
                   Menampilkan <span className="font-medium">{pageRows.length}</span> dari{" "}
@@ -285,6 +293,7 @@ export default function AdminUserLogMenuPage() {
             </div>
           </div>
         </div>
+
 
         <p className="mt-4 text-xs text-gray-500">
           Sumber data: <code>/admin-feature/api/admin/user-logs/all</code> (tabel <code>admin_feature_userlog</code>).
