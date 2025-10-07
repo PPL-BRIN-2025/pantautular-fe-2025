@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { API_BASE } from "../../config";
 
-type Role = "Admin" | "EXP_USER" | "CURATOR" | "CONTRIBUTOR";
+type Role = "ADMIN" | "EXP_USER" | "CURATOR" | "CONTRIBUTOR";
 type User = {
   id: string | number;
   name: string;
@@ -15,7 +15,7 @@ type User = {
   role: Role;
 };
 
-const ROLES: Role[] = ["Admin", "EXP_USER", "CURATOR", "CONTRIBUTOR"];
+const ROLES: Role[] = ["ADMIN", "EXP_USER", "CURATOR", "CONTRIBUTOR"];
 
 /* istanbul ignore next -- env-driven value hard to cover in tests */
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
@@ -360,7 +360,7 @@ export default function Page() {
         <main className="mx-auto max-w-3xl px-4 py-10">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
             <div className="text-sm font-semibold text-amber-700">Informasi Akses</div>
-            <div className="mt-2 text-2xl font-semibold text-amber-900">{blocked403Detail}</div>
+            <div className="mt-2 text-2xl font-semibold text-amber-900">Akses Ditolak</div>
             <p className="mt-2 text-sm text-amber-800">
               Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
             </p>
@@ -445,18 +445,22 @@ export default function Page() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setEditing(u)}
-                            className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                          >
-                            Ubah
-                          </button>
-                          <button
-                            onClick={() => onDelete(u.id)}
-                            className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-                          >
-                            Hapus
-                          </button>
+                          {u.role !== "ADMIN" && (
+                            <>
+                              <button
+                                onClick={() => setEditing(u)}
+                                className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                              >
+                                Ubah
+                              </button>
+                              <button
+                                onClick={() => onDelete(u.id)}
+                                className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                              >
+                                Hapus
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
