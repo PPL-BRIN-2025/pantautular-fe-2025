@@ -128,8 +128,36 @@ export default function Page() {
         /* istanbul ignore next -- authorization error branch depends on backend policy */
         if (res.status === 403) {
           try {
-            const blocked = await res.json();
-            setBlocked403Detail(typeof (blocked as any)?.detail === "string" ? (blocked as any).detail : "Akses Ditolak");
+            // try to parse JSON safely; if parsing throws, treat as default
+            let blocked: any;
+            try {
+              blocked = await res.json();
+            } catch {
+              setBlocked403Detail("Akses Ditolak");
+              return;
+            }
+
+            // extract a sensible message from common shapes
+            let detail: string | undefined;
+            if (typeof blocked === "string") {
+              detail = blocked;
+            } else if (blocked && typeof (blocked as any).detail === "string") {
+              detail = (blocked as any).detail;
+            } else if (blocked && typeof (blocked as any).error === "string") {
+              detail = (blocked as any).error;
+            } else if (blocked && typeof (blocked as any).message === "string") {
+              detail = (blocked as any).message;
+            }
+
+            // fallback to raw text body when available (only if json parsed but no detail found)
+            if (!detail) {
+              try {
+                const txt = await res.text();
+                if (txt && txt.trim()) detail = txt;
+              } catch {}
+            }
+
+            setBlocked403Detail(detail ?? "Akses Ditolak");
           } catch {
             setBlocked403Detail("Akses Ditolak");
           }
