@@ -61,9 +61,9 @@ function authHeaders(): Record<string, string> {
   return h;
 }
 
-/* istanbul ignore next -- runtime-dependent window path */
+/* istanbul ignore next -- runtime-dependent globalThis.window path */
 function getNextPath(): string {
-  return typeof window !== "undefined" ? window.location.pathname : "/admin-dashboard/roles";
+  return globalThis.window?.location?.pathname ?? "/admin-dashboard/roles";
 }
 
 export { getToken, authHeaders };
