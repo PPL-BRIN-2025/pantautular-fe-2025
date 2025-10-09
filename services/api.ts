@@ -214,6 +214,32 @@ export const severityApi = {
     fetchSeverityStats('/api/severity-stats/filter/', filter)
 };
 
+export const logsApi = {
+  async logDownload(params: { username?: string; chartType: string; timestamp: string }) {
+    const { username, chartType, timestamp } = params;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/logs/download`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, chart_type: chartType, timestamp }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json().catch(() => ({}));
+    } catch (error) {
+      console.error('Error logging download event:', error);
+      // Do not rethrow; logging should not break UI flows
+      return { ok: false } as const;
+    }
+  }
+}
+
 export const emailSubmitAPI = {
   async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
     try {

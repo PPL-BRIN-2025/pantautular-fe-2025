@@ -1,7 +1,10 @@
 /*istanbul ignore file */
 "use client";
 import { DistributionData } from '@/types';
-import React, { useEffect, useRef, useId } from 'react';
+import React, { useEffect, useRef, useId, useContext } from 'react';
+import { exportChartAndLog } from "../../../../curator-feature/export/exporter";
+import { toast } from "../../../../curator-feature/ui/ToastCenter";
+import { AuthContext } from "../../../auth/context";
 
 interface PortalData {
   portal: string;
@@ -87,6 +90,7 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId(); // Generate unique ID for each chart
+  const auth = useContext(AuthContext);
 
   // Color palette for the charts
   const colors = ["#ec848c", "#feb272", "#fecba1", "#ffe69c", "#e3efe8"];
@@ -283,24 +287,47 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
     <div className="w-full bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-6">
       <h3 className="text-xl font-semibold text-[#0069CF]">{title}</h3>
-        <button 
-          className="bg-[#0069CF] text-white text-sm py-2 px-4 rounded-[10px] flex items-center font-medium"
-          onClick={() => onViewDetails ? onViewDetails(title, detailData) : console.log(`View details for ${title}`)}
-        >
-          <span>Lihat Detail</span>
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="h-4 w-4 ml-1.5" 
-            viewBox="0 0 20 20" 
-            fill="currentColor"
+        <div className="flex gap-2">
+          <button 
+            className="bg-[#0069CF] text-white text-sm py-2 px-4 rounded-[10px] flex items-center font-medium"
+            onClick={() => onViewDetails ? onViewDetails(title, detailData) : console.log(`View details for ${title}`)}
           >
-            <path 
-              fillRule="evenodd" 
-              d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" 
-              clipRule="evenodd" 
-            />
-          </svg>
-        </button>
+            <span>Lihat Detail</span>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-4 w-4 ml-1.5" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+            >
+              <path 
+                fillRule="evenodd" 
+                d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" 
+                clipRule="evenodd" 
+              />
+            </svg>
+          </button>
+          <button 
+            className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white text-sm py-2 px-4 rounded-[10px] font-medium"
+            aria-label="Download chart image"
+            onClick={async () => {
+              const el = chartRef.current;
+              const am5 = (window as any).am5;
+              const root = am5?.Root?.new ? am5.Root.new(el) : null;
+              await exportChartAndLog({
+                element: el!,
+                chartType: "portal-bar",
+                fileName: title.replace(/\s+/g, "_"),
+                imageType: "png",
+                hasData: data.length > 0,
+                getRoot: () => root,
+                username: auth?.user?.name ?? null,
+                notify: (t, m) => toast(t, m),
+              });
+            }}
+          >
+            Download
+          </button>
+        </div>
       </div>
       
       {data.length > 0 ? (

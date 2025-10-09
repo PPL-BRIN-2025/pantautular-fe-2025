@@ -1,8 +1,11 @@
-import React, { useLayoutEffect, useRef } from "react";
+import React, { useLayoutEffect, useRef, useContext } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import PeopleIcon from "../../icons/PeopleIcon";
+import { exportChartAndLog } from "../../../../curator-feature/export/exporter";
+import { toast } from "../../../../curator-feature/ui/ToastCenter";
+import { AuthContext } from "../../../auth/context";
 
 interface AgeData {
   under_12: number;
@@ -24,6 +27,7 @@ const AGE_LABELS: Record<keyof AgeData, string> = {
 
 export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProps>) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const auth = useContext(AuthContext);
 
   /* istanbul ignore next */
   const totalCases = data ? Object.values(data).reduce((sum, value) => sum + value, 0) : 0;
@@ -140,9 +144,33 @@ export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProp
     <div className="w-full h-96 bg-white rounded-lg shadow p-4">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-xl font-semibold text-[#0069CF]">Usia</h3>
-        <div className="flex items-center text-[#0069CF] text-xl font-bold">
-          <PeopleIcon className="w-6 h-6 mr-2" />
-          {totalCases ? new Intl.NumberFormat('de-DE').format(totalCases) : 0}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center text-[#0069CF] text-xl font-bold">
+            <PeopleIcon className="w-6 h-6 mr-2" />
+            {totalCases ? new Intl.NumberFormat('de-DE').format(totalCases) : 0}
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              const el = chartRef.current;
+              const root = el ? am5.Root.new(el) : null;
+              const hasData = !!data && Object.values(data).some(v => (v as number) > 0);
+              await exportChartAndLog({
+                element: el!,
+                chartType: "age-stat-bar",
+                fileName: "statistik_usia",
+                imageType: "png",
+                hasData,
+                getRoot: () => root,
+              username: auth?.user?.name ?? null,
+              notify: (t, m) => toast(t, m),
+            });
+          }}
+            className="bg-[#0069CF] hover:bg-[#0057a8] text-white text-xs py-1.5 px-3 rounded"
+            aria-label="Download chart image"
+          >
+            Download
+          </button>
         </div>
       </div>
       <div ref={chartRef} data-testid="chart-container" className="w-full h-[85%]" />
