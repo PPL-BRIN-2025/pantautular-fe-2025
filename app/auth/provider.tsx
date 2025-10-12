@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { AuthContext } from "./context"
 import dynamic from "next/dynamic"
-const ToastCenter = dynamic(() => import("../../curator-feature/ui/ToastCenter"), { ssr: false });
+const ToastCenter = dynamic(() => import("../components/ToastCenter"), { ssr: false });
 import { JWTStrategy } from "./strategies/jwt"
 import { LoginRequestBody, User } from "../../types"
 
