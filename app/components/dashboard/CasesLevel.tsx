@@ -1,13 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 import * as am5 from '@amcharts/amcharts5';
 import * as am5xy from '@amcharts/amcharts5/xy';
 import am5themes_Animated from '@amcharts/amcharts5/themes/Animated';
-import { exportChartAndLog } from "../../../curator-feature/export/exporter";
-import { toast } from "../../../curator-feature/ui/ToastCenter";
-import { useContext } from 'react';
-import { AuthContext } from "../../auth/context";
 
 interface AmChartTingkatanKasusProps {
   jsonData: {
@@ -22,7 +18,6 @@ interface AmChartTingkatanKasusProps {
 
 export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTingkatanKasusProps>) {
   const chartRef = useRef(null);
-  const auth = useContext(AuthContext);
 
   useEffect(() => {
     if (!jsonData?.data || !chartRef.current) return;
@@ -184,28 +179,6 @@ export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTin
         <div className="text-xl font-semibold text-[#0069CF]">Tingkatan Kasus</div> {/* Reduced font size */}
         <div className="flex items-center gap-2">
           <div id="dataCount" className="text-xl font-semibold text-[#0069CF]"></div> {/* Reduced font size */}
-          <button
-            type="button"
-            onClick={async () => {
-              const el = chartRef.current as unknown as HTMLElement | null;
-              const root = el ? am5.Root.new(el) : null;
-              const hasData = !!jsonData?.data && Object.values(jsonData.data).some(arr => (arr as any[]).length > 0);
-              await exportChartAndLog({
-                element: el!,
-                chartType: "cases-level-line",
-                fileName: "tingkatan_kasus",
-                imageType: "png",
-                hasData,
-                getRoot: () => root,
-                username: (auth?.user as any)?.name ?? null,
-                notify: (t, m) => toast(t, m),
-              });
-            }}
-            className="bg-[#0069CF] hover:bg-[#0057a8] text-white text-xs py-1.5 px-3 rounded"
-            aria-label="Download chart image"
-          >
-            Download
-          </button>
         </div>
       </div>
       <div ref={chartRef} data-testid="chart-container" className="w-full h-[400px]" /> {/* Reduced height */}

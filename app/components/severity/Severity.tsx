@@ -1,11 +1,8 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef, useContext } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import { severityApi } from "../../../services/api";
 import { FilterState } from "../../../types";
-import { exportChartAndLog } from "../../../curator-feature/export/exporter";
-import { toast } from "../../../curator-feature/ui/ToastCenter";
-import { AuthContext } from "../../auth/context";
 
 interface ChartData {
   [key: string]: any;
@@ -262,7 +259,6 @@ const SeverityChart = ({
   const [error, setError] = useState<Error | null>(null);
   const [rawData, setRawData] = useState<any[]>([]);
   const rootRef = useRef<am5.Root | null>(null);
-  const auth = useContext(AuthContext);
   const chartId = useMemo(() => {
     chartIdCounter += 1;
     return `chartdiv-${Date.now()}-${chartIdCounter}`;
@@ -404,20 +400,6 @@ const SeverityChart = ({
     };
   }, [transformedData, seriesConfig, chartId]);
 
-  const handleDownload = async () => {
-    const el = document.getElementById(chartId);
-    await exportChartAndLog({
-      element: el,
-      chartType: `${type}-severity` ,
-      fileName: `${title.replace(/\s+/g, "_")}`,
-      imageType: "png",
-      hasData: transformedData.length > 0,
-      getRoot: () => rootRef.current,
-      username: auth?.user?.name ?? null,
-      notify: (t, m) => toast(t, m)
-    });
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
       <div className="flex justify-between items-center">
@@ -426,14 +408,6 @@ const SeverityChart = ({
           {seriesConfig.map((config) => (
             <LegendItem key={config.field} color={config.color} label={config.name} />
           ))}
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="ml-2 bg-[#0069CF] hover:bg-[#0057a8] text-white text-xs py-1.5 px-3 rounded"
-            aria-label="Download chart image"
-          >
-            Download
-          </button>
         </div>
       </div>
       {renderContent()}

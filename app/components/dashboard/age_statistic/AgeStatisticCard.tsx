@@ -1,21 +1,14 @@
-import React, { useLayoutEffect, useRef, useContext } from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import PeopleIcon from "../../icons/PeopleIcon";
-import { exportChartAndLog } from "../../../../curator-feature/export/exporter";
-import { toast } from "../../../../curator-feature/ui/ToastCenter";
-import { AuthContext } from "../../../auth/context";
 
 interface AgeData {
   under_12: number;
   "12_25": number;
   "26_45": number;
   above_45: number;
-}
-
-interface AgeStatisticCardProps {
-  data?: AgeData;
 }
 
 const AGE_LABELS: Record<keyof AgeData, string> = {
@@ -25,9 +18,12 @@ const AGE_LABELS: Record<keyof AgeData, string> = {
   above_45: "> 45 tahun"
 };
 
+interface AgeStatisticCardProps {
+  data?: AgeData;
+}
+
 export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProps>) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const auth = useContext(AuthContext);
 
   /* istanbul ignore next */
   const totalCases = data ? Object.values(data).reduce((sum, value) => sum + value, 0) : 0;
@@ -149,28 +145,6 @@ export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProp
             <PeopleIcon className="w-6 h-6 mr-2" />
             {totalCases ? new Intl.NumberFormat('de-DE').format(totalCases) : 0}
           </div>
-          <button
-            type="button"
-            onClick={async () => {
-              const el = chartRef.current;
-              const root = el ? am5.Root.new(el) : null;
-              const hasData = !!data && Object.values(data).some(v => (v as number) > 0);
-              await exportChartAndLog({
-                element: el!,
-                chartType: "age-stat-bar",
-                fileName: "statistik_usia",
-                imageType: "png",
-                hasData,
-                getRoot: () => root,
-              username: auth?.user?.name ?? null,
-              notify: (t, m) => toast(t, m),
-            });
-          }}
-            className="bg-[#0069CF] hover:bg-[#0057a8] text-white text-xs py-1.5 px-3 rounded"
-            aria-label="Download chart image"
-          >
-            Download
-          </button>
         </div>
       </div>
       <div ref={chartRef} data-testid="chart-container" className="w-full h-[85%]" />

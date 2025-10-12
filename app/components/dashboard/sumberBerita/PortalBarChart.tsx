@@ -1,10 +1,7 @@
 /*istanbul ignore file */
 "use client";
 import { DistributionData } from '@/types';
-import React, { useEffect, useRef, useId, useContext } from 'react';
-import { exportChartAndLog } from "../../../../curator-feature/export/exporter";
-import { toast } from "../../../../curator-feature/ui/ToastCenter";
-import { AuthContext } from "../../../auth/context";
+import React, { useEffect, useRef, useId } from 'react';
 
 interface PortalData {
   portal: string;
@@ -86,11 +83,10 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
   data, 
   detailData = [],  // Default to empty array if not provided
   onViewDetails,
-  index = 0 
+  index = 0
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId(); // Generate unique ID for each chart
-  const auth = useContext(AuthContext);
 
   // Color palette for the charts
   const colors = ["#ec848c", "#feb272", "#fecba1", "#ffe69c", "#e3efe8"];
@@ -305,27 +301,6 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
                 clipRule="evenodd" 
               />
             </svg>
-          </button>
-          <button 
-            className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white text-sm py-2 px-4 rounded-[10px] font-medium"
-            aria-label="Download chart image"
-            onClick={async () => {
-              const el = chartRef.current;
-              const am5 = (window as any).am5;
-              const root = am5?.Root?.new ? am5.Root.new(el) : null;
-              await exportChartAndLog({
-                element: el!,
-                chartType: "portal-bar",
-                fileName: title.replace(/\s+/g, "_"),
-                imageType: "png",
-                hasData: data.length > 0,
-                getRoot: () => root,
-                username: auth?.user?.name ?? null,
-                notify: (t, m) => toast(t, m),
-              });
-            }}
-          >
-            Download
           </button>
         </div>
       </div>
