@@ -3,6 +3,7 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import { severityApi } from "../../../services/api";
 import { FilterState } from "../../../types";
+import DownloadButton from "../dashboard/DownloadButton";
 
 interface ChartData {
   [key: string]: any;
@@ -259,6 +260,7 @@ const SeverityChart = ({
   const [error, setError] = useState<Error | null>(null);
   const [rawData, setRawData] = useState<any[]>([]);
   const rootRef = useRef<am5.Root | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const chartId = useMemo(() => {
     chartIdCounter += 1;
     return `chartdiv-${Date.now()}-${chartIdCounter}`;
@@ -401,13 +403,19 @@ const SeverityChart = ({
   }, [transformedData, seriesConfig, chartId]);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex justify-between items-center">
+    <div ref={containerRef} className="bg-white rounded-lg shadow-sm p-4">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <h3 className="chart-title">{title}</h3>
-        <div className="flex gap-3 items-center">
-          {seriesConfig.map((config) => (
-            <LegendItem key={config.field} color={config.color} label={config.name} />
-          ))}
+        <div className="flex flex-wrap items-center gap-3 justify-end">
+          <DownloadButton
+            filename={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+            getTarget={() => containerRef.current}
+          />
+          <div className="flex gap-3 items-center flex-wrap">
+            {seriesConfig.map((config) => (
+              <LegendItem key={config.field} color={config.color} label={config.name} />
+            ))}
+          </div>
         </div>
       </div>
       {renderContent()}

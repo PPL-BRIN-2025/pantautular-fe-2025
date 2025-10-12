@@ -1,7 +1,8 @@
 /*istanbul ignore file */
 "use client";
 import { DistributionData } from '@/types';
-import React, { useEffect, useRef, useId } from 'react';
+import React, { useEffect, useRef, useId, useMemo } from 'react';
+import DownloadButton from "../DownloadButton";
 
 interface PortalData {
   portal: string;
@@ -86,7 +87,15 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
   index = 0
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId(); // Generate unique ID for each chart
+  const downloadFilename = useMemo(() => {
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return slug || "portal-bar-chart";
+  }, [title]);
 
   // Color palette for the charts
   const colors = ["#ec848c", "#feb272", "#fecba1", "#ffe69c", "#e3efe8"];
@@ -280,10 +289,14 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
     : "250px";
 
   return (
-    <div className="w-full bg-white rounded-lg shadow p-4">
-      <div className="flex justify-between items-center mb-6">
+    <div ref={containerRef} className="w-full bg-white rounded-lg shadow p-4">
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
       <h3 className="text-xl font-semibold text-[#0069CF]">{title}</h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap items-center">
+          <DownloadButton
+            filename={downloadFilename}
+            getTarget={() => containerRef.current}
+          />
           <button 
             className="bg-[#0069CF] text-white text-sm py-2 px-4 rounded-[10px] flex items-center font-medium"
             onClick={() => onViewDetails ? onViewDetails(title, detailData) : console.log(`View details for ${title}`)}
