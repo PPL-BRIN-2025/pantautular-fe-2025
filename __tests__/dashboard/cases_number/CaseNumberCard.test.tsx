@@ -24,6 +24,7 @@ describe('CaseNumberCard', () => {
     // Header assertions
     expect(screen.getByText('Jumlah Kasus')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unduh gambar/i })).toBeInTheDocument();
 
     // StatsItem assertions using the helper
     assertStatsItem('stats-item-kasus_kematian', 'Kasus Kematian', '10 (10%)');

@@ -363,6 +363,7 @@ describe('PortalBarChart Component', () => {
     render(<PortalBarChart title={testTitle} data={testData} />);
     expect(screen.getByText(testTitle)).toBeInTheDocument();
     expect(screen.getByText('Lihat Detail')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unduh gambar/i })).toBeInTheDocument();
     expect(document.querySelector('div[class="w-full"]')).toBeInTheDocument();
   });
 

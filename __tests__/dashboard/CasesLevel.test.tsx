@@ -388,6 +388,7 @@ describe('AmChartKasus Component', () => {
     
     expect(screen.getByText('Tingkatan Kasus')).toBeInTheDocument();
     expect(screen.getByTestId('chart-container')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unduh gambar/i })).toBeInTheDocument();
   });
 
   // Unhappy Case - Component handles null data
