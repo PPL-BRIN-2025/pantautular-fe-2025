@@ -23,7 +23,20 @@ afterAll(() => {
   (window as any).location = ORIGINAL_LOCATION as any;
 });
 
-//
+// Auth Failures/Access Control
+test("403 → shows 'Akses Ditolak' with backend detail", async () => {
+  (global.fetch as jest.Mock).mockImplementation(() =>
+    resp(403, { detail: "Only CURATOR role allowed" })
+  );
+
+  render(<CuratorDataManagementPage />);
+
+  expect(await screen.findByText("Akses Ditolak")).toBeInTheDocument();
+  expect(screen.getByText(/Only CURATOR role allowed/i)).toBeInTheDocument();
+  expect(screen.getByText("Kembali")).toBeInTheDocument();
+  expect(screen.getByText("Masuk")).toBeInTheDocument();
+});
+
 
 // Data Render 
 describe("CuratorDataManagementPage • Data render", () => {
@@ -118,5 +131,21 @@ describe("CuratorDataManagementPage • Auth header", () => {
 
     render(<CuratorDataManagementPage />);
     await waitFor(() => expect(screen.getByText(/Tidak ada data|Loading/i)).toBeInTheDocument());
+  });
+});
+
+// Error Feature
+describe("CuratorDataManagementPage • Error display", () => {
+  test("500 (text body) → shows banner with status + message (RED)", async () => {
+    (global.fetch as jest.Mock).mockImplementation(() => resp(500, "Server boom"));
+    render(<CuratorDataManagementPage />);
+    expect(await screen.findByText(/HTTP 500/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server boom/i)).toBeInTheDocument();
+  });
+
+  test("network error (fetch throws) → shows 'Gagal memuat' (RED)", async () => {
+    (global.fetch as jest.Mock).mockImplementation(() => Promise.reject(new Error("Network down")));
+    render(<CuratorDataManagementPage />);
+    expect(await screen.findByText(/Gagal memuat/i)).toBeInTheDocument();
   });
 });
