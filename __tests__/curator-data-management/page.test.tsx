@@ -149,3 +149,40 @@ describe("CuratorDataManagementPage • Error display", () => {
     expect(await screen.findByText(/Gagal memuat/i)).toBeInTheDocument();
   });
 });
+
+// Filtering
+describe("CuratorDataManagementPage • Filtering", () => {
+  test("filters visible rows when typing in the search bar", async () => {
+    (global.fetch as jest.Mock).mockImplementation(() =>
+      okJson({
+        data: [
+          { id: "ID1", title: "Penyakit Demam", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORA" },
+          { id: "ID2", title: "Vaksin", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORB" },
+          { id: "ID3", title: "Penyebab", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORC" },
+        ],
+        page: 1,
+        pageSize: 8,
+        total: 3,
+      })
+    );
+
+    render(<CuratorDataManagementPage />);
+
+    // Wait until the table loads
+    await waitFor(() => expect(screen.getByText("Penyakit Demam")).toBeInTheDocument());
+
+    const input = screen.getByPlaceholderText(/Cari ID/i);
+
+    // Initially shows all rows
+    expect(screen.getAllByText(/Peny/i).length).toBeGreaterThanOrEqual(2);
+
+    // Type a query
+    fireEvent.change(input, { target: { value: "vaksin" } });
+
+    // Expect only the matching one to remain visible
+    await waitFor(() => {
+      expect(screen.getByText("Vaksin")).toBeInTheDocument();
+      expect(screen.queryByText("Penyakit Demam")).toBeNull();
+    });
+  });
+});
