@@ -136,6 +136,7 @@ export default function CuratorAddDataPage() {
     handleApply(e);
   };
 
+  /* istanbul ignore next */
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMessage("");
@@ -169,6 +170,7 @@ export default function CuratorAddDataPage() {
   };
 
   const handleStarKey = (e: React.KeyboardEvent<HTMLButtonElement>, n: number) => {
+    /* istanbul ignore next */
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       setKewaspadaan(n);

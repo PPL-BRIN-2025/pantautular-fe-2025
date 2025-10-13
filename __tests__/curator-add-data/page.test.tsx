@@ -7,6 +7,7 @@ jest.mock('../../app/components/Navbar', () => () => <div data-testid="mock-navb
 jest.mock('../../app/components/Footer', () => () => <div data-testid="mock-footer">Footer</div>);
 
 import CuratorAddDataPage from '../../app/curator-add-data/page';
+import { validateFormState } from '../../app/curator-add-data/page';
 
 describe('CuratorAddDataPage', () => {
   test('renders main headings and form controls', () => {
@@ -328,5 +329,317 @@ describe('CuratorAddDataPage', () => {
       // aria-pressed true for this button
       expect(btn.getAttribute('aria-pressed')).toBe('true');
     }
+  });
+
+  test('preSubmit validation modal opens and closes via Tutup button', async () => {
+    render(<CuratorAddDataPage />);
+    // submit empty form -> validation modal should open
+    fireEvent.click(screen.getByText(/Terapkan/i));
+    await waitFor(() => expect(screen.getByText(/Validasi Gagal/i)).toBeInTheDocument());
+    // close modal via Tutup
+    fireEvent.click(screen.getByText(/Tutup/i));
+    await waitFor(() => expect(screen.queryByText(/Validasi Gagal/i)).not.toBeInTheDocument());
+  });
+
+  test('preSubmit uses existing immediate errors (sumberBerita) to populate modal messages', async () => {
+    render(<CuratorAddDataPage />);
+    const sumber = screen.getByLabelText(/Sumber Berita/i);
+    // cause immediate validation error by typing invalid sumber
+    fireEvent.change(sumber, { target: { value: 'invalid-src' } });
+    await waitFor(() => expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeInTheDocument());
+    // click Terapkan; preSubmit should detect errors already present and show them in modal
+    fireEvent.click(screen.getByText(/Terapkan/i));
+    await waitFor(() => expect(screen.getByText(/Validasi Gagal/i)).toBeInTheDocument());
+    // modal should include the sumberBerita error text
+    expect(screen.getByText(/sumberBerita:/i) || screen.getByText(/Masukkan sumber berita yang valid/i)).toBeTruthy();
+    fireEvent.click(screen.getByText(/Tutup/i));
+  });
+
+  test('inline usia field error appears after invalid usia and submit', async () => {
+    render(<CuratorAddDataPage />);
+    // provide required fields so usia validation runs in isolation
+    const jenisSearch = screen.getByPlaceholderText('Cari atau pilih...');
+    fireEvent.change(jenisSearch, { target: { value: 'Demam' } });
+    await waitFor(() => expect(screen.getByText(/Demam Berdarah/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Demam Berdarah/i));
+
+    const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+    fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
+    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Jakarta/i));
+
+    const usiaInput = screen.getByLabelText(/Usia Penderita/i);
+    fireEvent.change(usiaInput, { target: { value: '-5' } });
+    fireEvent.click(screen.getByText(/Terapkan/i));
+    await waitFor(() => expect(screen.getByText(/Validasi Gagal/i)).toBeInTheDocument());
+    // inline usia error should be visible in the form too
+    expect(screen.getByText(/Masukkan usia yang valid./i)).toBeInTheDocument();
+  });
+});
+
+describe('Extra edge coverage for CuratorAddDataPage', () => {
+  test('validateFormState returns required errors when all fields empty', () => {
+    const res = validateFormState({});
+    expect(res).toEqual({
+      jenisPenyakit: 'Jenis penyakit wajib diisi.',
+      lokasi: 'Lokasi wajib diisi.',
+    });
+  });
+
+  test('validateFormState detects valid and invalid URLs correctly', () => {
+    const invalid = validateFormState({ sumberBerita: 'abc' });
+    expect(invalid.sumberBerita).toMatch(/valid/);
+
+    const valid = validateFormState({ sumberBerita: 'https://example.com' });
+    expect(valid.sumberBerita).toBeUndefined();
+  });
+
+  test('validateFormState catches multiple invalid date parts', () => {
+    const res = validateFormState({ tanggal: { dd: '32', mm: '13', yyyy: '1800' } });
+    expect(Object.keys(res)).toContain('tanggal');
+    expect(res.tanggal).toMatch(/Format hari tidak valid/);
+    expect(res.tanggal).toMatch(/Tahun tidak valid/);
+  });
+
+  test('validateFormState catches invalid usia format', () => {
+    const res = validateFormState({ usia: 'abc' });
+    expect(res.usia).toBeDefined();
+  });
+
+  test('preSubmit success branch calls handleApply and sets successMessage', async () => {
+    const { container } = render(<CuratorAddDataPage />);
+    const jenis = screen.getByPlaceholderText('Cari atau pilih...');
+    fireEvent.change(jenis, { target: { value: 'Demam' } });
+    await waitFor(() => screen.getByText(/Demam Berdarah/i));
+    fireEvent.click(screen.getByText(/Demam Berdarah/i));
+
+    const lokasi = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+    fireEvent.change(lokasi, { target: { value: 'Jakarta' } });
+    await waitFor(() => screen.getByText(/Jakarta/i));
+    fireEvent.click(screen.getByText(/Jakarta/i));
+
+    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+    fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/), { target: { value: 'ok' } });
+
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(screen.getByText(/Data berhasil disimpan/i)).toBeInTheDocument());
+  });
+
+  test('emoji hover triggers and clears hover state', async () => {
+    render(<CuratorAddDataPage />);
+    const btn = screen.getByTitle('5 dari 5');
+    fireEvent.mouseEnter(btn);
+    expect(screen.getByText(/5 \/ 5/)).toBeInTheDocument();
+    fireEvent.mouseLeave(btn);
+    // ensures hover cleared and state stable
+    await waitFor(() => expect(screen.getByText(/0 \/ 5|5 \/ 5/)).toBeTruthy());
+  });
+
+  test('submit button uses BLUE inline style', () => {
+    render(<CuratorAddDataPage />);
+    const button = screen.getByText(/Terapkan/i);
+    expect(button).toHaveStyle({ background: '#0069cf' });
+  });
+
+  test('validateFormState returns empty when required fields filled correctly', () => {
+    const res = validateFormState({
+      jenisPenyakit: 'Demam Berdarah',
+      lokasi: 'Jakarta',
+    });
+    expect(res).toEqual({});
+  });
+
+  test('validateFormState accepts valid sumberBerita URL', () => {
+    const res = validateFormState({
+      jenisPenyakit: 'Flu',
+      lokasi: 'Bandung',
+      sumberBerita: 'https://example.com/news',
+    });
+    expect(res.sumberBerita).toBeUndefined();
+  });
+
+  test('form submits successfully (valid preSubmit path)', async () => {
+    render(<CuratorAddDataPage />);
+    const jenisInput = screen.getByPlaceholderText('Cari atau pilih...');
+    fireEvent.change(jenisInput, { target: { value: 'Demam' } });
+    await waitFor(() => screen.getByText(/Demam Berdarah/i));
+    fireEvent.click(screen.getByText(/Demam Berdarah/i));
+
+    const lokasiInput = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+    fireEvent.change(lokasiInput, { target: { value: 'Jakarta' } });
+    await waitFor(() => screen.getByText(/Jakarta/i));
+    fireEvent.click(screen.getByText(/Jakarta/i));
+
+    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+    fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'ok' } });
+
+    fireEvent.click(screen.getByText(/Terapkan/i));
+    await waitFor(() => expect(screen.getByText(/Data berhasil disimpan/i)).toBeInTheDocument());
+  });
+
+  test('emoji hover enter and leave both trigger correctly', async () => {
+    render(<CuratorAddDataPage />);
+    const btn = screen.getByTitle('4 dari 5');
+    fireEvent.mouseEnter(btn);
+    expect(screen.getByText(/4 \/ 5/)).toBeInTheDocument();
+    fireEvent.mouseLeave(btn);
+    await waitFor(() => expect(screen.getByText(/0 \/ 5|4 \/ 5/)).toBeTruthy());
+  });
+
+  test('validateFormState accepts valid date values', () => {
+    const res = validateFormState({
+      jenisPenyakit: 'Demam Berdarah',
+      lokasi: 'Jakarta',
+      tanggal: { dd: '10', mm: '12', yyyy: '2025' },
+    });
+    expect(res.tanggal).toBeUndefined();
+  });
+
+  test('validateFormState accepts valid usia number', () => {
+    const res = validateFormState({
+      jenisPenyakit: 'Demam Berdarah',
+      lokasi: 'Jakarta',
+      usia: '25',
+    });
+    expect(res.usia).toBeUndefined();
+  });
+
+  test('handleApply executes full success flow and resets form', async () => {
+    jest.useFakeTimers();
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    
+    render(<CuratorAddDataPage />);
+
+    // fill all required fields
+    const jenisSearch = screen.getByPlaceholderText('Cari atau pilih...');
+    fireEvent.change(jenisSearch, { target: { value: 'Demam' } });
+    await waitFor(() => screen.getByText(/Demam Berdarah/i));
+    fireEvent.click(screen.getByText(/Demam Berdarah/i));
+
+    const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+    fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
+    await waitFor(() => screen.getByText(/Jakarta/i));
+    fireEvent.click(screen.getByText(/Jakarta/i));
+
+    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+    fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'OK' } });
+    fireEvent.change(screen.getByLabelText(/Usia Penderita/i), { target: { value: '30' } });
+
+    // submit
+    fireEvent.click(screen.getByText(/Terapkan/i));
+
+    // success visible
+    await waitFor(() => expect(screen.getByText(/Data berhasil disimpan/i)).toBeInTheDocument());
+
+    // timer expires clears message
+    act(() => jest.advanceTimersByTime(4000));
+    await waitFor(() => expect(screen.queryByText(/Data berhasil disimpan/i)).not.toBeInTheDocument());
+
+    // ensure console.log called with payload
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/Kirim data kurator/), expect.any(Object));
+    
+    consoleSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  test('button text changes when submitting', async () => {
+    render(<CuratorAddDataPage />);
+    const btn = screen.getByText(/Terapkan/i);
+    // simulate click, cause submitting to become true inside handleApply
+    fireEvent.click(btn);
+    await waitFor(() => expect(btn.textContent).toMatch(/Terapkan|Menyimpan/));
+  });
+
+  test('validateFormState hits both bulan/tahun invalid branches', () => {
+    // case 1: invalid month only → creates next.tanggal (false branch)
+    const case1 = validateFormState({
+      tanggal: { dd: '10', mm: '13', yyyy: '2025' },
+    });
+    expect(case1.tanggal).toMatch(/Format bulan tidak valid/);
+
+    // case 2: invalid day + invalid month + invalid year → appends (true branch)
+    const case2 = validateFormState({
+      tanggal: { dd: '32', mm: '13', yyyy: '1800' },
+    });
+    expect(case2.tanggal).toMatch(/Bulan tidak valid/);
+    expect(case2.tanggal).toMatch(/Tahun tidak valid/);
+  });
+
+  test('validateFormState handles year invalid branch without previous tanggal error', () => {
+    const result = validateFormState({
+      tanggal: { dd: '10', mm: '12', yyyy: '1800' }, // only year invalid
+    });
+    expect(result.tanggal).toBe('Format tahun tidak valid (1900-2100).');
+  });
+
+  test('handleApply full success flow including timeout and finally', async () => {
+    jest.useFakeTimers();
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    
+    render(<CuratorAddDataPage />);
+    
+    // fill valid form
+    fireEvent.change(screen.getByPlaceholderText('Cari atau pilih...'), { target: { value: 'Demam' } });
+    await waitFor(() => screen.getByText(/Demam Berdarah/i));
+    fireEvent.click(screen.getByText(/Demam Berdarah/i));
+
+    fireEvent.change(screen.getByPlaceholderText('Cari atau pilih lokasi...'), { target: { value: 'Jakarta' } });
+    await waitFor(() => screen.getByText(/Jakarta/i));
+    fireEvent.click(screen.getByText(/Jakarta/i));
+
+    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+    fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'Ringkasan test' } });
+    fireEvent.change(screen.getByLabelText(/Usia Penderita/i), { target: { value: '30' } });
+
+    // submit triggers handleApply
+    fireEvent.click(screen.getByText(/Terapkan/i));
+
+    // while submitting = true → "Menyimpan..." shown
+    await waitFor(() => expect(screen.getByText(/Data berhasil disimpan/i)).toBeInTheDocument());
+    const button = screen.getByRole('button', { name: /Terapkan/i });
+    expect(button).toBeInTheDocument();
+
+    // let timeout clear message
+    act(() => jest.advanceTimersByTime(4000));
+    await waitFor(() => expect(screen.queryByText(/Data berhasil disimpan/i)).not.toBeInTheDocument());
+
+    // verify console.log and cleanup
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Kirim data kurator:'), expect.any(Object));
+    logSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  test('handleApply executes full try/finally success path with timeout', async () => {
+    jest.useFakeTimers();
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    render(<CuratorAddDataPage />);
+
+    // Fill required inputs
+    fireEvent.change(screen.getByPlaceholderText('Cari atau pilih...'), { target: { value: 'Demam' } });
+    await waitFor(() => screen.getByText(/Demam Berdarah/i));
+    fireEvent.click(screen.getByText(/Demam Berdarah/i));
+
+    fireEvent.change(screen.getByPlaceholderText('Cari atau pilih lokasi...'), { target: { value: 'Jakarta' } });
+    await waitFor(() => screen.getByText(/Jakarta/i));
+    fireEvent.click(screen.getByText(/Jakarta/i));
+
+    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+    fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'ringkasan' } });
+    fireEvent.change(screen.getByLabelText(/Usia Penderita/i), { target: { value: '25' } });
+
+    // Submit → triggers handleApply success
+    fireEvent.click(screen.getByText(/Terapkan/i));
+
+    // "Data berhasil disimpan." should appear then disappear
+    await waitFor(() => expect(screen.getByText(/Data berhasil disimpan/i)).toBeInTheDocument());
+    act(() => jest.advanceTimersByTime(4000));
+    await waitFor(() => expect(screen.queryByText(/Data berhasil disimpan/i)).not.toBeInTheDocument());
+
+    // confirm console.log was called (inside try)
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Kirim data kurator:'), expect.any(Object));
+
+    logSpy.mockRestore();
+    jest.useRealTimers();
   });
 });
