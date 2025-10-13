@@ -152,37 +152,47 @@ describe("CuratorDataManagementPage • Error display", () => {
 
 // Filtering
 describe("CuratorDataManagementPage • Filtering", () => {
-  test("filters visible rows when typing in the search bar", async () => {
-    (global.fetch as jest.Mock).mockImplementation(() =>
-      okJson({
-        data: [
-          { id: "ID1", title: "Penyakit Demam", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORA" },
-          { id: "ID2", title: "Vaksin", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORB" },
-          { id: "ID3", title: "Penyebab", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORC" },
-        ],
-        page: 1,
-        pageSize: 8,
-        total: 3,
-      })
-    );
-
+  test("filters rows case-insensitively and handles empty + reset states", async () => {
     render(<CuratorDataManagementPage />);
 
-    // Wait until the table loads
-    await waitFor(() => expect(screen.getByText("Penyakit Demam")).toBeInTheDocument());
+    // Wait until initial data is visible
+    await waitFor(() => expect(screen.getByText("ID1")).toBeInTheDocument());
 
     const input = screen.getByPlaceholderText(/Cari ID/i);
 
-    // Initially shows all rows
-    expect(screen.getAllByText(/Peny/i).length).toBeGreaterThanOrEqual(2);
-
-    // Type a query
-    fireEvent.change(input, { target: { value: "vaksin" } });
-
-    // Expect only the matching one to remain visible
+    // Type keyword (should match)
+    fireEvent.change(input, { target: { value: "penyakit" } });
     await waitFor(() => {
-      expect(screen.getByText("Vaksin")).toBeInTheDocument();
-      expect(screen.queryByText("Penyakit Demam")).toBeNull();
+      expect(screen.getAllByText("Penyakit").length).toBeGreaterThan(0);
     });
+
+    // Type something unmatched, should show empty message
+    fireEvent.change(input, { target: { value: "xyz" } });
+    await waitFor(() => {
+      expect(screen.getByText("Tidak ada data yang cocok.")).toBeInTheDocument();
+    });
+
+    // Clear the input → all rows visible again
+    fireEvent.change(input, { target: { value: "" } });
+    await waitFor(() => expect(screen.getByText("ID1")).toBeInTheDocument());
+
+    // “Tambahkan Data” button should always be disabled
+    const addButton = screen.getByText("Tambahkan Data");
+    expect(addButton).toBeDisabled();
+  });
+
+  test("resets pagination when filter reduces page count", async () => {
+    render(<CuratorDataManagementPage />);
+
+    // Move to page 2
+    fireEvent.click(await screen.findByText(/Next/i));
+    await waitFor(() => expect(screen.getByText("2 /")).toBeInTheDocument());
+
+    // Apply filter that shortens list → should auto reset to page 1
+    const input = screen.getByPlaceholderText(/Cari ID/i);
+    fireEvent.change(input, { target: { value: "kuratorx" } });
+
+    await waitFor(() => expect(screen.getByText("1 /")).toBeInTheDocument());
+  
   });
 });
