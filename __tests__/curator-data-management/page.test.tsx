@@ -1,66 +1,122 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { okJson, resp } from "../utils/http";
 
-// Mock Navbar & Footer to isolate the page component
-jest.mock("../../app/components/Navbar", () => () => (
-  <div data-testid="mock-navbar">Navbar</div>
-));
-jest.mock("../../app/components/Footer", () => () => (
-  <div data-testid="mock-footer">Footer</div>
-));
+// isolate Navbar/Footer so layout changes don't break tests
+jest.mock("../../app/components/Navbar", () => () => <div data-testid="mock-navbar">Navbar</div>);
+jest.mock("../../app/components/Footer", () => () => <div data-testid="mock-footer">Footer</div>);
 
 import CuratorDataManagementPage from "../../app/curator-data-management/page";
 
-describe("CuratorDataManagementPage", () => {
-  test("renders table header and first data row", () => {
+const ORIGINAL_LOCATION = window.location;
+
+beforeEach(() => {
+  (global.fetch as any) = jest.fn();
+
+  delete (window as any).location;
+  (window as any).location = { href: "/" };
+  localStorage.clear();
+  document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+});
+
+afterAll(() => {
+  (window as any).location = ORIGINAL_LOCATION as any;
+});
+
+//
+
+// Data Render 
+describe("CuratorDataManagementPage • Data render", () => {
+  test("renders label, headers, first row, and counts", async () => {
+    (global.fetch as jest.Mock).mockImplementation(() =>
+      okJson({
+        data: [
+          { id: "c1", gender: "F", age: 21, city: "Bandung", status: "OK", disease_id: null, location_id: null, severity: "LOW" },
+          { id: "c2", gender: "M", age: 35, city: "Jakarta", status: "OK", disease_id: null, location_id: null, severity: "HIGH" },
+        ],
+        page: 1, pageSize: 8, total: 2,
+      })
+    );
+
     render(<CuratorDataManagementPage />);
 
-    // check for label
-    expect(screen.getByText(/List Data/i)).toBeInTheDocument();
+    // label
+    expect(await screen.findByText(/List Data/i)).toBeInTheDocument();
+    // headers (match the real FE)
+    expect(screen.getByText("ID")).toBeInTheDocument();
+    expect(screen.getByText("Gender")).toBeInTheDocument();
+    expect(screen.getByText("Age")).toBeInTheDocument();
+    expect(screen.getByText("City")).toBeInTheDocument();
+    expect(screen.getByText("Severity")).toBeInTheDocument();
+    // row + footer
+    expect(screen.getByText("c1")).toBeInTheDocument();
+    expect(screen.getByText("Bandung")).toBeInTheDocument();
+    expect(screen.getByText(/Menampilkan\s+2\s+dari\s+2\s+data/i)).toBeInTheDocument();
+  });
+});
 
-    // check for table headers
-    expect(screen.getByText(/Data ID/i)).toBeInTheDocument();
-    expect(screen.getByText(/Title/i)).toBeInTheDocument();
-    expect(screen.getByText(/Last Edited/i)).toBeInTheDocument();
-    expect(screen.getByText(/Submitted by/i)).toBeInTheDocument();
-    expect(screen.getByText(/Action/i)).toBeInTheDocument();
+// Pagination
+describe("CuratorDataManagementPage • Pagination", () => {
+  test("Next/Prev fetch the right pages and update indicator", async () => {
+    (global.fetch as jest.Mock)
+      .mockImplementationOnce((url: string) => {
+        expect(url).toMatch(/page=1/);
+        return okJson({
+          data: Array.from({ length: 8 }, (_, i) => ({ id: `p1-${i+1}`, gender: null, age: null, city: null, status: null, disease_id: null, location_id: null, severity: null })),
+          page: 1, pageSize: 8, total: 16,
+        });
+      })
+      .mockImplementationOnce((url: string) => {
+        expect(url).toMatch(/page=2/);
+        return okJson({
+          data: Array.from({ length: 8 }, (_, i) => ({ id: `p2-${i+1}`, gender: null, age: null, city: null, status: null, disease_id: null, location_id: null, severity: null })),
+          page: 2, pageSize: 8, total: 16,
+        });
+      })
+      .mockImplementationOnce((url: string) => {
+        expect(url).toMatch(/page=1/);
+        return okJson({
+          data: Array.from({ length: 8 }, (_, i) => ({ id: `p1-${i+1}`, gender: null, age: null, city: null, status: null, disease_id: null, location_id: null, severity: null })),
+          page: 1, pageSize: 8, total: 16,
+        });
+      });
 
-    // check for at least one dummy data row
-    expect(screen.getByText(/ID1/i)).toBeInTheDocument();
-    expect(screen.getByText(/Penyakit/i)).toBeInTheDocument();
+    render(<CuratorDataManagementPage />);
 
-    // check for action button
-    expect(screen.getByText(/Ubah/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("1 / 2")).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Next/i));
+    await waitFor(() => expect(screen.getByText("2 / 2")).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Prev/i));
+    await waitFor(() => expect(screen.getByText("1 / 2")).toBeInTheDocument());
   });
 
-  test("handles pagination Next and Prev correctly", () => {
+  test("Prev disabled on first page; Next disabled on last page", async () => {
+    (global.fetch as jest.Mock)
+      .mockImplementationOnce(() => okJson({ data: Array.from({ length: 8 }, (_, i) => ({ id: `p1-${i+1}` })), page: 1, pageSize: 8, total: 16 }))
+      .mockImplementationOnce(() => okJson({ data: Array.from({ length: 8 }, (_, i) => ({ id: `p2-${i+1}` })), page: 2, pageSize: 8, total: 16 }));
+
     render(<CuratorDataManagementPage />);
+    const prev = await screen.findByText(/Prev/i);
+    const next = screen.getByText(/Next/i);
 
-    // starts at page 1
-    expect(screen.getByText("1 / 2")).toBeInTheDocument();
-
-    // click Next -> should go to page 2
-    const nextBtn = screen.getByText(/Next/i);
-    fireEvent.click(nextBtn);
-    expect(screen.getByText("2 / 2")).toBeInTheDocument();
-
-    // click Prev -> should go back to page 1
-    const prevBtn = screen.getByText(/Prev/i);
-    fireEvent.click(prevBtn);
-    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(prev).toBeDisabled();
+    fireEvent.click(next);
+    await waitFor(() => expect(screen.getByText("2 / 2")).toBeInTheDocument());
+    expect(screen.getByText(/Next/i)).toBeDisabled();
   });
+});
 
-  test("disables Prev button on first page and Next button on last page", () => {
+//Auth Render
+describe("CuratorDataManagementPage • Auth header", () => {
+  test("sends Authorization: Bearer <token>", async () => {
+    localStorage.setItem("access_token", "abc123");
+    (global.fetch as jest.Mock).mockImplementation((_url: string, init?: RequestInit) => {
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      expect(Object.values(headers)).toEqual(expect.arrayContaining([expect.stringMatching(/^Bearer abc123$/)]));
+      return okJson({ data: [], page: 1, pageSize: 8, total: 0 });
+    });
+
     render(<CuratorDataManagementPage />);
-
-    const prevBtn = screen.getByText(/Prev/i);
-    const nextBtn = screen.getByText(/Next/i);
-
-    // On page 1, Prev should be disabled
-    expect(prevBtn).toBeDisabled();
-
-    // Go to last page
-    fireEvent.click(nextBtn);
-    expect(nextBtn).toBeDisabled();
+    await waitFor(() => expect(screen.getByText(/Tidak ada data|Loading/i)).toBeInTheDocument());
   });
 });
