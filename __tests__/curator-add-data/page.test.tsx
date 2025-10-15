@@ -9,11 +9,37 @@ jest.mock('../../app/components/Footer', () => () => <div data-testid="mock-foot
 import CuratorAddDataPage from '../../app/curator-add-data/page';
 import { validateFormState } from '../../app/curator-add-data/page';
 
+// helper to add a valid sumber via the modal (module-scope so all tests can use it)
+async function addSumber({
+  portal = 'Kompas',
+  title = 'Kasus Hepatitis Anak',
+  type = 'artikel',
+  content = 'Penyakit Hepatitis telah menyebar...',
+  url = 'https://example.com/news',
+  author = 'Reporter A',
+  date_published = '2024-01-23T00:00:00Z',
+  img_url = ''
+} = {}) {
+  fireEvent.click(screen.getByText(/Tambah Sumber/i));
+  // modal fields
+  fireEvent.change(screen.getByLabelText(/Portal/i), { target: { value: portal } });
+  fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: title } });
+  fireEvent.change(screen.getByLabelText(/Type/i), { target: { value: type } });
+  fireEvent.change(screen.getByLabelText(/Content/i), { target: { value: content } });
+  fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: url } });
+  fireEvent.change(screen.getByLabelText(/Author/i), { target: { value: author } });
+  fireEvent.change(screen.getByLabelText(/Date Published/i), { target: { value: date_published } });
+  fireEvent.change(screen.getByLabelText(/Image URL/i), { target: { value: img_url } });
+  fireEvent.click(screen.getByText(/Simpan/i));
+  // wait for modal to close (Simpan button closes it)
+  await waitFor(() => expect(screen.queryByText(/Tambah Sumber/i)).toBeInTheDocument());
+}
+
 describe('CuratorAddDataPage', () => {
   test('renders main headings and form controls', () => {
     render(<CuratorAddDataPage />);
     expect(screen.getByText(/Tambahkan Informasi Penyakit Menular/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Sumber Berita/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sumber Berita/i)).toBeInTheDocument();
   });
 
   test('ringkasan char counter updates', () => {
@@ -25,13 +51,12 @@ describe('CuratorAddDataPage', () => {
 
   test('sumber berita validation rejects invalid input', async () => {
     render(<CuratorAddDataPage />);
-    const sumber = screen.getByLabelText(/Sumber Berita/i);
-    fireEvent.change(sumber, { target: { value: 'not-a-url' } });
-
-    // immediate validation should show an error message
-    await waitFor(() => {
-      expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeInTheDocument();
-    });
+    // open modal and enter invalid url
+    fireEvent.click(screen.getByText(/Tambah Sumber/i));
+    fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'Some Title' } });
+  fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: 'not-a-url' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
+    await waitFor(() => expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeInTheDocument());
   });
 
   test('can add new jenis penyakit via modal', async () => {
@@ -85,7 +110,8 @@ describe('CuratorAddDataPage', () => {
     const btnReset = screen.getByText(/Reset/i);
     fireEvent.click(btnReset);
   // after reset the selected item text should be cleared; wait for inputs to be empty
-  await waitFor(() => expect((screen.getByLabelText(/Sumber Berita/i) as HTMLInputElement).value).toBe(''));
+  // after reset the selected sumber should be cleared
+  await waitFor(() => expect(screen.getByText(/Belum ada sumber terpilih/i)).toBeInTheDocument());
   // use explicit IDs/placeholders to avoid ambiguous matches
   await waitFor(() => expect((screen.getByPlaceholderText('Cari atau pilih...') as HTMLInputElement).value).toBe(''));
   await waitFor(() => expect((screen.getByPlaceholderText('Cari atau pilih lokasi...') as HTMLInputElement).value).toBe(''));
@@ -115,8 +141,8 @@ describe('CuratorAddDataPage', () => {
     await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/Jakarta/i));
 
-    // sumber valid
-    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com/news' } });
+  // sumber valid (add via modal)
+  await addSumber({ url: 'https://example.com/news' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat.../i), { target: { value: 'Ringkasan contoh' } });
 
     fireEvent.click(screen.getByText(/Terapkan/i));
@@ -198,8 +224,8 @@ describe('CuratorAddDataPage', () => {
     await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/Jakarta/i));
 
-    // valid source and ringkasan
-    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com/news' } });
+  // valid source and ringkasan (use modal)
+  await addSumber({ url: 'https://example.com/news' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat.../i), { target: { value: 'Ringkasan contoh' } });
 
     fireEvent.click(screen.getByText(/Terapkan/i));
@@ -208,7 +234,49 @@ describe('CuratorAddDataPage', () => {
     // restore console
     console.log = orig;
   });
+  test('image URL input in sumber modal updates on change', async () => {
+    render(<CuratorAddDataPage />);
+    // open sumber modal
+    fireEvent.click(screen.getByText(/Tambah Sumber/i));
+    const imgInput = screen.getByLabelText(/Image URL/i) as HTMLInputElement;
+    fireEvent.change(imgInput, { target: { value: 'https://img.example.com/photo.jpg' } });
+    expect(imgInput.value).toBe('https://img.example.com/photo.jpg');
+    // close modal to clean up
+    fireEvent.click(screen.getByText(/Batal/i));
+  });
+  test('selected sumber displays portal/title and metadata after save', async () => {
+    render(<CuratorAddDataPage />);
+    const portal = 'Detik';
+    const title = 'Judul Spesial';
+    const type = 'video';
+    const author = 'Reporter X';
+    const date_published = '2023-12-01T00:00:00Z';
+    const url = 'https://detik.com/article/123';
 
+    await addSumber({ portal, title, type, author, date_published, url });
+
+    // header should show 'Portal — Title'
+    expect(screen.getByText(new RegExp(`${portal} — ${title}`))).toBeInTheDocument();
+
+    // metadata should include type and author
+    expect(screen.getByText(new RegExp(type))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(author))).toBeInTheDocument();
+
+    // date should be formatted via toLocaleDateString()
+    const expectedDate = new Date(date_published).toLocaleDateString();
+    expect(screen.getByText(new RegExp(expectedDate))).toBeInTheDocument();
+  });
+
+  test('saved sumber URL is set and rendered as link', async () => {
+    render(<CuratorAddDataPage />);
+    const url = 'https://example-source.test/path';
+    await addSumber({ url });
+
+    // the selected sumber block should include a link with the URL
+    const link = screen.getByText(url);
+    expect(link).toBeInTheDocument();
+    expect(link.closest('a')).toHaveAttribute('href', url);
+  });
   test('success message clears after timeout', async () => {
     jest.useFakeTimers();
     render(<CuratorAddDataPage />);
@@ -223,7 +291,7 @@ describe('CuratorAddDataPage', () => {
     await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/Jakarta/i));
 
-    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com/news' } });
+  await addSumber({ url: 'https://example.com/news' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat.../i), { target: { value: 'Ringkasan contoh' } });
 
     fireEvent.click(screen.getByText(/Terapkan/i));
@@ -252,11 +320,15 @@ describe('CuratorAddDataPage', () => {
 
   test('clearing sumber input removes validation error', async () => {
     render(<CuratorAddDataPage />);
-    const sumber = screen.getByLabelText(/Sumber Berita/i);
-    fireEvent.change(sumber, { target: { value: 'not-a-url' } });
+    // open modal and enter invalid url first
+    fireEvent.click(screen.getByText(/Tambah Sumber/i));
+    fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'T' } });
+  fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: 'not-a-url' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
     await waitFor(() => expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeInTheDocument());
-    // clear it
-    fireEvent.change(sumber, { target: { value: '' } });
+    // now correct it and save
+  fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: 'https://example.com' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
     await waitFor(() => expect(screen.queryByText(/Masukkan sumber berita yang valid/i)).not.toBeInTheDocument());
   });
 
@@ -343,15 +415,17 @@ describe('CuratorAddDataPage', () => {
 
   test('preSubmit uses existing immediate errors (sumberBerita) to populate modal messages', async () => {
     render(<CuratorAddDataPage />);
-    const sumber = screen.getByLabelText(/Sumber Berita/i);
-    // cause immediate validation error by typing invalid sumber
-    fireEvent.change(sumber, { target: { value: 'invalid-src' } });
+    // open modal and attempt to save invalid sumber to populate errors
+    fireEvent.click(screen.getByText(/Tambah Sumber/i));
+    fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'T' } });
+  fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: 'invalid-src' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
     await waitFor(() => expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeInTheDocument());
-    // click Terapkan; preSubmit should detect errors already present and show them in modal
+    // close modal then trigger preSubmit
+    fireEvent.click(screen.getByText(/Batal/i));
     fireEvent.click(screen.getByText(/Terapkan/i));
     await waitFor(() => expect(screen.getByText(/Validasi Gagal/i)).toBeInTheDocument());
-    // modal should include the sumberBerita error text
-    expect(screen.getByText(/sumberBerita:/i) || screen.getByText(/Masukkan sumber berita yang valid/i)).toBeTruthy();
+    expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeTruthy();
     fireEvent.click(screen.getByText(/Tutup/i));
   });
 
@@ -418,7 +492,7 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
     await waitFor(() => screen.getByText(/Jakarta/i));
     fireEvent.click(screen.getByText(/Jakarta/i));
 
-    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+  await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/), { target: { value: 'ok' } });
 
     fireEvent.submit(container.querySelector('form')!);
@@ -470,7 +544,7 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
     await waitFor(() => screen.getByText(/Jakarta/i));
     fireEvent.click(screen.getByText(/Jakarta/i));
 
-    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+  await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'ok' } });
 
     fireEvent.click(screen.getByText(/Terapkan/i));
@@ -521,7 +595,7 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
     await waitFor(() => screen.getByText(/Jakarta/i));
     fireEvent.click(screen.getByText(/Jakarta/i));
 
-    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+  await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'OK' } });
     fireEvent.change(screen.getByLabelText(/Usia Penderita/i), { target: { value: '30' } });
 
@@ -544,10 +618,27 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
 
   test('button text changes when submitting', async () => {
     render(<CuratorAddDataPage />);
+    // pick jenis and lokasi so preSubmit validation passes
+    const jenisSearch = screen.getByPlaceholderText('Cari atau pilih...');
+    fireEvent.change(jenisSearch, { target: { value: 'Demam' } });
+    await waitFor(() => expect(screen.getByText(/Demam Berdarah/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Demam Berdarah/i));
+
+    const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+    fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
+    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Jakarta/i));
+
+    // add a valid sumber via helper which sets sumberBerita
+    await addSumber({ url: 'https://example.com/news' });
+
+    // fill ringkasan to satisfy any length requirements
+    fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat.../i), { target: { value: 'ok' } });
+
     const btn = screen.getByText(/Terapkan/i);
-    // simulate click, cause submitting to become true inside handleApply
     fireEvent.click(btn);
-    await waitFor(() => expect(btn.textContent).toMatch(/Terapkan|Menyimpan/));
+    // when submitting is set synchronously, button text should change
+    await waitFor(() => expect(btn.textContent).toMatch(/Menyimpan\.{3}|Terapkan/));
   });
 
   test('validateFormState hits both bulan/tahun invalid branches', () => {
@@ -587,7 +678,7 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
     await waitFor(() => screen.getByText(/Jakarta/i));
     fireEvent.click(screen.getByText(/Jakarta/i));
 
-    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+  await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'Ringkasan test' } });
     fireEvent.change(screen.getByLabelText(/Usia Penderita/i), { target: { value: '30' } });
 
@@ -624,7 +715,7 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
     await waitFor(() => screen.getByText(/Jakarta/i));
     fireEvent.click(screen.getByText(/Jakarta/i));
 
-    fireEvent.change(screen.getByLabelText(/Sumber Berita/i), { target: { value: 'https://example.com' } });
+  await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'ringkasan' } });
     fireEvent.change(screen.getByLabelText(/Usia Penderita/i), { target: { value: '25' } });
 
