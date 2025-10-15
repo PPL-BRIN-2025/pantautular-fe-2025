@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef } from "react";
+import DownloadButton from "./DownloadButton";
 
 interface PrevalenceCardProps {
   prevalenceRate: number | string;
@@ -11,6 +12,7 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
   populationYear,
   populationCount,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   // Format the population number with commas
   let formattedPopulation = null
   /* istanbul ignore else */
@@ -23,8 +25,14 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg p-4 shadow content-center">
-      <h2 className="text-xl font-semibold text-[#0069CF] mb-4 text-center">Estimasi Prevalensi</h2>
+    <div ref={containerRef} className="bg-white rounded-lg p-4 shadow content-center">
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <h2 className="text-xl font-semibold text-[#0069CF]">Estimasi Prevalensi</h2>
+        <DownloadButton
+          filename="estimasi-prevalensi"
+          getTarget={() => containerRef.current}
+        />
+      </div>
       
       <div className="flex flex-col items-center justify-center mb-4">
         <div className="flex items-center justify-center">

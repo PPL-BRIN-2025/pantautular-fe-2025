@@ -21,7 +21,11 @@ export const ProfileIcon = ({ logout }: { logout: () => void }) => {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-300 shadow-md ml-8">
+        <DropdownMenuTrigger
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-300 shadow-md ml-8"
+          aria-label="Pengaturan profil"
+          title="Pengaturan profil"
+        >
           <User className="h-6 w-6" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">

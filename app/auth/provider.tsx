@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { AuthContext } from "./context"
+import dynamic from "next/dynamic"
+const ToastCenter = dynamic(() => import("../components/ToastCenter"), { ssr: false });
 import { JWTStrategy } from "./strategies/jwt"
 import { LoginRequestBody, User } from "../../types"
 
@@ -34,6 +36,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
+      {/** Curator feature toast center (client-only) */}
+      <ToastCenter />
       {children}
     </AuthContext.Provider>
   )

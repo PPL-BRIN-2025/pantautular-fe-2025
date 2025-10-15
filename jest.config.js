@@ -15,6 +15,7 @@ module.exports = {
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
 
     // Aliases
+    "^@/utils/(.*)$": "<rootDir>/utils/$1",
     "^@/(.*)$": "<rootDir>/app/$1",
     "^@/app/(.*)$": "<rootDir>/app/$1",
     "^@/config$": "<rootDir>/config.ts",

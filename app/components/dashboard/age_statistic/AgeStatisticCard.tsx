@@ -3,16 +3,13 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 import PeopleIcon from "../../icons/PeopleIcon";
+import DownloadButton from "../DownloadButton";
 
 interface AgeData {
   under_12: number;
   "12_25": number;
   "26_45": number;
   above_45: number;
-}
-
-interface AgeStatisticCardProps {
-  data?: AgeData;
 }
 
 const AGE_LABELS: Record<keyof AgeData, string> = {
@@ -22,8 +19,13 @@ const AGE_LABELS: Record<keyof AgeData, string> = {
   above_45: "> 45 tahun"
 };
 
+interface AgeStatisticCardProps {
+  data?: AgeData;
+}
+
 export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProps>) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   /* istanbul ignore next */
   const totalCases = data ? Object.values(data).reduce((sum, value) => sum + value, 0) : 0;
@@ -137,12 +139,18 @@ export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProp
   }, [data]);
 
   return (
-    <div className="w-full h-96 bg-white rounded-lg shadow p-4">
-      <div className="flex justify-between items-center mb-2">
+    <div ref={containerRef} className="w-full h-96 bg-white rounded-lg shadow p-4">
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-2">
         <h3 className="text-xl font-semibold text-[#0069CF]">Usia</h3>
-        <div className="flex items-center text-[#0069CF] text-xl font-bold">
-          <PeopleIcon className="w-6 h-6 mr-2" />
-          {totalCases ? new Intl.NumberFormat('de-DE').format(totalCases) : 0}
+        <div className="flex items-center gap-3">
+          <DownloadButton
+            filename="distribusi-usia"
+            getTarget={() => containerRef.current}
+          />
+          <div className="flex items-center text-[#0069CF] text-xl font-bold">
+            <PeopleIcon className="w-6 h-6 mr-2" />
+            {totalCases ? new Intl.NumberFormat('de-DE').format(totalCases) : 0}
+          </div>
         </div>
       </div>
       <div ref={chartRef} data-testid="chart-container" className="w-full h-[85%]" />

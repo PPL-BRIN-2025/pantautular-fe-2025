@@ -232,6 +232,7 @@ describe('AgeStatisticCard Component', () => {
 
     // Basic UI checks
     expect(screen.getByText('Usia')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unduh gambar/i })).toBeInTheDocument();
     
     // Check for total with a regex to handle formatting differences
     const totalRegex = new RegExp(expectedTotal.replace('.', '[,.]'));
