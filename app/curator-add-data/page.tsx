@@ -85,6 +85,26 @@ export default function CuratorAddDataPage() {
   const [showAddLokasiModal, setShowAddLokasiModal] = useState(false);
   const [newJenisName, setNewJenisName] = useState("");
   const [newLokasiName, setNewLokasiName] = useState("");
+  // modal state for adding structured sumber berita
+  const [showAddSumberModal, setShowAddSumberModal] = useState(false);
+  const [selectedSumber, setSelectedSumber] = useState<{
+    portal?: string;
+    title?: string;
+    type?: string;
+    content?: string;
+    url?: string;
+    author?: string;
+    date_published?: string;
+    img_url?: string;
+  } | null>(null);
+  const [srcPortal, setSrcPortal] = useState("");
+  const [srcTitle, setSrcTitle] = useState("");
+  const [srcType, setSrcType] = useState("artikel");
+  const [srcContent, setSrcContent] = useState("");
+  const [srcUrl, setSrcUrl] = useState("");
+  const [srcAuthor, setSrcAuthor] = useState("");
+  const [srcDatePublished, setSrcDatePublished] = useState("");
+  const [srcImgUrl, setSrcImgUrl] = useState("");
 
   // validation modal
   const [showValidationModal, setShowValidationModal] = useState(false);
@@ -138,7 +158,6 @@ export default function CuratorAddDataPage() {
 
   /* istanbul ignore next */
   const handleApply = async (e: React.FormEvent) => {
-    e.preventDefault();
     setSuccessMessage("");
     if (!validate()) return;
 
@@ -242,27 +261,24 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="sumber" className="block text-sm font-medium text-gray-700 mb-2">Sumber Berita</label>
-                    <input
-                      id="sumber"
-                      value={sumberBerita}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setSumberBerita(v);
-                        // immediate validation for better UX
-                        if (v) {
-                          const maybeUrl = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/.*)?$/.test(v.trim());
-                          if (!maybeUrl) setErrors((p) => ({ ...p, sumberBerita: "Masukkan sumber berita yang valid (contoh: https://bandung.kompas.com atau bandung.kompas.com)." }));
-                          else setErrors((p) => { const np = { ...p }; delete np.sumberBerita; return np; });
-                        } else {
-                          setErrors((p) => { const np = { ...p }; delete np.sumberBerita; return np; });
-                        }
-                      }}
-                      placeholder="E.g: https://bandung.kompas.com"
-                      aria-describedby={errors.sumberBerita ? 'err-sumber' : 'help-sumber'}
-                      className="w-full border rounded-md px-3 py-2"
-                      maxLength={200}
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sumber Berita</label>
+                    <div className="flex gap-2 items-start">
+                      <div className="flex-1">
+                        {selectedSumber ? (
+                          <div className="border rounded-md p-3 bg-white">
+                            <div className="text-sm font-medium">{selectedSumber.portal ?? ''} — {selectedSumber.title ?? ''}</div>
+                              <div className="text-xs text-gray-500">{selectedSumber.type ?? ''} • {selectedSumber.author ?? ''} • {selectedSumber.date_published ? new Date(selectedSumber.date_published).toLocaleDateString() : ''}</div>
+                            <div className="text-xs text-gray-700 mt-2">{selectedSumber.content}</div>
+                            {selectedSumber.url && <div className="text-xs text-blue-600 mt-2"><a href={selectedSumber.url} target="_blank" rel="noreferrer">{selectedSumber.url}</a></div>}
+                          </div>
+                        ) : (
+                          <div className="border rounded-md p-3 bg-white text-xs text-gray-500">Belum ada sumber terpilih</div>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        <button type="button" onClick={() => setShowAddSumberModal(true)} className="px-3 py-2 bg-white border rounded-md">Tambah Sumber</button>
+                      </div>
+                    </div>
                     <div id="help-sumber" className="text-xs text-gray-400 mt-1">Masukkan link website sumber (http/https atau domain saja).</div>
                     {errors.sumberBerita && <div id="err-sumber" className="text-xs text-red-600 mt-1">{errors.sumberBerita}</div>}
                   </div>
@@ -294,7 +310,7 @@ export default function CuratorAddDataPage() {
                       <div className="flex items-center gap-2" role="radiogroup" aria-label="Tingkat Kewaspadaan">
                         {[0,1,2,3,4,5].map((n) => {
                           // emoji scale from calm to alarm
-                          const emoji = n === 0 ? '⚪️' : n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : n === 4 ? '😨' : '🚨';
+                          const emoji = n === 0 ? '💙' : n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : n === 4 ? '😨' : '🚨';
                           return (
                             <button
                               key={n}
@@ -369,6 +385,78 @@ export default function CuratorAddDataPage() {
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowAddLokasiModal(false)} className="px-3 py-2 border rounded-md">Batal</button>
               <button onClick={addNewLokasi} className="px-3 py-2 bg-[#0069cf] text-white rounded-md">Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddSumberModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-md p-6 w-full max-w-2xl">
+            <h3 className="font-semibold mb-2">Tambah Sumber Berita</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="sumber-portal" className="text-xs text-gray-700">Portal</label>
+                <input id="sumber-portal" value={srcPortal} onChange={(e) => setSrcPortal(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+              </div>
+              <div>
+                <label htmlFor="sumber-author" className="text-xs text-gray-700">Author</label>
+                <input id="sumber-author" value={srcAuthor} onChange={(e) => setSrcAuthor(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="sumber-title" className="text-xs text-gray-700">Title</label>
+                <input id="sumber-title" value={srcTitle} onChange={(e) => setSrcTitle(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+              </div>
+              <div>
+                <label htmlFor="sumber-type" className="text-xs text-gray-700">Type</label>
+                <select id="sumber-type" value={srcType} onChange={(e) => setSrcType(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                  <option value="artikel">artikel</option>
+                  <option value="video">video</option>
+                  <option value="laporan">laporan</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="sumber-date" className="text-xs text-gray-700">Date Published</label>
+                <input id="sumber-date" value={srcDatePublished} onChange={(e) => setSrcDatePublished(e.target.value)} placeholder="YYYY-MM-DDTHH:mm:ssZ" className="w-full border rounded-md px-3 py-2" />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="sumber-url" className="text-xs text-gray-700">URL</label>
+                <input id="sumber-url" value={srcUrl} onChange={(e) => setSrcUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="sumber-content" className="text-xs text-gray-700">Content</label>
+                <textarea id="sumber-content" value={srcContent} onChange={(e) => setSrcContent(e.target.value)} className="w-full border rounded-md px-3 py-2 resize-none" rows={4} />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="sumber-img" className="text-xs text-gray-700">Image URL</label>
+                <input id="sumber-img" value={srcImgUrl} onChange={(e) => setSrcImgUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setShowAddSumberModal(false)} className="px-3 py-2 border rounded-md">Batal</button>
+              <button onClick={() => {
+                // minimal validation: require url and title
+                const maybeUrl = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/.*)?$/.test(srcUrl.trim());
+                if (!srcTitle.trim() || !maybeUrl) {
+                  setErrors((p) => ({ ...p, sumberBerita: "Masukkan sumber berita yang valid (judul dan URL diperlukan)." }));
+                  return;
+                }
+                const s = {
+                  portal: srcPortal.trim() || 'Unknown',
+                  title: srcTitle.trim(),
+                  type: srcType,
+                  content: srcContent.trim(),
+                  url: srcUrl.trim(),
+                  author: srcAuthor.trim(),
+                  date_published: srcDatePublished.trim(),
+                  img_url: srcImgUrl.trim(),
+                };
+                setSelectedSumber(s);
+                setSumberBerita(s.url ?? '');
+                // clear error if any
+                setErrors((p) => { const np = { ...p }; delete np.sumberBerita; return np; });
+                setShowAddSumberModal(false);
+              }} className="px-3 py-2 bg-[#0069cf] text-white rounded-md">Simpan</button>
             </div>
           </div>
         </div>
