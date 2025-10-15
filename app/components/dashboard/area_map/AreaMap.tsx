@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Image from 'next/image';
+import DownloadButton from "../DownloadButton";
 
 const AreaMap: React.FC = () => {
   // State declarations
@@ -21,6 +22,7 @@ const AreaMap: React.FC = () => {
   };
   
   const currentArea = areas[activeIndex];
+  const cardRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="area-map-container">
@@ -60,17 +62,27 @@ const AreaMap: React.FC = () => {
               </svg>
             </button>
 
-            <div className="area-display-container">
+            <div ref={cardRef} className="area-display-container">
               <div className="area-display-header" style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                borderBottom: '1px solid #f0f0f0'
+                borderBottom: '1px solid #f0f0f0',
+                gap: '12px',
+                flexWrap: 'wrap'
               }}>
-                <h3 className="area-display-title" style={{ fontSize: '0.9rem', color: 'black', fontWeight: 'bold' }}>{currentArea.title}</h3>
-                <span className="area-display-updated" style={{ fontSize: '0.8rem', color: '#0069CF', fontWeight: 'bold' }}>
-                  Last updated: {currentArea.lastUpdated}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 auto' }}>
+                  <h3 className="area-display-title" style={{ fontSize: '0.9rem', color: 'black', fontWeight: 'bold' }}>{currentArea.title}</h3>
+                  <span className="area-display-updated" style={{ fontSize: '0.8rem', color: '#0069CF', fontWeight: 'bold' }}>
+                    Last updated: {currentArea.lastUpdated}
+                  </span>
+                </div>
+                <DownloadButton
+                  filename={currentArea.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+                  getTarget={() => cardRef.current}
+                  label="Unduh Informasi"
+                  size="sm"
+                />
               </div>
               <div className="area-display-image" style={{ 
                 width: '100%', 

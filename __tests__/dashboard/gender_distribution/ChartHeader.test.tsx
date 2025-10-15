@@ -33,4 +33,15 @@ describe("ChartHeader", () => {
     expect(svg).toBeInTheDocument();
     expect(svg).toHaveAttribute("viewBox", "0 0 21 20");
   });
+
+  it("renders custom action when provided", () => {
+    render(
+      <ChartHeader
+        title="With Action"
+        total={500}
+        action={<button type="button">Custom Action</button>}
+      />
+    );
+    expect(screen.getByText("Custom Action")).toBeInTheDocument();
+  });
 });

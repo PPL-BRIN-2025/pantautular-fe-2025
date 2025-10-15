@@ -38,6 +38,7 @@ describe('AreaMap Component', () => {
   it('should display the correct area info', () => {
     expect(screen.getByText('Peta Geografis Ketinggian Wilayah')).toBeInTheDocument();
     expect(screen.getByText('Last updated: 10 Mei 2025 00.25 WIB')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unduh informasi/i })).toBeInTheDocument();
   });
 
   it('should navigate to the next area when next button is clicked', () => {

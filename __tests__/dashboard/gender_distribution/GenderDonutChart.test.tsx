@@ -8,9 +8,10 @@ import useDonutChart from '../../../app/components/dashboard/gender_distribution
 jest.mock('../../../app/components/dashboard/gender_distribution/ChartHook', () => jest.fn());
 
 // Mock ChartHeader to render a simple div showing its props.
-jest.mock("../../../app/components/dashboard/gender_distribution/ChartHeader", () => (props: { title: string; total: number }) => (
+jest.mock("../../../app/components/dashboard/gender_distribution/ChartHeader", () => (props: { title: string; total: number; action?: React.ReactNode }) => (
   <div data-testid="chart-header">
     {props.title} - {props.total}
+    {props.action ? <div data-testid="chart-action">{props.action}</div> : null}
   </div>
 ));
 
@@ -48,5 +49,10 @@ describe("GenderDonutChart", () => {
     // Verify that a div with the classes "w-full h-64 mt-4" exists.
     const chartContainer = document.querySelector("div.w-full.h-64.mt-4");
     expect(chartContainer).toBeInTheDocument();
+  });
+
+  it("renders download button", () => {
+    render(<GenderDonutChart total={120} priaValue={40} wanitaValue={80} />);
+    expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
   });
 });

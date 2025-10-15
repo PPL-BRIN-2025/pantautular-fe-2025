@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import StatsItem from './StatsItem';
 import PeopleIcon from "../../icons/PeopleIcon";
+import DownloadButton from "../DownloadButton";
 
 interface CaseNumbersProps {
     jumlah_kasus: number,
@@ -10,13 +11,20 @@ interface CaseNumbersProps {
   }
   
 const CaseNumberCard:  React.FC<CaseNumbersProps> = ({ jumlah_kasus, jumlah_kasus_kematian, jumlah_kasus_terjangkit, jumlah_kasus_sembuh }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="w-full mx-auto bg-white rounded-lg shadow p-4">
-      <div className="flex justify-between items-center">
-      <h3 className="text-xl font-semibold text-[#0069CF]">Jumlah Kasus</h3>
-        <div className="flex items-center text-[#0069CF] text-xl font-bold">
-          <PeopleIcon className="w-6 h-6 mr-2" />
-          {jumlah_kasus}
+    <div ref={containerRef} className="w-full mx-auto bg-white rounded-lg shadow p-4">
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <h3 className="text-xl font-semibold text-[#0069CF]">Jumlah Kasus</h3>
+        <div className="flex items-center gap-3">
+          <DownloadButton
+            filename="jumlah-kasus"
+            getTarget={() => containerRef.current}
+          />
+          <div className="flex items-center text-[#0069CF] text-xl font-bold">
+            <PeopleIcon className="w-6 h-6 mr-2" />
+            {jumlah_kasus}
+          </div>
         </div>
       </div>
 
