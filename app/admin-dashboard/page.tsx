@@ -143,6 +143,11 @@ export default function AdminDashboardPage() {
             <p className="mt-2 text-sm text-amber-800">
               Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
             </p>
+            {blocked403Detail !== "Akses Ditolak" && (
+              <p className="mt-2 text-xs text-amber-700/90">
+                {blocked403Detail}
+              </p>
+            )}
           <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
             <Link href="/" className={styles.buttonSecondary}>
               Kembali

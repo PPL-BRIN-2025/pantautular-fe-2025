@@ -364,6 +364,11 @@ export default function Page() {
             <p className="mt-2 text-sm text-amber-800">
               Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
             </p>
+            {blocked403Detail && blocked403Detail !== "Akses Ditolak" && (
+              <p className="mt-2 text-xs text-amber-700/90" data-testid="blocked-detail">
+                {blocked403Detail}
+              </p>
+            )}
             <div className="mt-4 flex gap-2">
               <Link
                 href="/"
