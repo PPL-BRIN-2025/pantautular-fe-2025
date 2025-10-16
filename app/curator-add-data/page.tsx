@@ -50,7 +50,7 @@ export default function CuratorAddDataPage() {
   const [sumberBerita, setSumberBerita] = useState("");
   const [ringkasan, setRingkasan] = useState("");
   const [jenisKelamin, setJenisKelamin] = useState("");
-  const [kewaspadaan, setKewaspadaan] = useState(0);
+  const [kewaspadaan, setKewaspadaan] = useState(1);
   const [tanggal, setTanggal] = useState({ dd: "", mm: "", yyyy: "" });
   const [usia, setUsia] = useState("");
 
@@ -63,8 +63,8 @@ export default function CuratorAddDataPage() {
     setLokasi("");
     setSumberBerita("");
     setRingkasan("");
-    setJenisKelamin("");
-    setKewaspadaan(0);
+  setJenisKelamin("");
+  setKewaspadaan(1);
     setTanggal({ dd: "", mm: "", yyyy: "" });
     setUsia("");
     setErrors({});
@@ -282,15 +282,6 @@ export default function CuratorAddDataPage() {
                     <div id="help-sumber" className="text-xs text-gray-400 mt-1">Masukkan link website sumber (http/https atau domain saja).</div>
                     {errors.sumberBerita && <div id="err-sumber" className="text-xs text-red-600 mt-1">{errors.sumberBerita}</div>}
                   </div>
-
-                  <div>
-                    <label htmlFor="ringkasan" className="block text-sm font-medium text-gray-700 mb-2">Ringkasan</label>
-                    <textarea id="ringkasan" value={ringkasan} onChange={(e) => setRingkasan(e.target.value)} placeholder="Tulis ringkasan singkat..." rows={10} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} />
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="text-xs text-gray-400">Batas 2000 karakter.</div>
-                      <div className="text-xs text-gray-500">{ringkasan.length}/2000</div>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -308,9 +299,9 @@ export default function CuratorAddDataPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Tingkat Kewaspadaan</label>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2" role="radiogroup" aria-label="Tingkat Kewaspadaan">
-                        {[0,1,2,3,4,5].map((n) => {
-                          // emoji scale from calm to alarm
-                          const emoji = n === 0 ? '💙' : n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : n === 4 ? '😨' : '🚨';
+                        {[1,2,3,4].map((n) => {
+                          // emoji scale: 1..4 -> biasa, minimal, bahaya, katastropik
+                          const emoji = n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨';
                           return (
                             <button
                               key={n}
@@ -321,7 +312,7 @@ export default function CuratorAddDataPage() {
                               onKeyDown={(e) => handleStarKey(e, n)}
                               aria-pressed={kewaspadaan === n}
                               className={`text-2xl transition-transform ${kewaspadaan === n ? 'scale-125' : ''} ${hoverKewaspadaan === n ? 'scale-125' : ''} ${clickedKewaspadaan === n ? 'animate-pulse scale-150' : ''}`} 
-                              title={`${n} dari 5`}
+                              title={`${n} dari 4`}
                             >
                               <span className="text-2xl" aria-hidden>{emoji}</span>
                             </button>
@@ -329,8 +320,8 @@ export default function CuratorAddDataPage() {
                         })}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm text-gray-500">{hoverKewaspadaan ?? kewaspadaan} / 5</span>
-                        <span className="text-xs text-gray-400">0: tidak perlu diwaspadai — 5: sangat perlu diwaspadai</span>
+                        <span className="text-sm text-gray-500">{hoverKewaspadaan ?? kewaspadaan} / 4</span>
+                        <span className="text-xs text-gray-400">1: biasa — 2: minimal — 3: bahaya — 4: katastropik</span>
                       </div>
                     </div>
                   </div>
@@ -349,6 +340,15 @@ export default function CuratorAddDataPage() {
                     <label htmlFor="usia" className="block text-sm font-medium text-gray-700 mb-2">Usia Penderita</label>
                     <input id="usia" value={usia} onChange={(e) => setUsia(e.target.value)} placeholder="Type.." className="w-full border rounded-md px-3 py-2" inputMode="numeric" maxLength={6} />
                     {errors.usia && <div className="text-xs text-red-600 mt-1">{errors.usia}</div>}
+                  </div>
+
+                  <div>
+                    <label htmlFor="ringkasan" className="block text-sm font-medium text-gray-700 mb-2">Ringkasan</label>
+                    <textarea id="ringkasan" value={ringkasan} onChange={(e) => setRingkasan(e.target.value)} placeholder="Tulis ringkasan singkat..." rows={10} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} />
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="text-xs text-gray-400">Batas 2000 karakter.</div>
+                      <div className="text-xs text-gray-500">{ringkasan.length}/2000</div>
+                    </div>
                   </div>
 
                   <div className="flex justify-end items-center gap-4 mt-10">

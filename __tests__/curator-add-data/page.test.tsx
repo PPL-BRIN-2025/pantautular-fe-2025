@@ -73,22 +73,22 @@ describe('CuratorAddDataPage', () => {
 
   test('emoji kewaspadaan scale updates value', () => {
     render(<CuratorAddDataPage />);
-    const btn5 = screen.getByTitle('5 dari 5');
-    fireEvent.click(btn5);
-    expect(screen.getByText(/5 \/ 5/)).toBeInTheDocument();
+    const btn4 = screen.getByTitle('4 dari 4');
+    fireEvent.click(btn4);
+    expect(screen.getByText(/4 \/ 4/)).toBeInTheDocument();
   });
 
   test('hovering emojis updates display and clicking animates', async () => {
     render(<CuratorAddDataPage />);
-    const btn3 = screen.getByTitle('3 dari 5');
+  const btn3 = screen.getByTitle('3 dari 4');
     // hover
     fireEvent.mouseEnter(btn3);
-    expect(screen.getByText(/3 \/ 5/)).toBeInTheDocument();
+  expect(screen.getByText(/3 \/ 4/)).toBeInTheDocument();
     fireEvent.mouseLeave(btn3);
     // click to animate
     fireEvent.click(btn3);
     // clicked should set value
-    expect(screen.getByText(/3 \/ 5/)).toBeInTheDocument();
+    expect(screen.getByText(/3 \/ 4/)).toBeInTheDocument();
   });
 
   test('preSubmit shows validation modal when required fields missing', async () => {
@@ -152,9 +152,9 @@ describe('CuratorAddDataPage', () => {
 
   test('keyboard Enter/Space on emoji sets value', () => {
     render(<CuratorAddDataPage />);
-    const btn2 = screen.getByTitle('2 dari 5');
+    const btn2 = screen.getByTitle('2 dari 4');
     fireEvent.keyDown(btn2, { key: 'Enter', code: 'Enter' });
-    expect(screen.getByText(/2 \/ 5/)).toBeInTheDocument();
+    expect(screen.getByText(/2 \/ 4/)).toBeInTheDocument();
   });
 
   test('tanggal validation produces combined messages when invalid', async () => {
@@ -353,9 +353,9 @@ describe('CuratorAddDataPage', () => {
 
   test('Space key on emoji sets value', () => {
     render(<CuratorAddDataPage />);
-    const btn4 = screen.getByTitle('4 dari 5');
+    const btn4 = screen.getByTitle('4 dari 4');
     fireEvent.keyDown(btn4, { key: ' ', code: 'Space' });
-    expect(screen.getByText(/4 \/ 5/)).toBeInTheDocument();
+    expect(screen.getByText(/4 \/ 4/)).toBeInTheDocument();
   });
 
   test('field-level error element appears after preSubmit', async () => {
@@ -379,25 +379,25 @@ describe('CuratorAddDataPage', () => {
 
   test('exercise all kewaspadaan emoji interactions (hover/key/click)', async () => {
     render(<CuratorAddDataPage />);
-    for (let n = 0; n <= 5; n++) {
-      const btn = screen.getByTitle(`${n} dari 5`);
+    for (let n = 1; n <= 4; n++) {
+      const btn = screen.getByTitle(`${n} dari 4`);
       // hover
       fireEvent.mouseEnter(btn);
-      expect(screen.getByText(new RegExp(`${n} \/ 5`))).toBeInTheDocument();
+      expect(screen.getByText(new RegExp(`${n} \/ 4`))).toBeInTheDocument();
       fireEvent.mouseLeave(btn);
 
       // keyboard Enter
       fireEvent.keyDown(btn, { key: 'Enter', code: 'Enter' });
-      expect(screen.getByText(new RegExp(`${n} \/ 5`))).toBeInTheDocument();
+      expect(screen.getByText(new RegExp(`${n} \/ 4`))).toBeInTheDocument();
 
       // keyboard Space
       fireEvent.keyDown(btn, { key: ' ', code: 'Space' });
-      expect(screen.getByText(new RegExp(`${n} \/ 5`))).toBeInTheDocument();
+      expect(screen.getByText(new RegExp(`${n} \/ 4`))).toBeInTheDocument();
 
       // click
       fireEvent.click(btn);
       // after click it should be set
-      await waitFor(() => expect(screen.getByText(new RegExp(`${n} \/ 5`))).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(new RegExp(`${n} \/ 4`))).toBeInTheDocument());
       // aria-pressed true for this button
       expect(btn.getAttribute('aria-pressed')).toBe('true');
     }
@@ -501,12 +501,12 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
 
   test('emoji hover triggers and clears hover state', async () => {
     render(<CuratorAddDataPage />);
-    const btn = screen.getByTitle('5 dari 5');
+    const btn = screen.getByTitle('4 dari 4');
     fireEvent.mouseEnter(btn);
-    expect(screen.getByText(/5 \/ 5/)).toBeInTheDocument();
+    expect(screen.getByText(/4 \/ 4/)).toBeInTheDocument();
     fireEvent.mouseLeave(btn);
-    // ensures hover cleared and state stable
-    await waitFor(() => expect(screen.getByText(/0 \/ 5|5 \/ 5/)).toBeTruthy());
+    // ensures hover cleared and state stable (initial kewaspadaan is 1)
+    await waitFor(() => expect(screen.getByText(/1 \/ 4|4 \/ 4/)).toBeTruthy());
   });
 
   test('submit button uses BLUE inline style', () => {
@@ -553,11 +553,11 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
 
   test('emoji hover enter and leave both trigger correctly', async () => {
     render(<CuratorAddDataPage />);
-    const btn = screen.getByTitle('4 dari 5');
+    const btn = screen.getByTitle('4 dari 4');
     fireEvent.mouseEnter(btn);
-    expect(screen.getByText(/4 \/ 5/)).toBeInTheDocument();
+    expect(screen.getByText(/4 \/ 4/)).toBeInTheDocument();
     fireEvent.mouseLeave(btn);
-    await waitFor(() => expect(screen.getByText(/0 \/ 5|4 \/ 5/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/1 \/ 4|4 \/ 4/)).toBeTruthy());
   });
 
   test('validateFormState accepts valid date values', () => {
