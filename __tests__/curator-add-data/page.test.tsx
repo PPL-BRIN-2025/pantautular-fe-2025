@@ -9,6 +9,12 @@ jest.mock('../../app/components/Footer', () => () => <div data-testid="mock-foot
 import CuratorAddDataPage from '../../app/curator-add-data/page';
 import { validateFormState } from '../../app/curator-add-data/page';
 
+// helper to select exact text match (case-insensitive) when multiple similar entries exist
+const getExactText = (text: string) => {
+  const nodes = screen.getAllByText(new RegExp(`^${text}$`, 'i'));
+  return nodes[0];
+};
+
 // helper to add a valid sumber via the modal (module-scope so all tests can use it)
 async function addSumber({
   portal = 'Kompas',
@@ -71,6 +77,24 @@ describe('CuratorAddDataPage', () => {
     await waitFor(() => expect(screen.getByText(/PenyakitTest/i)).toBeInTheDocument());
   });
 
+  test('add-jenis shows transient success feedback (emoji) and closes modal', async () => {
+    jest.useFakeTimers();
+    render(<CuratorAddDataPage />);
+    const tambahButtons = screen.getAllByText(/Tambah baru/i);
+    // open jenis modal
+    fireEvent.click(tambahButtons[0]);
+    const input = screen.getByPlaceholderText(/Nama penyakit/i);
+    fireEvent.change(input, { target: { value: 'TransientDisease' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
+
+    // transient success emoji should be visible
+    await waitFor(() => expect(screen.getByText('✅')).toBeInTheDocument());
+
+    act(() => { jest.advanceTimersByTime(1000); });
+    await waitFor(() => expect(screen.queryByPlaceholderText(/Nama penyakit/i)).not.toBeInTheDocument());
+    jest.useRealTimers();
+  });
+
   test('emoji kewaspadaan scale updates value', () => {
     render(<CuratorAddDataPage />);
     const btn4 = screen.getByTitle('4 dari 4');
@@ -128,6 +152,25 @@ describe('CuratorAddDataPage', () => {
     await waitFor(() => expect(screen.getByText(/KotaTest/i)).toBeInTheDocument());
   });
 
+  test('add-lokasi shows transient success feedback (emoji) and closes modal', async () => {
+    jest.useFakeTimers();
+    render(<CuratorAddDataPage />);
+    const tambahButtons = screen.getAllByText(/Tambah baru/i);
+    // open lokasi modal
+    fireEvent.click(tambahButtons[1]);
+    const input = screen.getByPlaceholderText(/Nama lokasi/i);
+    fireEvent.change(input, { target: { value: 'TransientCity' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
+
+    // feedback emoji should appear inside modal before it closes
+    await waitFor(() => expect(screen.getByText('✅')).toBeInTheDocument());
+
+    // advance timers so the transient feedback clears and modal closes
+    act(() => { jest.advanceTimersByTime(1000); });
+    await waitFor(() => expect(screen.queryByPlaceholderText(/Nama lokasi/i)).not.toBeInTheDocument());
+    jest.useRealTimers();
+  });
+
   test('submit success shows message and resets form', async () => {
     render(<CuratorAddDataPage />);
     // select existing jenis and lokasi
@@ -138,8 +181,8 @@ describe('CuratorAddDataPage', () => {
 
     const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
     fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
   // sumber valid (add via modal)
   await addSumber({ url: 'https://example.com/news' });
@@ -167,8 +210,8 @@ describe('CuratorAddDataPage', () => {
 
     const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
     fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
     // invalid date parts
     const dd = screen.getByPlaceholderText('DD');
@@ -221,8 +264,8 @@ describe('CuratorAddDataPage', () => {
 
     const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
     fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
   // valid source and ringkasan (use modal)
   await addSumber({ url: 'https://example.com/news' });
@@ -233,6 +276,90 @@ describe('CuratorAddDataPage', () => {
 
     // restore console
     console.log = orig;
+  });
+
+  test('shows server validation raw JSON when API returns 400', async () => {
+    // inject a test API stub via global so the component will use it
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    (global as any).__TEST_INJECT_API__ = {
+      createCuratorCase: jest.fn(() => Promise.reject({ status: 400, detail: { news: { content: ['This field may not be blank.'] } } })),
+    };
+
+    render(<CuratorAddDataPage />);
+
+    // fill required fields
+    fireEvent.change(screen.getByPlaceholderText('Cari atau pilih...'), { target: { value: 'Demam' } });
+    await waitFor(() => expect(screen.getByText(/Demam Berdarah/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Demam Berdarah/i));
+
+    fireEvent.change(screen.getByPlaceholderText('Cari atau pilih lokasi...'), { target: { value: 'Jakarta' } });
+    await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+    fireEvent.click(getExactText('Jakarta'));
+
+    await addSumber({ url: 'https://example.com' });
+    fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat.../i), { target: { value: 'Ringkasan contoh' } });
+
+    fireEvent.click(screen.getByText(/Terapkan/i));
+
+    // raw server validation JSON should be shown in a pre tag
+    await waitFor(() => expect(screen.getByText(/This field may not be blank/i)).toBeInTheDocument());
+
+    // cleanup injected test API
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    delete (global as any).__TEST_INJECT_API__;
+  });
+
+  test('duplicate jenis modal shows duplicateWarning when adding existing jenis', async () => {
+    render(<CuratorAddDataPage />);
+    // open jenis modal
+    const tambahButtons = screen.getAllByText(/Tambah baru/i);
+    fireEvent.click(tambahButtons[0]);
+    const input = screen.getByPlaceholderText(/Nama penyakit/i);
+    // add an existing name (case-insensitive)
+    fireEvent.change(input, { target: { value: 'demam berdarah' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
+    // the duplicateWarning modal should appear
+    await waitFor(() => expect(screen.getByText(/sudah ada di daftar/i)).toBeInTheDocument());
+  });
+
+  test('duplicate lokasi modal shows duplicateWarning when adding existing lokasi', async () => {
+    render(<CuratorAddDataPage />);
+    // open lokasi modal (second "Tambah baru" button)
+    const tambahButtons = screen.getAllByText(/Tambah baru/i);
+    fireEvent.click(tambahButtons[1]);
+    const input = screen.getByPlaceholderText(/Nama lokasi/i);
+    // add an existing location (case-insensitive)
+    fireEvent.change(input, { target: { value: 'jakarta' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
+    // the duplicateWarning modal should appear
+    await waitFor(() => expect(screen.getByText(/sudah ada di daftar/i)).toBeInTheDocument());
+  });
+
+  test('duplicateWarning modal closes when Tutup clicked', async () => {
+    render(<CuratorAddDataPage />);
+    // trigger duplicate lokasi warning
+    const tambahButtons = screen.getAllByText(/Tambah baru/i);
+    fireEvent.click(tambahButtons[1]);
+    const input = screen.getByPlaceholderText(/Nama lokasi/i);
+    fireEvent.change(input, { target: { value: 'Jakarta' } });
+    fireEvent.click(screen.getByText(/Simpan/i));
+    await waitFor(() => expect(screen.getByText(/sudah ada di daftar/i)).toBeInTheDocument());
+    // click Tutup to close the duplicate-warning modal
+    fireEvent.click(screen.getByText(/^Tutup$|^Tutup/i));
+    await waitFor(() => expect(screen.queryByText(/sudah ada di daftar/i)).not.toBeInTheDocument());
+  });
+
+  test('Tingkat Keparahan select can change values', () => {
+    render(<CuratorAddDataPage />);
+    const select = screen.getByLabelText(/Tingkat Keparahan/i) as HTMLSelectElement;
+    // change to hospitalisasi
+    fireEvent.change(select, { target: { value: 'hospitalisasi' } });
+    expect(select.value).toBe('hospitalisasi');
+    // change to mortalitas
+    fireEvent.change(select, { target: { value: 'mortalitas' } });
+    expect(select.value).toBe('mortalitas');
   });
   test('image URL input in sumber modal updates on change', async () => {
     render(<CuratorAddDataPage />);
@@ -286,10 +413,10 @@ describe('CuratorAddDataPage', () => {
     await waitFor(() => expect(screen.getByText(/Demam Berdarah/i)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/Demam Berdarah/i));
 
-    const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
-    fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+  fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
   await addSumber({ url: 'https://example.com/news' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat.../i), { target: { value: 'Ringkasan contoh' } });
@@ -341,10 +468,10 @@ describe('CuratorAddDataPage', () => {
     fireEvent.change(jenisSearch, { target: { value: 'Demam' } });
     await waitFor(() => expect(screen.getByText(/Demam Berdarah/i)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/Demam Berdarah/i));
-    const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
-    fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+  fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
     fireEvent.change(screen.getByLabelText(/Usia Penderita/i), { target: { value: '-5' } });
     fireEvent.click(screen.getByText(/Terapkan/i));
     await waitFor(() => expect(screen.getByText(/Validasi Gagal/i)).toBeInTheDocument());
@@ -437,10 +564,10 @@ describe('CuratorAddDataPage', () => {
     await waitFor(() => expect(screen.getByText(/Demam Berdarah/i)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/Demam Berdarah/i));
 
-    const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
-    fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+  fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
     const usiaInput = screen.getByLabelText(/Usia Penderita/i);
     fireEvent.change(usiaInput, { target: { value: '-5' } });
@@ -489,8 +616,8 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
 
     const lokasi = screen.getByPlaceholderText('Cari atau pilih lokasi...');
     fireEvent.change(lokasi, { target: { value: 'Jakarta' } });
-    await waitFor(() => screen.getByText(/Jakarta/i));
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
   await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/), { target: { value: 'ok' } });
@@ -541,8 +668,8 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
 
     const lokasiInput = screen.getByPlaceholderText('Cari atau pilih lokasi...');
     fireEvent.change(lokasiInput, { target: { value: 'Jakarta' } });
-    await waitFor(() => screen.getByText(/Jakarta/i));
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
   await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'ok' } });
@@ -590,10 +717,10 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
     await waitFor(() => screen.getByText(/Demam Berdarah/i));
     fireEvent.click(screen.getByText(/Demam Berdarah/i));
 
-    const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
-    fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-    await waitFor(() => screen.getByText(/Jakarta/i));
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
+  fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
   await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'OK' } });
@@ -626,8 +753,8 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
 
     const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
     fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-    await waitFor(() => expect(screen.getByText(/Jakarta/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
     // add a valid sumber via helper which sets sumberBerita
     await addSumber({ url: 'https://example.com/news' });
@@ -674,9 +801,9 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
     await waitFor(() => screen.getByText(/Demam Berdarah/i));
     fireEvent.click(screen.getByText(/Demam Berdarah/i));
 
-    fireEvent.change(screen.getByPlaceholderText('Cari atau pilih lokasi...'), { target: { value: 'Jakarta' } });
-    await waitFor(() => screen.getByText(/Jakarta/i));
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  fireEvent.change(screen.getByPlaceholderText('Cari atau pilih lokasi...'), { target: { value: 'Jakarta' } });
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
   await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'Ringkasan test' } });
@@ -712,8 +839,8 @@ describe('Extra edge coverage for CuratorAddDataPage', () => {
     fireEvent.click(screen.getByText(/Demam Berdarah/i));
 
     fireEvent.change(screen.getByPlaceholderText('Cari atau pilih lokasi...'), { target: { value: 'Jakarta' } });
-    await waitFor(() => screen.getByText(/Jakarta/i));
-    fireEvent.click(screen.getByText(/Jakarta/i));
+  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
+  fireEvent.click(getExactText('Jakarta'));
 
   await addSumber({ url: 'https://example.com' });
     fireEvent.change(screen.getByPlaceholderText(/Tulis ringkasan singkat/i), { target: { value: 'ringkasan' } });
