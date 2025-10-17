@@ -55,6 +55,7 @@ const DEFAULT_ROLE_LINKS: RoleNavLink[] = [{ label: "Dashboard", href: "/dashboa
 const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ADMIN: [
     { label: "Admin Dashboard", href: "/admin-dashboard" },
+    { label: "Curator Dashboard", href: "/curator-dashboard" },
     { label: "Role Management", href: "/admin-role-management" },
     { label: "User Log", href: "/admin-user-log-menu" },
   ],
@@ -64,6 +65,7 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ],
   CURATOR: [
     { label: "Dashboard", href: "/dashboard" },
+    { label: "Curator Dashboard", href: "/curator-dashboard" },
     { label: "Bantuan", href: "/help" },
   ],
   CONTRIBUTOR: [
