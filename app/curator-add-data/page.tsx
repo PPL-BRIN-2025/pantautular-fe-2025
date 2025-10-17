@@ -605,10 +605,6 @@ export default function CuratorAddDataPage() {
                   <option value="laporan">laporan</option>
                 </select>
               </div>
-              <div className="md:col-span-2">
-                <label htmlFor="sumber-content" className="text-xs text-gray-700">Content</label>
-                <textarea id="sumber-content" value={srcContent} onChange={(e) => setSrcContent(e.target.value)} className="w-full border rounded-md px-3 py-2" rows={4} />
-              </div>
               <div>
                 <label htmlFor="sumber-date" className="text-xs text-gray-700">Date Published</label>
                 <input id="sumber-date" value={srcDatePublished} onChange={(e) => setSrcDatePublished(e.target.value)} placeholder="YYYY-MM-DDTHH:mm:ssZ" className="w-full border rounded-md px-3 py-2" />
