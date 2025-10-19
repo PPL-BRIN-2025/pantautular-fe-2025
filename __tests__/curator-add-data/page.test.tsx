@@ -5,6 +5,16 @@ import { act } from 'react-dom/test-utils';
 // Mock Navbar and Footer to isolate the page component
 jest.mock('../../app/components/Navbar', () => () => <div data-testid="mock-navbar">Navbar</div>);
 jest.mock('../../app/components/Footer', () => () => <div data-testid="mock-footer">Footer</div>);
+// Mock auth hook to return a CURATOR user by default for these tests
+const mockUseAuth = jest.fn(() => ({ user: { role: 'CURATOR' } }));
+jest.mock('../../app/auth/hooks/useAuth', () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+beforeEach(() => {
+  mockUseAuth.mockReset();
+  mockUseAuth.mockReturnValue({ user: { role: 'CURATOR' } });
+});
 
 import CuratorAddDataPage from '../../app/curator-add-data/page';
 import { validateFormState } from '../../app/curator-add-data/page';
@@ -29,8 +39,8 @@ async function addSumber({
   fireEvent.click(screen.getByText(/Tambah Sumber/i));
   // modal fields
   fireEvent.change(screen.getByLabelText(/Portal/i), { target: { value: portal } });
-  fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: title } });
-  fireEvent.change(screen.getByLabelText(/Type/i), { target: { value: type } });
+  fireEvent.change(screen.getByLabelText(/Judul|Title/i), { target: { value: title } });
+  fireEvent.change(screen.getByLabelText(/Tipe|Type/i), { target: { value: type } });
 
   // Try multiple strategies to find the content input since different markup may use a label,
   // placeholder, or just render a textarea/input without a matching label.
@@ -55,15 +65,52 @@ async function addSumber({
   }
 
   fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: url } });
-  fireEvent.change(screen.getByLabelText(/Author/i), { target: { value: author } });
-  fireEvent.change(screen.getByLabelText(/Date Published/i), { target: { value: date_published } });
-  fireEvent.change(screen.getByLabelText(/Image URL/i), { target: { value: img_url } });
+  fireEvent.change(screen.getByLabelText(/Penulis|Author/i), { target: { value: author } });
+  // fill date parts (DD/MM/YYYY) instead of the old ISO field
+  try {
+    if (date_published) {
+      const d = new Date(date_published);
+      if (!isNaN(d.getTime())) {
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const yyyy = String(d.getUTCFullYear());
+        fireEvent.change(screen.getByPlaceholderText('DD'), { target: { value: dd } });
+        fireEvent.change(screen.getByPlaceholderText('MM'), { target: { value: mm } });
+        fireEvent.change(screen.getByPlaceholderText('YYYY'), { target: { value: yyyy } });
+      } else {
+        fireEvent.change(screen.getByPlaceholderText('DD'), { target: { value: '19' } });
+        fireEvent.change(screen.getByPlaceholderText('MM'), { target: { value: '10' } });
+        fireEvent.change(screen.getByPlaceholderText('YYYY'), { target: { value: '2025' } });
+      }
+    } else {
+      fireEvent.change(screen.getByPlaceholderText('DD'), { target: { value: '19' } });
+      fireEvent.change(screen.getByPlaceholderText('MM'), { target: { value: '10' } });
+      fireEvent.change(screen.getByPlaceholderText('YYYY'), { target: { value: '2025' } });
+    }
+  } catch (e) {
+    fireEvent.change(screen.getByPlaceholderText('DD'), { target: { value: '19' } });
+    fireEvent.change(screen.getByPlaceholderText('MM'), { target: { value: '10' } });
+    fireEvent.change(screen.getByPlaceholderText('YYYY'), { target: { value: '2025' } });
+  }
+  fireEvent.change(screen.getByLabelText(/URL Gambar|Image URL/i), { target: { value: img_url } });
   fireEvent.click(screen.getByText(/Simpan/i));
   // wait for modal to close (Simpan button closes it) — ensure the modal save finished by waiting for absence of Save button
   await waitFor(() => expect(screen.queryByText(/Simpan/i)).not.toBeInTheDocument());
 }
 
 describe('CuratorAddDataPage', () => {
+  test('shows AccessDenied for unauthenticated or non-CURATOR', async () => {
+    // override auth to be unauthenticated
+    mockUseAuth.mockReturnValueOnce({ user: null } as any);
+    const { rerender } = render(<CuratorAddDataPage />);
+    expect(await screen.findByText(/Akses Kurator Ditolak/i)).toBeInTheDocument();
+
+    // now simulate non-curator role
+    mockUseAuth.mockReturnValue({ user: { role: 'EXPLORE' } } as any);
+    rerender(<CuratorAddDataPage />);
+    expect(await screen.findByText(/Akses Kurator Ditolak/i)).toBeInTheDocument();
+  });
+
   test('renders main headings and form controls', () => {
     render(<CuratorAddDataPage />);
     expect(screen.getByText(/Tambahkan Informasi Penyakit Menular/i)).toBeInTheDocument();
@@ -81,7 +128,7 @@ describe('CuratorAddDataPage', () => {
     render(<CuratorAddDataPage />);
     // open modal and enter invalid url
     fireEvent.click(screen.getByText(/Tambah Sumber/i));
-    fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'Some Title' } });
+    fireEvent.change(screen.getByLabelText(/Judul|Title/i), { target: { value: 'Some Title' } });
   fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: 'not-a-url' } });
     fireEvent.click(screen.getByText(/Simpan/i));
     await waitFor(() => expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeInTheDocument());
@@ -223,31 +270,10 @@ describe('CuratorAddDataPage', () => {
   });
 
   test('tanggal validation produces combined messages when invalid', async () => {
-    render(<CuratorAddDataPage />);
-    // choose valid jenis and lokasi so tanggal validation runs in isolation
-    const jenisSearch = screen.getByPlaceholderText('Cari atau pilih...');
-    fireEvent.change(jenisSearch, { target: { value: 'Demam' } });
-    await waitFor(() => expect(screen.getByText(/Demam Berdarah/i)).toBeInTheDocument());
-    fireEvent.click(screen.getByText(/Demam Berdarah/i));
-
-    const lokasiSearch = screen.getByPlaceholderText('Cari atau pilih lokasi...');
-    fireEvent.change(lokasiSearch, { target: { value: 'Jakarta' } });
-  await waitFor(() => expect(getExactText('Jakarta')).toBeInTheDocument());
-  fireEvent.click(getExactText('Jakarta'));
-
-    // invalid date parts
-    const dd = screen.getByPlaceholderText('DD');
-    const mm = screen.getByPlaceholderText('MM');
-    const yyyy = screen.getByPlaceholderText('YYYY');
-    fireEvent.change(dd, { target: { value: '99' } });
-    fireEvent.change(mm, { target: { value: '13' } });
-    fireEvent.change(yyyy, { target: { value: '1800' } });
-
-    fireEvent.click(screen.getByText(/Terapkan/i));
-    await waitFor(() => expect(screen.getByText(/Validasi Gagal/i)).toBeInTheDocument());
-    // should mention hari/bulan/tahun invalid in the modal
-    expect(screen.getByText(/Format hari tidak valid/i) || screen.getByText(/Tahun tidak valid/i)).toBeTruthy();
-    fireEvent.click(screen.getByText(/Tutup/i));
+    // main Tanggal inputs were removed from the UI; validate the pure validator directly
+    const errors = validateFormState({ jenisPenyakit: 'X', lokasi: 'Y', tanggal: { dd: '99', mm: '13', yyyy: '1800' } });
+    expect(errors.tanggal).toBeDefined();
+    expect(errors.tanggal).toMatch(/hari|bulan|tahun|Format/i);
   });
 
   test('empty add-new jenis/lokasi does not close modal', async () => {
@@ -387,7 +413,7 @@ describe('CuratorAddDataPage', () => {
     render(<CuratorAddDataPage />);
     // open sumber modal
     fireEvent.click(screen.getByText(/Tambah Sumber/i));
-    const imgInput = screen.getByLabelText(/Image URL/i) as HTMLInputElement;
+    const imgInput = screen.getByLabelText(/URL Gambar|Image URL/i) as HTMLInputElement;
     fireEvent.change(imgInput, { target: { value: 'https://img.example.com/photo.jpg' } });
     expect(imgInput.value).toBe('https://img.example.com/photo.jpg');
     // close modal to clean up
@@ -471,7 +497,7 @@ describe('CuratorAddDataPage', () => {
     render(<CuratorAddDataPage />);
     // open modal and enter invalid url first
     fireEvent.click(screen.getByText(/Tambah Sumber/i));
-    fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'T' } });
+  fireEvent.change(screen.getByLabelText(/Judul|Title/i), { target: { value: 'T' } });
   fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: 'not-a-url' } });
     fireEvent.click(screen.getByText(/Simpan/i));
     await waitFor(() => expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeInTheDocument());
@@ -566,7 +592,7 @@ describe('CuratorAddDataPage', () => {
     render(<CuratorAddDataPage />);
     // open modal and attempt to save invalid sumber to populate errors
     fireEvent.click(screen.getByText(/Tambah Sumber/i));
-    fireEvent.change(screen.getByLabelText(/Title/i), { target: { value: 'T' } });
+  fireEvent.change(screen.getByLabelText(/Judul|Title/i), { target: { value: 'T' } });
   fireEvent.change(screen.getByLabelText(/^URL$/i), { target: { value: 'invalid-src' } });
     fireEvent.click(screen.getByText(/Simpan/i));
     await waitFor(() => expect(screen.getByText(/Masukkan sumber berita yang valid/i)).toBeInTheDocument());
