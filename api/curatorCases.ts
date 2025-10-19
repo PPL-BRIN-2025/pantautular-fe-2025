@@ -7,6 +7,28 @@ const STATIC_CASES_BASE = `${API_BASE_URL}/api/curator-feature/curator/cases`;
 
 let detectedCasesBase: string | null = null;
 
+// Dev/runtime override support:
+// - set window.__CURATOR_CASES_BASE = '<base>' to force a base at runtime (no rebuild)
+// - call window.__RESET_CURATOR_CASES_BASE() to clear the cached detected base
+function getRuntimeOverride(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    return (window as any).__CURATOR_CASES_BASE;
+  } catch {
+    return undefined;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  try {
+    // expose a small reset helper for dev testing
+    (window as any).__RESET_CURATOR_CASES_BASE = () => {
+      detectedCasesBase = null;
+      try { console.debug('[curatorCases] runtime reset detectedCasesBase'); } catch(e) {}
+    };
+  } catch (_) {}
+}
+
 async function probeCasesBase(): Promise<string> {
   if (detectedCasesBase) return detectedCasesBase;
   if (typeof window === 'undefined') {
@@ -35,12 +57,37 @@ async function probeCasesBase(): Promise<string> {
       const { ac, id } = controllerTimeout(2000);
       const res = await fetch(c + '/', { method: 'OPTIONS', credentials: 'include', signal: ac.signal });
       clearTimeout(id);
+      try { console.debug(`[curatorCases] probe ${c} -> OPTIONS ${res.status}`); } catch(e) {}
       if (res && (res.status === 200 || res.status === 204 || res.status === 401 || res.status === 403)) {
-        // OPTIONS succeeded or backend responded with auth/forbidden which still indicates path exists
-        detectedCasesBase = c;
-        return detectedCasesBase;
+        // OPTIONS succeeded or backend responded with auth/forbidden which suggests the path exists.
+        // However some backends respond to OPTIONS but return 404 for GET on the same path
+        // (e.g. when the list endpoint is not implemented or routed differently). Do a
+        // quick GET probe to ensure the base actually responds to GET (or returns auth/forbidden).
+        try {
+          const { ac: ac2, id: id2 } = controllerTimeout(2000);
+          try {
+            const g = await fetch(c + '/', { method: 'GET', credentials: 'include', signal: ac2.signal });
+            clearTimeout(id2);
+            try { console.debug(`[curatorCases] probe ${c} -> GET ${g.status}`); } catch(e) {}
+            // accept this base only if GET is present (200/204) or returns auth/forbidden (401/403)
+            if (g && (g.status === 200 || g.status === 204 || g.status === 401 || g.status === 403)) {
+              detectedCasesBase = c;
+              try { console.debug(`[curatorCases] selected base -> ${detectedCasesBase}`); } catch(e) {}
+              return detectedCasesBase;
+            }
+            // otherwise (404 etc.) continue probing other candidates
+          } catch (e) {
+            try { console.debug(`[curatorCases] GET probe ${c} -> error ${String(e)}`); } catch(e) {}
+            // ignore and continue
+          } finally {
+            try { clearTimeout(id2); } catch (_) {}
+          }
+        } catch (e) {
+          // swallow and fallback to next candidate
+        }
       }
     } catch (e) {
+      try { console.debug(`[curatorCases] probe ${c} -> error ${String(e)}`); } catch(e) {}
       // ignore and try next
     }
   }
@@ -122,6 +169,14 @@ export type CaseWritePayload = {
 
 async function resolveCasesBaseOrFallback() {
   // if already detected, return it; otherwise probe (browser-only) or fall back to static
+  // runtime override (dev): if set, use it immediately
+  const o = getRuntimeOverride();
+  if (o) {
+    try { console.debug(`[curatorCases] runtime override -> ${o}`); } catch(e) {}
+    detectedCasesBase = o;
+    return detectedCasesBase;
+  }
+
   if (detectedCasesBase) return detectedCasesBase;
   try {
     return await probeCasesBase();
@@ -132,22 +187,35 @@ async function resolveCasesBaseOrFallback() {
 
 export async function createCuratorCase(body: CaseWritePayload) {
   const base = await resolveCasesBaseOrFallback();
+  try { console.debug(`[curatorCases] POST -> ${base}/`, body); } catch(e) {}
   return request(`${base}/`, { method: "POST", body: JSON.stringify(body) });
 }
 
 export async function getCuratorCase(id: string) {
   const base = await resolveCasesBaseOrFallback();
+  try { console.debug(`[curatorCases] GET -> ${base}/${id}/`); } catch(e) {}
   return request(`${base}/${id}/`);
 }
 
 export async function updateCuratorCase(id: string, body: CaseWritePayload) {
   const base = await resolveCasesBaseOrFallback();
+  try { console.debug(`[curatorCases] PUT -> ${base}/${id}/`, body); } catch(e) {}
   return request(`${base}/${id}/`, { method: "PUT", body: JSON.stringify(body) });
 }
 
 export async function deleteCuratorCase(id: string) {
   const base = await resolveCasesBaseOrFallback();
+  try { console.debug(`[curatorCases] DELETE -> ${base}/${id}/`); } catch(e) {}
   return request(`${base}/${id}/`, { method: "DELETE" });
 }
 
 export { HttpError };
+
+// List cases (paginated or non-paginated). If `pageUrl` is provided it will be used
+// directly (useful for following `next` links returned by the API). This helper
+// uses the same `request` function so headers/credentials are consistently applied.
+export async function listCuratorCases(pageUrl?: string) {
+  const url = pageUrl ? pageUrl : `${await resolveCasesBaseOrFallback()}/`;
+  try { console.debug(`[curatorCases] LIST -> ${url}`); } catch(e) {}
+  return request<any>(url);
+}
