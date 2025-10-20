@@ -103,9 +103,9 @@ export default function CuratorDashboardPage() {
     return (
       <div className="min-h-screen bg-[#ebf3f5]">
         <Navbar />
-        <div className="flex min-h-screen items-center justify-center px-4 pt-24">
+        <main className="mx-auto max-w-3xl px-4 pb-10 pt-24">
           <AccessDeniedNotice />
-        </div>
+        </main>
       </div>
     );
   }

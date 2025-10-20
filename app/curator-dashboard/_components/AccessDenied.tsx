@@ -6,22 +6,27 @@ const LOGIN_URL = "/login?next=/curator-dashboard";
 
 export default function AccessDeniedNotice() {
   return (
-    <div className="w-full max-w-xl rounded-2xl border border-amber-200 bg-white/90 p-6 text-center shadow-md backdrop-blur-sm">
-      <h2 className="text-2xl font-semibold text-amber-900">Akses Kurator Ditolak</h2>
-      <p className="mt-3 text-sm text-amber-800">
-        Halaman ini hanya tersedia untuk admin dan kurator. Silakan kembali atau masuk dengan akun yang memiliki
-        akses.
+    <div
+      className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm"
+      role="alert"
+      aria-live="assertive"
+    >
+      <div className="text-sm font-semibold text-amber-700">Informasi Akses</div>
+  <div className="mt-2 text-2xl font-semibold text-amber-900">Akses Ditolak</div>
+      <p className="mt-2 text-sm text-amber-800">
+        Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
       </p>
-      <div className="mt-6 flex justify-center gap-3">
+      <p className="mt-2 text-xs text-amber-700/90">You do not have permission to perform this action.</p>
+      <div className="mt-4 flex gap-2">
         <Link
           href="/"
-          className="rounded-md border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-50"
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           Kembali
         </Link>
         <Link
           href={LOGIN_URL}
-          className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
+          className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
         >
           Login
         </Link>
