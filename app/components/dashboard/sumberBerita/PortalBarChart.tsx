@@ -296,6 +296,7 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
           <DownloadButton
             filename={downloadFilename}
             getTarget={() => containerRef.current}
+            canDownload={() => data.length > 0}
           />
           <button 
             className="bg-[#0069CF] text-white text-sm py-2 px-4 rounded-[10px] flex items-center font-medium"

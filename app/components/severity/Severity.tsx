@@ -277,6 +277,11 @@ const SeverityChart = ({
     }));
   }, [rawData]);
 
+  const hasData = useMemo(
+    () => transformedData.some(item => item.total_cases > 0),
+    [transformedData]
+  );
+
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -410,6 +415,7 @@ const SeverityChart = ({
           <DownloadButton
             filename={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
             getTarget={() => containerRef.current}
+            canDownload={() => hasData}
           />
           <div className="flex gap-3 items-center flex-wrap">
             {seriesConfig.map((config) => (

@@ -146,6 +146,7 @@ export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProp
           <DownloadButton
             filename="distribusi-usia"
             getTarget={() => containerRef.current}
+            canDownload={() => totalCases > 0}
           />
           <div className="flex items-center text-[#0069CF] text-xl font-bold">
             <PeopleIcon className="w-6 h-6 mr-2" />

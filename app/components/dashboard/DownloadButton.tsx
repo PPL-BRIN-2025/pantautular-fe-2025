@@ -7,9 +7,13 @@ import { exportElementAsPng } from "@/utils/exportAsImage";
 interface DownloadButtonProps {
   filename: string;
   getTarget: () => HTMLElement | null;
+  canDownload?: () => boolean;
   label?: string;
   className?: string;
   size?: "sm" | "md";
+  successMessage?: string;
+  emptyMessage?: string;
+  errorMessage?: string;
 }
 
 const baseClasses =
@@ -26,9 +30,13 @@ const ensurePngExtension = (filename: string) =>
 const DownloadButton: React.FC<DownloadButtonProps> = ({
   filename,
   getTarget,
+  canDownload,
   label = "Unduh Gambar",
   className,
-  size = "sm"
+  size = "sm",
+  successMessage = "Berhasil mengunduh visualisasi.",
+  emptyMessage = "Gagal mengunduh: data kosong.",
+  errorMessage = "Gagal mengunduh visualisasi."
 }) => {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -38,6 +46,12 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
     const target = getTarget();
     if (!target) {
       console.warn(`No element available for download: ${filename}`);
+      window.alert(errorMessage);
+      return;
+    }
+
+    if (canDownload && !canDownload()) {
+      window.alert(emptyMessage);
       return;
     }
 
@@ -51,8 +65,10 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.alert(successMessage);
     } catch (error) {
       console.error(`Failed to export ${filename} as image`, error);
+      window.alert(errorMessage);
     } finally {
       setIsExporting(false);
     }
