@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation"; 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import AccessDeniedNotice from "../components/AccessDenied";
@@ -10,14 +11,15 @@ type CuratorRow = {
   id: number;
   data_id: string;
   title: string;
-  last_edited?: string;   // snake_case (from DB)
-  lastEdited?: string;    // camelCase (from serializer)
+  last_edited?: string;
+  lastEdited?: string;
   submitted_by?: string;
   submittedBy?: string;
   note?: string;
 };
 
 export default function CuratorDataManagementPage() {
+  const router = useRouter(); 
   const { user } = useAuth();
   const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
   const role = normalizeRole(user?.role);
@@ -94,6 +96,15 @@ export default function CuratorDataManagementPage() {
     );
   }
 
+  // 🧭 redirect functions
+  const handleAddRedirect = () => {
+    router.push("/curator-add-data");
+  };
+
+  const handleEditRedirect = (id: string) => {
+    router.push(`/curator-edit-delete-data?pageId=${id}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
       <Navbar />
@@ -113,8 +124,8 @@ export default function CuratorDataManagementPage() {
             className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
           />
           <button
-            disabled
-            className="bg-[#2E8AF6] text-white px-5 py-2 rounded-lg font-medium opacity-80 cursor-default"
+            onClick={handleAddRedirect} // 🧭 redirect add
+            className="bg-[#2E8AF6] text-white px-5 py-2 rounded-lg font-medium hover:bg-[#256fd4] transition"
           >
             Tambahkan Data
           </button>
@@ -124,7 +135,6 @@ export default function CuratorDataManagementPage() {
         <div className="rounded-2xl border shadow-sm bg-white">
           <div className="overflow-x-auto">
             <div className="min-w-[980px] max-h-[70vh] overflow-y-auto rounded-2xl">
-              {/* Sticky Header */}
               <div className="sticky top-0 z-20 bg-[#2E8AF6] text-white rounded-t-2xl">
                 <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] border-b border-white/30">
                   {["Data ID", "Title", "Last Edited", "Submitted by", "Action"].map(
@@ -142,7 +152,6 @@ export default function CuratorDataManagementPage() {
                 </div>
               </div>
 
-              {/* Table body */}
               {loading ? (
                 <div className="text-center py-6 text-gray-500 text-sm">Memuat data...</div>
               ) : error ? (
@@ -162,8 +171,8 @@ export default function CuratorDataManagementPage() {
                         <div className="px-4 py-3">{r.submitted_by || r.submittedBy || "-"}</div>
                         <div className="px-4 py-3 flex justify-center">
                           <button
-                            disabled
-                            className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium opacity-80 cursor-default"
+                            onClick={() => handleEditRedirect(r.data_id)} // 🧭 redirect edit
+                            className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
                           >
                             Ubah
                           </button>
