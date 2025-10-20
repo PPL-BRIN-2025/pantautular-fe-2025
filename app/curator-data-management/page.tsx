@@ -1,38 +1,86 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
 
 type CuratorRow = {
-  id: string;
+  id: number;
+  data_id: string;
   title: string;
-  lastEdited: string;
-  submittedBy: string;
+  last_edited?: string;   // snake_case (from DB)
+  lastEdited?: string;    // camelCase (from serializer)
+  submitted_by?: string;
+  submittedBy?: string;
+  note?: string;
 };
 
-// Temporary dummy data
-const dummyData: CuratorRow[] = [
-  { id: "ID1", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORA" },
-  { id: "ID2", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORA" },
-  { id: "ID3", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORB" },
-  { id: "ID4", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORA" },
-  { id: "ID5", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORB" },
-  { id: "ID6", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORC" },
-  { id: "ID7", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORD" },
-  { id: "ID8", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORA" },
-  { id: "ID9", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORD" },
-  { id: "ID10", title: "Penyakit", lastEdited: "2025-08-30 14:32:12", submittedBy: "KURATORX" },
-];
-
 export default function CuratorDataManagementPage() {
-  // === Access control (match PBI-5 behavior) ===
   const { user } = useAuth();
   const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
   const role = normalizeRole(user?.role);
   const allowed = role === "CURATOR";
+
+  const [data, setData] = useState<CuratorRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pageSize = 8;
+
+  useEffect(() => {
+    if (!allowed) return;
+
+    const fetchLogs = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+        const params = new URLSearchParams({
+          page: page.toString(),
+          pageSize: pageSize.toString(),
+          search: search.trim(),
+          sort: "last_edited:desc",
+        });
+
+        const token = localStorage.getItem("accessToken");
+        if (!token) throw new Error("Token missing");
+
+        const headersList = [
+          { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+        ];
+
+        let res;
+        for (const headers of headersList) {
+          res = await fetch(`${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`, {
+            headers,
+          });
+          if (res.ok) break;
+        }
+
+        if (!res || !res.ok) throw new Error(`Server returned ${res?.status}`);
+
+        const json = await res.json();
+        setData(json.data ?? []);
+        setTotal(json.total ?? 0);
+      } catch (err: any) {
+        console.error("Failed to fetch audit logs:", err);
+        setError("Gagal mengambil data audit trail dari server.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLogs();
+  }, [page, search, allowed]);
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  if (page > pageCount) setPage(1);
 
   if (!user || !allowed) {
     return (
@@ -46,44 +94,22 @@ export default function CuratorDataManagementPage() {
     );
   }
 
-  // === Original page content (only visible to CURATOR) ===
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-
-  const pageSize = 8;
-
-  // Filtering logic (case-insensitive search by ID or Title)
-  const filteredData = useMemo(() => {
-    const lower = search.toLowerCase();
-    return dummyData.filter(
-      (r) => r.id.toLowerCase().includes(lower) || r.title.toLowerCase().includes(lower)
-    );
-  }, [search]);
-
-  const start = (page - 1) * pageSize;
-  const pageRows = filteredData.slice(start, start + pageSize);
-  const pageCount = Math.max(1, Math.ceil(filteredData.length / pageSize));
-
-  // Reset to page 1 when search changes
-  if (page > pageCount) setPage(1);
-
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
       <Navbar />
-
       <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
-        {/* label */}
-        <div className="text-gray-500 text-base font-medium mb-4">
-          &lt; List Data
-        </div>
+        <div className="text-gray-500 text-base font-medium mb-4">&lt; List Data</div>
 
-        {/* Search Bar + Add Button */}
+        {/* Search Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
           <input
             type="text"
             placeholder="Cari ID / Title"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
           />
           <button
@@ -116,16 +142,24 @@ export default function CuratorDataManagementPage() {
                 </div>
               </div>
 
-              {/* Table rows */}
-              <ul className="divide-y divide-gray-200">
-                {pageRows.length > 0 ? (
-                  pageRows.map((r) => (
+              {/* Table body */}
+              {loading ? (
+                <div className="text-center py-6 text-gray-500 text-sm">Memuat data...</div>
+              ) : error ? (
+                <div className="text-center py-6 text-red-500 text-sm">{error}</div>
+              ) : data.length > 0 ? (
+                <ul className="divide-y divide-gray-200">
+                  {data.map((r) => (
                     <li key={r.id} className="hover:bg-gray-50">
                       <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
-                        <div className="px-4 py-3">{r.id}</div>
+                        <div className="px-4 py-3 truncate">{r.data_id}</div>
                         <div className="px-4 py-3">{r.title}</div>
-                        <div className="px-4 py-3">{r.lastEdited}</div>
-                        <div className="px-4 py-3">{r.submittedBy}</div>
+                        <div className="px-4 py-3">
+                          {r.last_edited || r.lastEdited
+                            ? new Date(r.last_edited || r.lastEdited!).toLocaleString("id-ID")
+                            : "-"}
+                        </div>
+                        <div className="px-4 py-3">{r.submitted_by || r.submittedBy || "-"}</div>
                         <div className="px-4 py-3 flex justify-center">
                           <button
                             disabled
@@ -136,20 +170,20 @@ export default function CuratorDataManagementPage() {
                         </div>
                       </div>
                     </li>
-                  ))
-                ) : (
-                  <li className="text-center py-6 text-gray-500 text-sm">
-                    Tidak ada data yang cocok.
-                  </li>
-                )}
-              </ul>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-6 text-gray-500 text-sm">
+                  Tidak ada data yang cocok.
+                </div>
+              )}
 
               {/* Pagination */}
               <div className="flex items-center justify-between bg-white p-3 sm:p-4 sticky bottom-0 z-10 border-t border-gray-200">
                 <p className="text-xs text-gray-600">
                   Menampilkan{" "}
-                  <span className="font-medium">{pageRows.length}</span> dari{" "}
-                  <span className="font-medium">{filteredData.length}</span> data
+                  <span className="font-medium">{data.length}</span> dari{" "}
+                  <span className="font-medium">{total}</span> data
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -175,10 +209,9 @@ export default function CuratorDataManagementPage() {
           </div>
         </div>
 
-        {/* Optional source label */}
         <p className="mt-4 text-xs text-gray-500">
-          Sumber data: <code>/curator-feature/api/curator/data</code> (tabel{" "}
-          <code>curator_feature_data</code>).
+          Sumber data: <code>/curator-feature/api/curator/audit-logs/</code> (tabel{" "}
+          <code>curator_feature_datalog</code>).
         </p>
       </main>
 
