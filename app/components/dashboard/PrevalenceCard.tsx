@@ -13,6 +13,9 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
   populationCount,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasData =
+    (typeof prevalenceRate === "number" && prevalenceRate > 0) ||
+    (typeof populationCount === "number" && populationCount > 0);
   // Format the population number with commas
   let formattedPopulation = null
   /* istanbul ignore else */
@@ -31,6 +34,7 @@ const PrevalenceCard: React.FC<PrevalenceCardProps> = ({
         <DownloadButton
           filename="estimasi-prevalensi"
           getTarget={() => containerRef.current}
+          canDownload={() => hasData}
         />
       </div>
       

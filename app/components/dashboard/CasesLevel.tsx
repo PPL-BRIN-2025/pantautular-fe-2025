@@ -20,6 +20,11 @@ interface AmChartTingkatanKasusProps {
 export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTingkatanKasusProps>) {
   const chartRef = useRef(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasData =
+    !!jsonData?.data &&
+    Object.values(jsonData.data).some(
+      (entries) => Array.isArray(entries) && entries.some((item) => item.count > 0)
+    );
 
   useEffect(() => {
     if (!jsonData?.data || !chartRef.current) return;
@@ -183,6 +188,7 @@ export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTin
           <DownloadButton
             filename="tingkatan-kasus"
             getTarget={() => containerRef.current}
+            canDownload={() => hasData}
           />
           <div id="dataCount" className="text-xl font-semibold text-[#0069CF]"></div> {/* Reduced font size */}
         </div>

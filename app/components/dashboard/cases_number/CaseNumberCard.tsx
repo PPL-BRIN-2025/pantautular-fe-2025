@@ -12,6 +12,11 @@ interface CaseNumbersProps {
   
 const CaseNumberCard:  React.FC<CaseNumbersProps> = ({ jumlah_kasus, jumlah_kasus_kematian, jumlah_kasus_terjangkit, jumlah_kasus_sembuh }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasData =
+    Number(jumlah_kasus) > 0 ||
+    Number(jumlah_kasus_kematian) > 0 ||
+    Number(jumlah_kasus_terjangkit) > 0 ||
+    Number(jumlah_kasus_sembuh) > 0;
   return (
     <div ref={containerRef} className="w-full mx-auto bg-white rounded-lg shadow p-4">
       <div className="flex flex-wrap justify-between items-center gap-3">
@@ -20,6 +25,7 @@ const CaseNumberCard:  React.FC<CaseNumbersProps> = ({ jumlah_kasus, jumlah_kasu
           <DownloadButton
             filename="jumlah-kasus"
             getTarget={() => containerRef.current}
+            canDownload={() => hasData}
           />
           <div className="flex items-center text-[#0069CF] text-xl font-bold">
             <PeopleIcon className="w-6 h-6 mr-2" />
