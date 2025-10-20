@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import AccessDeniedNotice from "../components/AccessDenied";
+import { useAuth } from "../auth/hooks/useAuth";
 
 type CuratorRow = {
   id: string;
@@ -26,6 +28,25 @@ const dummyData: CuratorRow[] = [
 ];
 
 export default function CuratorDataManagementPage() {
+  // === Access control (match PBI-5 behavior) ===
+  const { user } = useAuth();
+  const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+  const role = normalizeRole(user?.role);
+  const allowed = role === "CURATOR";
+
+  if (!user || !allowed) {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <AccessDeniedNotice />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // === Original page content (only visible to CURATOR) ===
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
@@ -35,9 +56,7 @@ export default function CuratorDataManagementPage() {
   const filteredData = useMemo(() => {
     const lower = search.toLowerCase();
     return dummyData.filter(
-      (r) =>
-        r.id.toLowerCase().includes(lower) ||
-        r.title.toLowerCase().includes(lower)
+      (r) => r.id.toLowerCase().includes(lower) || r.title.toLowerCase().includes(lower)
     );
   }, [search]);
 
