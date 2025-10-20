@@ -66,7 +66,6 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   CURATOR: [
     { label: "Add Data", href: "/curator-add-data" },
     { label: "Delete Data", href: "/curator-edit-delete-data" },
-    { label: "Dashboard", href: "/dashboard" },
     { label: "Curator Dashboard", href: "/curator-dashboard" },
     { label: "Bantuan", href: "/help" },
   ],
