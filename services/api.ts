@@ -7,12 +7,14 @@ const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 export const mapApi = {
   async getLocations(): Promise<MapLocation[]> {
     try {
+      const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const response = await fetch(`${API_BASE_URL}/cases/locations/`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'x-api-key': String(API_KEY),
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
         },
         credentials: 'include',
       });
@@ -30,12 +32,14 @@ export const mapApi = {
 
   async getFilteredLocations(filters: FilterState): Promise<MapLocation[]> {
     try {
+      const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const response = await fetch(`${API_BASE_URL}/cases/locations/`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'x-api-key': String(API_KEY),
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
         },
         credentials: 'include',
         body: JSON.stringify(filters),
@@ -77,12 +81,14 @@ export const mapApi = {
 
   async getCaseDetail(caseId: string): Promise<any> {
     try {
+      const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const response = await fetch(`${API_BASE_URL}/cases/${caseId}/`, {
         method: "GET",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
           "x-api-key": String(API_KEY),
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
         },
         credentials: "include",
       });
@@ -100,14 +106,14 @@ export const mapApi = {
 
   async getProvinceData(dataType: string): Promise<ProvinceData[]> {
     try {
-      const accessToken = localStorage.getItem('accessToken');
+      const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const response = await fetch(`${API_BASE_URL}/api/province-${dataType}/`, {
         method: "GET",
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'x-api-key': String(API_KEY),
-          ...(accessToken && { 'Authorization': `Bearer ${accessToken}` })
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
         },
         credentials: "include",
       });
@@ -213,6 +219,170 @@ export const severityApi = {
   getFilteredSeverityStats: (filter: FilterState) => 
     fetchSeverityStats('/api/severity-stats/filter/', filter)
 };
+
+export const registryApi = {
+  // Fetch list of known diseases from backend. Returns array of names (strings).
+  async getDiseases(): Promise<string[]> {
+    const endpoints = [
+      `${API_BASE_URL}/api/diseases/`,
+      `${API_BASE_URL}/diseases/`,
+      `${API_BASE_URL}/cases/diseases/`,
+    ];
+    const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    for (const url of endpoints) {
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'x-api-key': String(API_KEY),
+            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+          },
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          // try next endpoint on 404 specifically
+          if (response.status === 404) continue;
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          return data.map((item: any) => (typeof item === 'string' ? item : item.name || String(item)));
+        }
+        return [];
+      } catch (error) {
+        // log and continue to try next endpoint
+        console.warn(`getDiseases: failed to fetch from ${url}:`, error);
+        continue;
+      }
+    }
+    const err = new Error('Unable to fetch diseases from known endpoints');
+    // mark the error so callers can show a friendly message when the registry endpoints don't exist
+    (err as any).endpointNotFound = true;
+    console.error('Error fetching diseases:', err);
+    throw err;
+  },
+
+  // Create a new disease entry in backend. Accepts the disease name string.
+  async createDisease(name: string): Promise<any> {
+    const endpoints = [
+      `${API_BASE_URL}/api/diseases/`,
+      `${API_BASE_URL}/diseases/`,
+      `${API_BASE_URL}/cases/diseases/`,
+    ];
+    for (const url of endpoints) {
+      try {
+        const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'x-api-key': String(API_KEY),
+            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+          },
+          credentials: 'include',
+          body: JSON.stringify({ name }),
+        });
+
+        if (!response.ok) {
+          // if 404 try next endpoint, otherwise parse error payload and throw
+          if (response.status === 404) {
+            console.warn(`createDisease: 404 at ${url}, trying alternate endpoint`);
+            continue;
+          }
+          const payload = await response.json().catch(() => ({}));
+          const errMsg = payload.detail || payload.error || `HTTP error! status: ${response.status}`;
+          const err = new Error(errMsg as string);
+          (err as any).status = response.status;
+          throw err;
+        }
+
+        const data = await response.json().catch(() => null);
+        // normalize return: if backend returns object with name, return that; if string, return it
+        if (typeof data === 'string') return { name: data };
+        if (data && typeof data === 'object') {
+          // prefer name, title, label
+          const nameVal = data.name || data.title || data.label || null;
+          return { ...data, name: nameVal || name };
+        }
+        return { name };
+      } catch (error) {
+        console.warn('createDisease attempt failed:', error);
+        // if this was the last endpoint, rethrow
+        // otherwise, try next
+        continue;
+      }
+    }
+    const err = new Error('Unable to create disease; all endpoints failed');
+    (err as any).endpointNotFound = true;
+    console.error('Error creating disease:', err);
+    throw err;
+  },
+
+  // Create a new location entry in backend. The backend endpoint used here mirrors getLocations().
+  // We send { name } and rely on backend to accept it (assumption: API supports creating locations this way).
+  // Create a new location entry in backend. Accepts the location name and optional latitude/longitude.
+  async createLocation(name: string, latitude?: number | null, longitude?: number | null): Promise<any> {
+    try {
+      const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const body: any = { name };
+      if (latitude !== undefined && latitude !== null && !Number.isNaN(Number(latitude))) body.latitude = Number(latitude);
+      if (longitude !== undefined && longitude !== null && !Number.isNaN(Number(longitude))) body.longitude = Number(longitude);
+
+      const response = await fetch(`${API_BASE_URL}/cases/locations/`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const err = new Error(payload.detail || payload.error || `HTTP error! status: ${response.status}`);
+        (err as any).status = response.status;
+        throw err;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating location:', error);
+      throw error;
+    }
+  },
+};
+
+export const logsApi = {
+  async logDownload(params: { username?: string; chartType: string; timestamp: string }) {
+    const { username, chartType, timestamp } = params;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/logs/download`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': String(API_KEY),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, chart_type: chartType, timestamp }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json().catch(() => ({}));
+    } catch (error) {
+      console.error('Error logging download event:', error);
+      // Do not rethrow; logging should not break UI flows
+      return { ok: false } as const;
+    }
+  }
+}
 
 export const emailSubmitAPI = {
   async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {

@@ -21,7 +21,11 @@ export const ProfileIcon = ({ logout }: { logout: () => void }) => {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-300 shadow-md ml-8">
+        <DropdownMenuTrigger
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-300 shadow-md ml-8"
+          aria-label="Pengaturan profil"
+          title="Pengaturan profil"
+        >
           <User className="h-6 w-6" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
@@ -51,6 +55,7 @@ const DEFAULT_ROLE_LINKS: RoleNavLink[] = [{ label: "Dashboard", href: "/dashboa
 const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ADMIN: [
     { label: "Admin Dashboard", href: "/admin-dashboard" },
+    { label: "Curator Dashboard", href: "/curator-dashboard" },
     { label: "Role Management", href: "/admin-role-management" },
     { label: "User Log", href: "/admin-user-log-menu" },
   ],
@@ -59,7 +64,9 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     { label: "Peta Sebaran", href: "/map" },
   ],
   CURATOR: [
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Add Data", href: "/curator-add-data" },
+    { label: "Delete Data", href: "/curator-edit-delete-data" },
+    { label: "Curator Dashboard", href: "/curator-dashboard" },
     { label: "Bantuan", href: "/help" },
   ],
   CONTRIBUTOR: [

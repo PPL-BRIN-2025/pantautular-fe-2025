@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import { severityApi } from "../../../services/api";
 import { FilterState } from "../../../types";
+import DownloadButton from "../dashboard/DownloadButton";
 
 interface ChartData {
   [key: string]: any;
@@ -258,6 +259,8 @@ const SeverityChart = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [rawData, setRawData] = useState<any[]>([]);
+  const rootRef = useRef<am5.Root | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const chartId = useMemo(() => {
     chartIdCounter += 1;
     return `chartdiv-${Date.now()}-${chartIdCounter}`;
@@ -273,6 +276,11 @@ const SeverityChart = ({
       total_cases: Number(item.total_cases ?? 0)
     }));
   }, [rawData]);
+
+  const hasData = useMemo(
+    () => transformedData.some(item => item.total_cases > 0),
+    [transformedData]
+  );
 
   const loadData = useCallback(async () => {
     try {
@@ -361,6 +369,7 @@ const SeverityChart = ({
     if (transformedData.length === 0) return;
 
     const root = am5.Root.new(chartId);
+    rootRef.current = root;
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
         panX: true,
@@ -394,17 +403,25 @@ const SeverityChart = ({
 
     return () => {
       root.dispose();
+      rootRef.current = null;
     };
   }, [transformedData, seriesConfig, chartId]);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex justify-between items-center">
+    <div ref={containerRef} className="bg-white rounded-lg shadow-sm p-4">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <h3 className="chart-title">{title}</h3>
-        <div className="flex gap-3">
-          {seriesConfig.map((config) => (
-            <LegendItem key={config.field} color={config.color} label={config.name} />
-          ))}
+        <div className="flex flex-wrap items-center gap-3 justify-end">
+          <DownloadButton
+            filename={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+            getTarget={() => containerRef.current}
+            canDownload={() => hasData}
+          />
+          <div className="flex gap-3 items-center flex-wrap">
+            {seriesConfig.map((config) => (
+              <LegendItem key={config.field} color={config.color} label={config.name} />
+            ))}
+          </div>
         </div>
       </div>
       {renderContent()}

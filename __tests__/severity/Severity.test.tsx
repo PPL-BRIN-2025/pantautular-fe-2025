@@ -142,7 +142,8 @@ describe("Severity Charts", () => {
     it("renders loading state initially", () => {
       render(<DiseaseSeverityChart />);
       const loadingContainer = screen.getByText((_content, element) => {
-        return element?.className?.includes('animate-spin') ?? false;
+        const className = typeof element?.getAttribute === "function" ? element.getAttribute("class") ?? "" : "";
+        return className.includes("animate-spin");
       });
       expect(loadingContainer).toHaveClass("animate-spin", "rounded-full", "h-8", "w-8", "border-b-2", "border-gray-900");
     });
@@ -155,6 +156,7 @@ describe("Severity Charts", () => {
         expect(screen.getByText("Hospitalisasi")).toBeInTheDocument();
         expect(screen.getByText("Insiden")).toBeInTheDocument();
         expect(screen.getByText("Mortalitas")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
       });
     });
 
@@ -173,7 +175,8 @@ describe("Severity Charts", () => {
     it("renders loading state initially", () => {
       render(<ProvinceSeverityChart />);
       const loadingContainer = screen.getByText((_content, element) => {
-        return element?.className?.includes('animate-spin') ?? false;
+        const className = typeof element?.getAttribute === "function" ? element.getAttribute("class") ?? "" : "";
+        return className.includes("animate-spin");
       });
       expect(loadingContainer).toHaveClass("animate-spin", "rounded-full", "h-8", "w-8", "border-b-2", "border-gray-900");
     });
@@ -186,6 +189,7 @@ describe("Severity Charts", () => {
         expect(screen.getByText("Hospitalisasi")).toBeInTheDocument();
         expect(screen.getByText("Insiden")).toBeInTheDocument();
         expect(screen.getByText("Mortalitas")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
       });
     });
 
@@ -204,7 +208,8 @@ describe("Severity Charts", () => {
     it("renders loading state initially", () => {
       render(<CitySeverityChart />);
       const loadingContainer = screen.getByText((_content, element) => {
-        return element?.className?.includes('animate-spin') ?? false;
+        const className = typeof element?.getAttribute === "function" ? element.getAttribute("class") ?? "" : "";
+        return className.includes("animate-spin");
       });
       expect(loadingContainer).toHaveClass("animate-spin", "rounded-full", "h-8", "w-8", "border-b-2", "border-gray-900");
     });
@@ -217,6 +222,7 @@ describe("Severity Charts", () => {
         expect(screen.getByText("Hospitalisasi")).toBeInTheDocument();
         expect(screen.getByText("Insiden")).toBeInTheDocument();
         expect(screen.getByText("Mortalitas")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
       });
     });
 

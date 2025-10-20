@@ -12,6 +12,7 @@ describe('PrevalenceCard', () => {
   test('renders the prevalence card with correct title', () => {
     render(<PrevalenceCard {...defaultProps} />);
     expect(screen.getByText('Estimasi Prevalensi')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unduh gambar/i })).toBeInTheDocument();
   });
 
   test('renders the heart icon', () => {

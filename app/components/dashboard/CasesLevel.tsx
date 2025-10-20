@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 import * as am5 from '@amcharts/amcharts5';
 import * as am5xy from '@amcharts/amcharts5/xy';
 import am5themes_Animated from '@amcharts/amcharts5/themes/Animated';
+import DownloadButton from "./DownloadButton";
 
 interface AmChartTingkatanKasusProps {
   jsonData: {
@@ -18,6 +19,12 @@ interface AmChartTingkatanKasusProps {
 
 export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTingkatanKasusProps>) {
   const chartRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const hasData =
+    !!jsonData?.data &&
+    Object.values(jsonData.data).some(
+      (entries) => Array.isArray(entries) && entries.some((item) => item.count > 0)
+    );
 
   useEffect(() => {
     if (!jsonData?.data || !chartRef.current) return;
@@ -174,10 +181,17 @@ export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTin
   }, [jsonData]);
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 w-full mx-auto"> {/* Reduced padding and border radius */}
-      <div className="flex justify-between items-center mb-3"> {/* Reduced margin */}
+    <div ref={containerRef} className="bg-white rounded-xl shadow-md p-4 w-full mx-auto"> {/* Reduced padding and border radius */}
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-3"> {/* Reduced margin */}
         <div className="text-xl font-semibold text-[#0069CF]">Tingkatan Kasus</div> {/* Reduced font size */}
-        <div id="dataCount" className="text-xl font-semibold text-[#0069CF]"></div> {/* Reduced font size */}
+        <div className="flex items-center gap-3">
+          <DownloadButton
+            filename="tingkatan-kasus"
+            getTarget={() => containerRef.current}
+            canDownload={() => hasData}
+          />
+          <div id="dataCount" className="text-xl font-semibold text-[#0069CF]"></div> {/* Reduced font size */}
+        </div>
       </div>
       <div ref={chartRef} data-testid="chart-container" className="w-full h-[400px]" /> {/* Reduced height */}
     </div>

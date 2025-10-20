@@ -93,10 +93,13 @@ describe("Navbar - user not logged in", () => {
 
 
 describe("Navbar - user logged in", () => {
+  let logoutSpy: jest.Mock;
+
   beforeEach(() => {
+    logoutSpy = jest.fn();
     mockUseAuth.mockReturnValue({
-      user: { name: "Test User" },
-      logout: jest.fn(),
+      user: { name: "Test User", role: "ADMIN" },
+      logout: logoutSpy,
     });
     render(
       <AuthProvider>
@@ -121,9 +124,9 @@ describe("Navbar - user logged in", () => {
 
   
   it("menampilkan PasswordSettings saat menu Pengaturan diklik", async () => {
-    const profileButton = screen.getAllByRole("button")[0];
+    const profileButton = screen.getByRole("button", { name: /pengaturan profil/i });
     fireEvent.click(profileButton);
-    fireEvent.keyDown(profileButton, { key: "ArrowDown" }); // Tambahan penting!
+    fireEvent.keyDown(profileButton, { key: "ArrowDown" });
 
     const pengaturan = await within(document.body).findByText("Pengaturan");
     fireEvent.click(pengaturan);
@@ -132,18 +135,18 @@ describe("Navbar - user logged in", () => {
   });
 
   it("memanggil logout saat menu Keluar diklik", async () => {
-    const profileButton = screen.getAllByRole("button")[0];
+    const profileButton = screen.getByRole("button", { name: /pengaturan profil/i });
     fireEvent.click(profileButton);
-    fireEvent.keyDown(profileButton, { key: "ArrowDown" }); // Tambahan penting!
+    fireEvent.keyDown(profileButton, { key: "ArrowDown" });
 
     const keluar = await within(document.body).findByText("Keluar");
     fireEvent.click(keluar);
 
-    expect(mockUseAuth.mock.results[0].value.logout).toHaveBeenCalled();
+    expect(logoutSpy).toHaveBeenCalled();
   });
 
   it("menutup PasswordSettings saat tombol close diklik", async () => {
-    const profileButton = screen.getAllByRole("button")[0];
+    const profileButton = screen.getByRole("button", { name: /pengaturan profil/i });
     fireEvent.click(profileButton);
     fireEvent.keyDown(profileButton, { key: "ArrowDown" });
 
