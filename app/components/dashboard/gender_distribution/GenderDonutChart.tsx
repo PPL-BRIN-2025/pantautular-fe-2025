@@ -14,6 +14,9 @@ interface GenderDonutChartProps {
 const GenderDonutChart: React.FC<GenderDonutChartProps> = ({ total, priaValue, wanitaValue }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const totalCount =
+    (typeof total === "number" ? total : 0) ||
+    (priaValue ?? 0) + (wanitaValue ?? 0);
   
   // Initialize the chart using our custom hook
   useDonutChart(chartRef, priaValue ?? 0, wanitaValue ?? 0);
@@ -28,6 +31,7 @@ const GenderDonutChart: React.FC<GenderDonutChartProps> = ({ total, priaValue, w
             <DownloadButton
               filename="distribusi-jenis-kelamin"
               getTarget={() => containerRef.current}
+              canDownload={() => totalCount > 0}
             />
           }
         />

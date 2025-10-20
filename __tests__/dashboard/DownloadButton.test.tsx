@@ -12,8 +12,15 @@ const { exportElementAsPng } = jest.requireMock("@/utils/exportAsImage") as {
 };
 
 describe("DownloadButton", () => {
+  let alertSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    alertSpy.mockRestore();
   });
 
   it("exports the provided element as PNG", async () => {
@@ -47,6 +54,10 @@ describe("DownloadButton", () => {
     expect(appendedAnchor?.download).toBe("sample.png");
     expect(appendedAnchor?.href).toBe("data:image/png;base64,AAA");
 
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith("Berhasil mengunduh visualisasi.");
+    });
+
     appendSpy.mockRestore();
   });
 
@@ -65,7 +76,26 @@ describe("DownloadButton", () => {
 
     expect(exportElementAsPng).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalled();
+    expect(alertSpy).toHaveBeenCalledWith("Gagal mengunduh visualisasi.");
 
     warnSpy.mockRestore();
+  });
+
+  it("shows empty data message when canDownload returns false", () => {
+    const target = document.createElement("div");
+
+    render(
+      <DownloadButton
+        filename="empty"
+        getTarget={() => target}
+        canDownload={() => false}
+        label="Unduh Kosong"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /unduh kosong/i }));
+
+    expect(exportElementAsPng).not.toHaveBeenCalled();
+    expect(alertSpy).toHaveBeenCalledWith("Gagal mengunduh: data kosong.");
   });
 });
