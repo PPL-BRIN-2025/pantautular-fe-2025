@@ -48,7 +48,7 @@ describe("CuratorDashboardPage", () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it("shows access denied for non curator or admin roles", async () => {
+  it("shows access denied card with admin-style messaging for non-curator roles", async () => {
     mockUseAuth.mockReturnValue({
       user: { id: 3, email: "exp@mail.com", name: "Explorer", role: "EXP_USER" },
       logout: jest.fn(),
@@ -56,7 +56,14 @@ describe("CuratorDashboardPage", () => {
 
     render(<CuratorDashboardPage />);
 
-    expect(await screen.findByText(/Akses Kurator Ditolak/i)).toBeInTheDocument();
+    expect(await screen.findByText("Informasi Akses")).toBeInTheDocument();
+    expect(screen.getByText("Akses Ditolak")).toBeInTheDocument();
+    expect(
+      screen.getByText("Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.")
+    ).toBeInTheDocument();
+    expect(screen.getByText("You do not have permission to perform this action.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Kembali" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Login" })).toHaveAttribute("href", "/login?next=/curator-dashboard");
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
