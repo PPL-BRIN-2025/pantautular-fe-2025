@@ -32,7 +32,7 @@ function useDebouncedValue<T>(value: T, delay = 350) {
 
 export default function CuratorDataManagementPage() {
   const router = useRouter();
-  const { user, getAccessToken } = useAuth(); 
+  const { user, getAccessToken } = useAuth();
   const allowed = normalizeRole(user?.role) === "CURATOR";
 
   const [data, setData] = useState<CuratorRow[]>([]);
@@ -78,7 +78,6 @@ export default function CuratorDataManagementPage() {
           token = window.localStorage.getItem("accessToken");
         }
 
-
         const url = `${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`;
 
         let res: Response | undefined;
@@ -105,12 +104,11 @@ export default function CuratorDataManagementPage() {
             if (r.ok || r.status === 401 || r.status === 403) break;
           }
         } else {
-          // Cookie session path
           const r = await fetch(url, {
             method: "GET",
             mode: "cors",
             cache: "no-store",
-            credentials: "include", 
+            credentials: "include",
             signal: ac.signal,
           });
           bodyText = await r.clone().text();
@@ -124,7 +122,9 @@ export default function CuratorDataManagementPage() {
 
         if (res.status === 401) {
           if (typeof window !== "undefined") {
-            try { window.localStorage.removeItem("accessToken"); } catch {}
+            try {
+              window.localStorage.removeItem("accessToken");
+            } catch {}
           }
           setData([]);
           setTotal(0);
@@ -153,7 +153,9 @@ export default function CuratorDataManagementPage() {
 
     fetchLogs();
     return () => ac.abort();
-  }, [allowed, API_BASE, page, pageSize, search, router, getAccessToken]);
+    // NOTE: do not include API_BASE in deps; it's a constant import.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowed, page, pageSize, search, router, getAccessToken]);
 
   // redirects
   const goAdd = () => router.push("/curator-add-data");
@@ -245,7 +247,7 @@ export default function CuratorDataManagementPage() {
                               onClick={() => goEdit(r.data_id)}
                               className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
                             >
-                              Ubah
+                              View
                             </button>
                           </div>
                         </div>
