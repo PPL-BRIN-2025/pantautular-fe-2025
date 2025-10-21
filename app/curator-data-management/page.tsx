@@ -43,7 +43,7 @@ export default function CuratorDataManagementPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pageSize = 8;
+  const pageSize = 10;
 
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
   const firstClamp = useRef(true);
@@ -177,13 +177,13 @@ export default function CuratorDataManagementPage() {
       <Navbar />
 
       <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
-        <div className="text-gray-500 text-base font-medium mb-4">&lt; List Data</div>
+        <div className="text-gray-500 text-base font-medium mb-4">&lt; Daftar Data</div>
 
         {/* Search + Add */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
           <input
             type="text"
-            placeholder="Cari ID / Title"
+            placeholder="Cari ID / Judul"
             value={rawSearch}
             onChange={(e) => {
               setRawSearch(e.target.value);
@@ -206,7 +206,7 @@ export default function CuratorDataManagementPage() {
               {/* Header */}
               <div className="sticky top-0 z-20 bg-[#2E8AF6] text-white rounded-t-2xl">
                 <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] border-b border-white/30">
-                  {["Data ID", "Title", "Last Edited", "Submitted by", "Action"].map(
+                  {["ID Data", "Judul", "Terakhir Diubah", "Dikumpulkan Oleh", "Aksi"].map(
                     (label, idx) => (
                       <div
                         key={label}
@@ -233,8 +233,8 @@ export default function CuratorDataManagementPage() {
                     const who = r.submitted_by || r.submittedBy || "-";
                     return (
                       <li key={r.data_id} className="hover:bg-gray-50">
-                        <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
-                          <div className="px-4 py-3 truncate">{r.data_id}</div>
+                        <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">     
+                          <div className="px-4 py-3 break-words">{r.data_id}</div>
                           <div className="px-4 py-3">{r.title}</div>
                           <div className="px-4 py-3">
                             {when ? new Date(when).toLocaleString("id-ID") : "-"}
