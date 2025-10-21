@@ -18,6 +18,14 @@ type CuratorRow = {
   note?: string;
 };
 
+const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 export default function CuratorDataManagementPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -26,7 +34,7 @@ export default function CuratorDataManagementPage() {
     process.env.NEXT_PUBLIC_API_URL ??
     "https://royal-rahel-nayaka-cbe367a7.koyeb.app";
 
-  const allowed = (user?.role ?? "").toString().trim().toUpperCase() === "CURATOR";
+  const allowed = normalizeRole(user?.role) === "CURATOR";
 
   const [data, setData] = useState<CuratorRow[]>([]);
   const [page, setPage] = useState(1);
@@ -34,6 +42,7 @@ export default function CuratorDataManagementPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const pageSize = 8;
 
   // clamp page when total changes
@@ -48,7 +57,7 @@ export default function CuratorDataManagementPage() {
   useEffect(() => {
     if (!allowed) return;
 
-    const run = async () => {
+    const fetchLogs = async () => {
       setLoading(true);
       setError(null);
       try {
@@ -59,47 +68,79 @@ export default function CuratorDataManagementPage() {
           sort: "last_edited:desc",
         });
 
-        const token =
+        // pull token from localStorage, then cookie (mirrors dashboard resilience)
+        const lsToken =
           typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        const ckToken = readCookie("accessToken");
+        const token = lsToken || ckToken;
         if (!token) throw new Error("Token missing");
 
-        const res = await fetch(
-          `${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+        // Try Bearer, then Token (DRF setups differ)
+        const headersVariants: HeadersInit[] = [
+          { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+        ];
+
+        let res: Response | undefined;
+        let bodyText = "";
+        for (const headers of headersVariants) {
+          res = await fetch(
+            `${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`,
+            {
+              // CORS-friendly defaults; BE should allow this origin
+              method: "GET",
+              mode: "cors",
+              cache: "no-store",
+              headers,
+            }
+          );
+          bodyText = await res.clone().text(); // so we can log and still parse later
+          // Debug in dev only
+          if (process.env.NODE_ENV !== "production") {
+            console.log("🔎 audit-logs response:", res.status, bodyText);
           }
-        );
+          if (res.ok) break; // success, stop trying
+          // If 401 on first attempt, try second header variant
+          if (res.status !== 401) break; // if it's another error, don't keep trying
+        }
+
+        if (!res) throw new Error("No response");
 
         if (res.status === 401) {
-          localStorage.removeItem("accessToken");
+          // invalidate local session and bounce to login (like your dashboard flow)
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("accessToken");
+          }
           setData([]);
           setTotal(0);
           setError("Sesi berakhir. Silakan login ulang.");
+          const nextParam = encodeURIComponent("/curator-data-management");
+          // optional redirect:
+          router.replace(`/login?next=${nextParam}`);
           return;
         }
 
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        if (!res.ok) {
+          throw new Error(`Server returned ${res.status}: ${bodyText || "Unknown error"}`);
+        }
 
-        const json = await res.json();
+        const json = JSON.parse(bodyText || "{}");
         setData(Array.isArray(json?.data) ? json.data : []);
         setTotal(Number(json?.total ?? 0));
       } catch (e) {
-        console.error(e);
+        console.error("Fetch audit logs failed:", e);
         setError("Gagal mengambil data audit trail dari server.");
       } finally {
         setLoading(false);
       }
     };
 
-    run();
-  }, [allowed, API_BASE, page, pageSize, search]);
+    fetchLogs();
+  }, [allowed, API_BASE, page, pageSize, search, router]);
 
   // redirects
   const goAdd = () => router.push("/curator-add-data");
-  const goEdit = (id: string) => router.push(`/curator-edit-delete-data?pageId=${id}`);
+  const goEdit = (id: string) => router.push(`/curator-edit-delete-data?id=${id}`);
 
   // guard
   if (!user || !allowed) {
@@ -184,7 +225,7 @@ export default function CuratorDataManagementPage() {
                           <div className="px-4 py-3">{who}</div>
                           <div className="px-4 py-3 flex justify-center">
                             <button
-                              onClick={() => goEdit(r.data_id)}
+                              onClick={() => goEdit(r.data_id)} // redirect by data_id
                               className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
                             >
                               Ubah
