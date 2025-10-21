@@ -174,7 +174,7 @@ export default function CuratorDataManagementPage() {
                             onClick={() => handleEditRedirect(r.data_id)} // 🧭 redirect edit
                             className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
                           >
-                            Ubah
+                            View
                           </button>
                         </div>
                       </div>
