@@ -289,45 +289,46 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
     : "250px";
 
   return (
-    <div ref={containerRef} className="w-full bg-white rounded-lg shadow p-4">
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
-      <h3 className="text-xl font-semibold text-[#0069CF]">{title}</h3>
-        <div className="flex gap-2 flex-wrap items-center">
-          <DownloadButton
-            filename={downloadFilename}
-            getTarget={() => containerRef.current}
-            canDownload={() => data.length > 0}
-          />
-          <button 
-            className="bg-[#0069CF] text-white text-sm py-2 px-4 rounded-[10px] flex items-center font-medium"
-            onClick={() => onViewDetails ? onViewDetails(title, detailData) : console.log(`View details for ${title}`)}
+    <div className="relative w-full pt-10">
+      <div className="absolute right-0 top-0 flex gap-2">
+        <DownloadButton
+          filename={downloadFilename}
+          getTarget={() => containerRef.current}
+          canDownload={() => data.length > 0}
+        />
+        <button 
+          className="bg-[#0069CF] text-white text-sm py-2 px-4 rounded-[10px] flex items-center font-medium"
+          onClick={() => onViewDetails ? onViewDetails(title, detailData) : console.log(`View details for ${title}`)}
+        >
+          <span>Lihat Detail</span>
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="h-4 w-4 ml-1.5" 
+            viewBox="0 0 20 20" 
+            fill="currentColor"
           >
-            <span>Lihat Detail</span>
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="h-4 w-4 ml-1.5" 
-              viewBox="0 0 20 20" 
-              fill="currentColor"
-            >
-              <path 
-                fillRule="evenodd" 
-                d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" 
-                clipRule="evenodd" 
-              />
-            </svg>
-          </button>
-        </div>
+            <path 
+              fillRule="evenodd" 
+              d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" 
+              clipRule="evenodd" 
+            />
+          </svg>
+        </button>
       </div>
-      
-      {data.length > 0 ? (
-        <div ref={chartRef} className="w-full" style={{ height: chartHeight }}></div>
-      ) : (
-        <div className="w-full h-[250px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
-          <div className="text-center">
-            <p className="text-base font-medium">Tidak ada data yang sesuai</p>
-          </div>
+      <div ref={containerRef} className="w-full bg-white rounded-lg shadow p-4">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+          <h3 className="text-xl font-semibold text-[#0069CF]">{title}</h3>
         </div>
-      )}
+        {data.length > 0 ? (
+          <div ref={chartRef} className="w-full" style={{ height: chartHeight }}></div>
+        ) : (
+          <div className="w-full h-[250px] flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <p className="text-base font-medium">Tidak ada data yang sesuai</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

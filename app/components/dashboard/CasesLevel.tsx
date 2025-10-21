@@ -181,19 +181,21 @@ export default function AmChartTingkatanKasus ({ jsonData }: Readonly<AmChartTin
   }, [jsonData]);
 
   return (
-    <div ref={containerRef} className="bg-white rounded-xl shadow-md p-4 w-full mx-auto"> {/* Reduced padding and border radius */}
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-3"> {/* Reduced margin */}
-        <div className="text-xl font-semibold text-[#0069CF]">Tingkatan Kasus</div> {/* Reduced font size */}
-        <div className="flex items-center gap-3">
-          <DownloadButton
-            filename="tingkatan-kasus"
-            getTarget={() => containerRef.current}
-            canDownload={() => hasData}
-          />
+    <div className="relative w-full pt-8">
+      <div className="absolute right-0 top-0 flex gap-2">
+        <DownloadButton
+          filename="tingkatan-kasus"
+          getTarget={() => containerRef.current}
+          canDownload={() => hasData}
+        />
+      </div>
+      <div ref={containerRef} className="bg-white rounded-xl shadow-md p-4 w-full mx-auto"> {/* Reduced padding and border radius */}
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-3"> {/* Reduced margin */}
+          <div className="text-xl font-semibold text-[#0069CF]">Tingkatan Kasus</div> {/* Reduced font size */}
           <div id="dataCount" className="text-xl font-semibold text-[#0069CF]"></div> {/* Reduced font size */}
         </div>
+        <div ref={chartRef} data-testid="chart-container" className="w-full h-[400px]" /> {/* Reduced height */}
       </div>
-      <div ref={chartRef} data-testid="chart-container" className="w-full h-[400px]" /> {/* Reduced height */}
     </div>
   );
 }

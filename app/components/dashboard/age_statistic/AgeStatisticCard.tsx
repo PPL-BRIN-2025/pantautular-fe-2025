@@ -139,22 +139,24 @@ export default function AgeStatisticCard({ data }: Readonly<AgeStatisticCardProp
   }, [data]);
 
   return (
-    <div ref={containerRef} className="w-full h-96 bg-white rounded-lg shadow p-4">
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-2">
-        <h3 className="text-xl font-semibold text-[#0069CF]">Usia</h3>
-        <div className="flex items-center gap-3">
-          <DownloadButton
-            filename="distribusi-usia"
-            getTarget={() => containerRef.current}
-            canDownload={() => totalCases > 0}
-          />
+    <div className="relative w-full pt-10">
+      <div className="absolute right-0 top-0 flex gap-2">
+        <DownloadButton
+          filename="distribusi-usia"
+          getTarget={() => containerRef.current}
+          canDownload={() => totalCases > 0}
+        />
+      </div>
+      <div ref={containerRef} className="w-full h-96 bg-white rounded-lg shadow p-4">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-2">
+          <h3 className="text-xl font-semibold text-[#0069CF]">Usia</h3>
           <div className="flex items-center text-[#0069CF] text-xl font-bold">
             <PeopleIcon className="w-6 h-6 mr-2" />
             {totalCases ? new Intl.NumberFormat('de-DE').format(totalCases) : 0}
           </div>
         </div>
+        <div ref={chartRef} data-testid="chart-container" className="w-full h-[85%]" />
       </div>
-      <div ref={chartRef} data-testid="chart-container" className="w-full h-[85%]" />
     </div>
   );
 }
