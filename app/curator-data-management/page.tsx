@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; 
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
+import { API_BASE } from "../../config";
 
 type CuratorRow = {
-  id: number;
+  id?: number;
   data_id: string;
   title: string;
   last_edited?: string;
@@ -18,60 +19,132 @@ type CuratorRow = {
   note?: string;
 };
 
+const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+
+function useDebouncedValue<T>(value: T, delay = 350) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return v;
+}
+
 export default function CuratorDataManagementPage() {
-  const router = useRouter(); 
-  const { user } = useAuth();
-  const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
-  const role = normalizeRole(user?.role);
-  const allowed = role === "CURATOR";
+  const router = useRouter();
+  const { user, getAccessToken } = useAuth();
+  const allowed = normalizeRole(user?.role) === "CURATOR";
 
   const [data, setData] = useState<CuratorRow[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState("");
+  const [rawSearch, setRawSearch] = useState("");
+  const search = useDebouncedValue(rawSearch, 350);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pageSize = 8;
 
+  const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
+  const firstClamp = useRef(true);
+  useEffect(() => {
+    if (!firstClamp.current && page > pageCount) setPage(pageCount);
+    firstClamp.current = false;
+  }, [pageCount, page]);
+
   useEffect(() => {
     if (!allowed) return;
+
+    const ac = new AbortController();
 
     const fetchLogs = async () => {
       setLoading(true);
       setError(null);
       try {
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
         const params = new URLSearchParams({
-          page: page.toString(),
-          pageSize: pageSize.toString(),
+          page: String(page),
+          pageSize: String(pageSize),
           search: search.trim(),
           sort: "last_edited:desc",
         });
 
-        const token = localStorage.getItem("accessToken");
-        if (!token) throw new Error("Token missing");
-
-        const headersList = [
-          { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          { Authorization: `Token ${token}`, "Content-Type": "application/json" },
-        ];
-
-        let res;
-        for (const headers of headersList) {
-          res = await fetch(`${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`, {
-            headers,
-          });
-          if (res.ok) break;
+        let token: string | null = null;
+        try {
+          token = typeof getAccessToken === "function" ? await getAccessToken() : null;
+        } catch {
+          token = null;
+        }
+        if (!token && typeof window !== "undefined") {
+          token = window.localStorage.getItem("accessToken");
         }
 
-        if (!res || !res.ok) throw new Error(`Server returned ${res?.status}`);
+        const url = `${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`;
 
-        const json = await res.json();
-        setData(json.data ?? []);
-        setTotal(json.total ?? 0);
-      } catch (err: any) {
-        console.error("Failed to fetch audit logs:", err);
+        let res: Response | undefined;
+        let bodyText = "";
+
+        if (token) {
+          const headerVariants: HeadersInit[] = [
+            { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+          ];
+          for (const headers of headerVariants) {
+            const r = await fetch(url, {
+              method: "GET",
+              mode: "cors",
+              cache: "no-store",
+              headers,
+              signal: ac.signal,
+            });
+            bodyText = await r.clone().text();
+            if (process.env.NODE_ENV !== "production") {
+              console.log("🔎 audit-logs(Authorization) ->", r.status, bodyText);
+            }
+            res = r;
+            if (r.ok || r.status === 401 || r.status === 403) break;
+          }
+        } else {
+          const r = await fetch(url, {
+            method: "GET",
+            mode: "cors",
+            cache: "no-store",
+            credentials: "include",
+            signal: ac.signal,
+          });
+          bodyText = await r.clone().text();
+          if (process.env.NODE_ENV !== "production") {
+            console.log("🔎 audit-logs(cookie) ->", r.status, bodyText);
+          }
+          res = r;
+        }
+
+        if (!res) throw new Error("No response");
+
+        if (res.status === 401) {
+          if (typeof window !== "undefined") {
+            try {
+              window.localStorage.removeItem("accessToken");
+            } catch {}
+          }
+          setData([]);
+          setTotal(0);
+          setError("Sesi berakhir. Silakan login ulang.");
+          const nextParam = encodeURIComponent("/curator-data-management");
+          router.replace(`/login?next=${nextParam}`);
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(`Server returned ${res.status}: ${bodyText || "Unknown error"}`);
+        }
+
+        const json = bodyText ? JSON.parse(bodyText) : {};
+        const rows = Array.isArray(json?.data) ? (json.data as CuratorRow[]) : [];
+        setData(rows);
+        setTotal(Number(json?.total ?? rows.length ?? 0));
+      } catch (e) {
+        if ((e as any)?.name === "AbortError") return;
+        console.error("Fetch audit logs failed:", e);
         setError("Gagal mengambil data audit trail dari server.");
       } finally {
         setLoading(false);
@@ -79,11 +152,16 @@ export default function CuratorDataManagementPage() {
     };
 
     fetchLogs();
-  }, [page, search, allowed]);
+    return () => ac.abort();
+    // NOTE: do not include API_BASE in deps; it's a constant import.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowed, page, pageSize, search, router, getAccessToken]);
 
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  if (page > pageCount) setPage(1);
+  // redirects
+  const goAdd = () => router.push("/curator-add-data");
+  const goEdit = (id: string) => router.push(`/curator-edit-delete-data?id=${id}`);
 
+  // guard
   if (!user || !allowed) {
     return (
       <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
@@ -96,45 +174,38 @@ export default function CuratorDataManagementPage() {
     );
   }
 
-  // 🧭 redirect functions
-  const handleAddRedirect = () => {
-    router.push("/curator-add-data");
-  };
-
-  const handleEditRedirect = (id: string) => {
-    router.push(`/curator-edit-delete-data?pageId=${id}`);
-  };
-
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
       <Navbar />
+
       <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
         <div className="text-gray-500 text-base font-medium mb-4">&lt; List Data</div>
 
-        {/* Search Bar */}
+        {/* Search + Add */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
           <input
             type="text"
             placeholder="Cari ID / Title"
-            value={search}
+            value={rawSearch}
             onChange={(e) => {
-              setSearch(e.target.value);
+              setRawSearch(e.target.value);
               setPage(1);
             }}
             className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
           />
           <button
-            onClick={handleAddRedirect} // 🧭 redirect add
+            onClick={goAdd}
             className="bg-[#2E8AF6] text-white px-5 py-2 rounded-lg font-medium hover:bg-[#256fd4] transition"
           >
             Tambahkan Data
           </button>
         </div>
 
-        {/* Table container */}
+        {/* Table */}
         <div className="rounded-2xl border shadow-sm bg-white">
           <div className="overflow-x-auto">
             <div className="min-w-[980px] max-h-[70vh] overflow-y-auto rounded-2xl">
+              {/* Header */}
               <div className="sticky top-0 z-20 bg-[#2E8AF6] text-white rounded-t-2xl">
                 <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] border-b border-white/30">
                   {["Data ID", "Title", "Last Edited", "Submitted by", "Action"].map(
@@ -152,34 +223,37 @@ export default function CuratorDataManagementPage() {
                 </div>
               </div>
 
+              {/* Body */}
               {loading ? (
                 <div className="text-center py-6 text-gray-500 text-sm">Memuat data...</div>
               ) : error ? (
                 <div className="text-center py-6 text-red-500 text-sm">{error}</div>
               ) : data.length > 0 ? (
                 <ul className="divide-y divide-gray-200">
-                  {data.map((r) => (
-                    <li key={r.id} className="hover:bg-gray-50">
-                      <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
-                        <div className="px-4 py-3 truncate">{r.data_id}</div>
-                        <div className="px-4 py-3">{r.title}</div>
-                        <div className="px-4 py-3">
-                          {r.last_edited || r.lastEdited
-                            ? new Date(r.last_edited || r.lastEdited!).toLocaleString("id-ID")
-                            : "-"}
+                  {data.map((r) => {
+                    const when = r.last_edited || r.lastEdited;
+                    const who = r.submitted_by || r.submittedBy || "-";
+                    return (
+                      <li key={r.data_id} className="hover:bg-gray-50">
+                        <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
+                          <div className="px-4 py-3 truncate">{r.data_id}</div>
+                          <div className="px-4 py-3">{r.title}</div>
+                          <div className="px-4 py-3">
+                            {when ? new Date(when).toLocaleString("id-ID") : "-"}
+                          </div>
+                          <div className="px-4 py-3">{who}</div>
+                          <div className="px-4 py-3 flex justify-center">
+                            <button
+                              onClick={() => goEdit(r.data_id)}
+                              className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
+                            >
+                              View
+                            </button>
+                          </div>
                         </div>
-                        <div className="px-4 py-3">{r.submitted_by || r.submittedBy || "-"}</div>
-                        <div className="px-4 py-3 flex justify-center">
-                          <button
-                            onClick={() => handleEditRedirect(r.data_id)} // 🧭 redirect edit
-                            className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
-                          >
-                            View
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <div className="text-center py-6 text-gray-500 text-sm">
@@ -190,8 +264,7 @@ export default function CuratorDataManagementPage() {
               {/* Pagination */}
               <div className="flex items-center justify-between bg-white p-3 sm:p-4 sticky bottom-0 z-10 border-t border-gray-200">
                 <p className="text-xs text-gray-600">
-                  Menampilkan{" "}
-                  <span className="font-medium">{data.length}</span> dari{" "}
+                  Menampilkan <span className="font-medium">{data.length}</span> dari{" "}
                   <span className="font-medium">{total}</span> data
                 </p>
                 <div className="flex items-center gap-2">
