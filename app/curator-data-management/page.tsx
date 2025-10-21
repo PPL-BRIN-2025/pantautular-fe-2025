@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
+import { API_BASE } from "../../config";
 
 type CuratorRow = {
   id?: number;
@@ -20,32 +21,30 @@ type CuratorRow = {
 
 const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
 
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return m ? decodeURIComponent(m[1]) : null;
+function useDebouncedValue<T>(value: T, delay = 350) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return v;
 }
 
 export default function CuratorDataManagementPage() {
   const router = useRouter();
-  const { user } = useAuth();
-
-  const API_BASE =
-    process.env.NEXT_PUBLIC_API_URL ??
-    "https://royal-rahel-nayaka-cbe367a7.koyeb.app";
-
+  const { user, getAccessToken } = useAuth(); 
   const allowed = normalizeRole(user?.role) === "CURATOR";
 
   const [data, setData] = useState<CuratorRow[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState("");
+  const [rawSearch, setRawSearch] = useState("");
+  const search = useDebouncedValue(rawSearch, 350);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pageSize = 8;
 
-  // clamp page when total changes
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
   const firstClamp = useRef(true);
   useEffect(() => {
@@ -53,9 +52,10 @@ export default function CuratorDataManagementPage() {
     firstClamp.current = false;
   }, [pageCount, page]);
 
-  // fetcher
   useEffect(() => {
     if (!allowed) return;
+
+    const ac = new AbortController();
 
     const fetchLogs = async () => {
       setLoading(true);
@@ -68,54 +68,68 @@ export default function CuratorDataManagementPage() {
           sort: "last_edited:desc",
         });
 
-        // pull token from localStorage, then cookie (mirrors dashboard resilience)
-        const lsToken =
-          typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-        const ckToken = readCookie("accessToken");
-        const token = lsToken || ckToken;
-        if (!token) throw new Error("Token missing");
+        let token: string | null = null;
+        try {
+          token = typeof getAccessToken === "function" ? await getAccessToken() : null;
+        } catch {
+          token = null;
+        }
+        if (!token && typeof window !== "undefined") {
+          token = window.localStorage.getItem("accessToken");
+        }
 
-        // Try Bearer, then Token (DRF setups differ)
-        const headersVariants: HeadersInit[] = [
-          { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          { Authorization: `Token ${token}`, "Content-Type": "application/json" },
-        ];
+
+        const url = `${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`;
 
         let res: Response | undefined;
         let bodyText = "";
-        for (const headers of headersVariants) {
-          res = await fetch(
-            `${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`,
-            {
-              // CORS-friendly defaults; BE should allow this origin
+
+        if (token) {
+          const headerVariants: HeadersInit[] = [
+            { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+          ];
+          for (const headers of headerVariants) {
+            const r = await fetch(url, {
               method: "GET",
               mode: "cors",
               cache: "no-store",
               headers,
+              signal: ac.signal,
+            });
+            bodyText = await r.clone().text();
+            if (process.env.NODE_ENV !== "production") {
+              console.log("🔎 audit-logs(Authorization) ->", r.status, bodyText);
             }
-          );
-          bodyText = await res.clone().text(); // so we can log and still parse later
-          // Debug in dev only
-          if (process.env.NODE_ENV !== "production") {
-            console.log("🔎 audit-logs response:", res.status, bodyText);
+            res = r;
+            if (r.ok || r.status === 401 || r.status === 403) break;
           }
-          if (res.ok) break; // success, stop trying
-          // If 401 on first attempt, try second header variant
-          if (res.status !== 401) break; // if it's another error, don't keep trying
+        } else {
+          // Cookie session path
+          const r = await fetch(url, {
+            method: "GET",
+            mode: "cors",
+            cache: "no-store",
+            credentials: "include", 
+            signal: ac.signal,
+          });
+          bodyText = await r.clone().text();
+          if (process.env.NODE_ENV !== "production") {
+            console.log("🔎 audit-logs(cookie) ->", r.status, bodyText);
+          }
+          res = r;
         }
 
         if (!res) throw new Error("No response");
 
         if (res.status === 401) {
-          // invalidate local session and bounce to login (like your dashboard flow)
           if (typeof window !== "undefined") {
-            localStorage.removeItem("accessToken");
+            try { window.localStorage.removeItem("accessToken"); } catch {}
           }
           setData([]);
           setTotal(0);
           setError("Sesi berakhir. Silakan login ulang.");
           const nextParam = encodeURIComponent("/curator-data-management");
-          // optional redirect:
           router.replace(`/login?next=${nextParam}`);
           return;
         }
@@ -124,10 +138,12 @@ export default function CuratorDataManagementPage() {
           throw new Error(`Server returned ${res.status}: ${bodyText || "Unknown error"}`);
         }
 
-        const json = JSON.parse(bodyText || "{}");
-        setData(Array.isArray(json?.data) ? json.data : []);
-        setTotal(Number(json?.total ?? 0));
+        const json = bodyText ? JSON.parse(bodyText) : {};
+        const rows = Array.isArray(json?.data) ? (json.data as CuratorRow[]) : [];
+        setData(rows);
+        setTotal(Number(json?.total ?? rows.length ?? 0));
       } catch (e) {
+        if ((e as any)?.name === "AbortError") return;
         console.error("Fetch audit logs failed:", e);
         setError("Gagal mengambil data audit trail dari server.");
       } finally {
@@ -136,7 +152,8 @@ export default function CuratorDataManagementPage() {
     };
 
     fetchLogs();
-  }, [allowed, API_BASE, page, pageSize, search, router]);
+    return () => ac.abort();
+  }, [allowed, API_BASE, page, pageSize, search, router, getAccessToken]);
 
   // redirects
   const goAdd = () => router.push("/curator-add-data");
@@ -167,9 +184,9 @@ export default function CuratorDataManagementPage() {
           <input
             type="text"
             placeholder="Cari ID / Title"
-            value={search}
+            value={rawSearch}
             onChange={(e) => {
-              setSearch(e.target.value);
+              setRawSearch(e.target.value);
               setPage(1);
             }}
             className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
@@ -225,7 +242,7 @@ export default function CuratorDataManagementPage() {
                           <div className="px-4 py-3">{who}</div>
                           <div className="px-4 py-3 flex justify-center">
                             <button
-                              onClick={() => goEdit(r.data_id)} // redirect by data_id
+                              onClick={() => goEdit(r.data_id)}
                               className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
                             >
                               Ubah
