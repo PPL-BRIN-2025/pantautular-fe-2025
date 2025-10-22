@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
 import Navbar from "../components/Navbar";
@@ -49,6 +50,16 @@ export function validateFormState(input: {
 /* istanbul ignore next */
 export default function CuratorAddDataPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (user === null || user === undefined)) {
+      try {
+        router.push('/login');
+      } catch (e) {
+        window.location.href = '/login';
+      }
+    }
+  }, [user, router]);
   const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
   const role = normalizeRole(user?.role);
   const allowed = role === "CURATOR";

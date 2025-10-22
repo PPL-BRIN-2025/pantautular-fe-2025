@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import { API_BASE } from '../../config';
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -11,6 +12,18 @@ const BLUE = "#0069cf";
 
 export default function CuratorEditDeleteDataPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  // redirect to login when not authenticated
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (user === null || user === undefined)) {
+      try {
+        router.push('/login');
+      } catch (e) {
+        // fallback to direct location assignment
+        window.location.href = '/login';
+      }
+    }
+  }, [user, router]);
   const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
   const role = normalizeRole(user?.role);
   // only CURATOR role allowed for this page
@@ -167,7 +180,11 @@ export default function CuratorEditDeleteDataPage() {
     let mounted = true;
     (async () => {
       try {
-        const svc = await import('../../services/api');
+        // prefer injected services during tests to avoid real network probes
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        const injectedServices = typeof global !== 'undefined' ? (global as any).__TEST_INJECT_SERVICES__ : undefined;
+        const svc = injectedServices ?? await import('../../services/api');
         if (!mounted) return;
         try {
           if ((svc.registryApi as any) && typeof (svc.registryApi as any).getDiseases === 'function') {
@@ -222,9 +239,13 @@ export default function CuratorEditDeleteDataPage() {
       setAddJenisFeedback({ status: 'error', msg: `Jenis penyakit \"${name}\" sudah ada.` });
       return;
     }
-    (async () => {
+        (async () => {
       try {
-        const svc = await import('../../services/api');
+        // prefer injected services during tests
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        const injectedServices = typeof global !== 'undefined' ? (global as any).__TEST_INJECT_SERVICES__ : undefined;
+        const svc = injectedServices ?? await import('../../services/api');
         if (svc.registryApi && typeof svc.registryApi.createDisease === 'function') {
           const created = await svc.registryApi.createDisease(name);
           const createdName = created && (created.name || created.title || created.label) ? (created.name || created.title || created.label) : name;
@@ -260,9 +281,13 @@ export default function CuratorEditDeleteDataPage() {
       setAddLokasiFeedback({ status: 'error', msg: `Lokasi \"${name}\" sudah ada.` });
       return;
     }
-    (async () => {
+        (async () => {
       try {
-        const svc = await import('../../services/api');
+        // prefer injected services during tests
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        const injectedServices = typeof global !== 'undefined' ? (global as any).__TEST_INJECT_SERVICES__ : undefined;
+        const svc = injectedServices ?? await import('../../services/api');
         const lat = newLokasiLat ? Number(newLokasiLat) : undefined;
         const lng = newLokasiLng ? Number(newLokasiLng) : undefined;
         if (newLokasiLat && Number.isNaN(lat)) { setAddLokasiFeedback({ status: 'error', msg: 'Latitude tidak valid' }); return; }
@@ -641,7 +666,14 @@ export default function CuratorEditDeleteDataPage() {
                     <div className="text-xs text-gray-500 mt-2">ID yang dicoba: <code className="bg-gray-100 px-2 py-1 rounded">{caseId}</code></div>
                   )}
                 <div className="flex items-center justify-center gap-3">
-                  <button onClick={() => window.location.href = ''} className="px-4 py-2 bg-[#0069cf] text-white rounded-md">Kembali ke manajemen data</button>
+                  <button onClick={() => {
+                    try {
+                      router.push('/curator-data-management');
+                      return;
+                    } catch (e) {
+                      window.location.href = '/curator-data-management';
+                    }
+                  }} className="px-4 py-2 bg-[#0069cf] text-white rounded-md">Kembali ke manajemen data</button>
                   <button onClick={() => window.location.reload()} className="px-4 py-2 border rounded-md">Muat Ulang</button>
                   <button onClick={() => { setShowSearchModal(true); setSearchUuid(''); setSearchProgress(null); setSearchType('news'); }} className="px-4 py-2 border rounded-md">Cari berdasarkan ID</button>
                   
@@ -1240,7 +1272,11 @@ export default function CuratorEditDeleteDataPage() {
                 const name = (newProvinsiName || '').trim();
                 if (!name) return;
                 try {
-                  const svc = await import('../../services/api');
+                  // prefer injected services during tests
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                  // @ts-ignore
+                  const injectedServices = typeof global !== 'undefined' ? (global as any).__TEST_INJECT_SERVICES__ : undefined;
+                  const svc = injectedServices ?? await import('../../services/api');
                   if (svc.registryApi && typeof (svc.registryApi as any).createProvince === 'function') {
                     const created = await (svc.registryApi as any).createProvince(name);
                     const createdName = created && (created.name || created.label) ? (created.name || created.label) : name;
