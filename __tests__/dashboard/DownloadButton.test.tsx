@@ -12,15 +12,8 @@ const { exportElementAsPng } = jest.requireMock("@/utils/exportAsImage") as {
 };
 
 describe("DownloadButton", () => {
-  let alertSpy: jest.SpyInstance;
-
   beforeEach(() => {
     jest.clearAllMocks();
-    alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    alertSpy.mockRestore();
   });
 
   it("exports the provided element as PNG", async () => {
@@ -55,7 +48,9 @@ describe("DownloadButton", () => {
     expect(appendedAnchor?.href).toBe("data:image/png;base64,AAA");
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Berhasil mengunduh visualisasi.");
+      expect(
+        screen.getByText("Berhasil mengunduh gambar visualisasi.")
+      ).toBeInTheDocument();
     });
 
     appendSpy.mockRestore();
@@ -76,7 +71,9 @@ describe("DownloadButton", () => {
 
     expect(exportElementAsPng).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalled();
-    expect(alertSpy).toHaveBeenCalledWith("Gagal mengunduh visualisasi.");
+    expect(
+      screen.getByText("Gagal mengunduh gambar visualisasi karena elemen visualisasi tidak ditemukan.")
+    ).toBeInTheDocument();
 
     warnSpy.mockRestore();
   });
@@ -96,7 +93,9 @@ describe("DownloadButton", () => {
     fireEvent.click(screen.getByRole("button", { name: /unduh kosong/i }));
 
     expect(exportElementAsPng).not.toHaveBeenCalled();
-    expect(alertSpy).toHaveBeenCalledWith("Gagal mengunduh: data kosong.");
+    expect(
+      screen.getByText("Gagal mengunduh gambar visualisasi karena data kosong.")
+    ).toBeInTheDocument();
   });
 
 });
