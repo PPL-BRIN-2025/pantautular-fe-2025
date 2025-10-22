@@ -98,4 +98,19 @@ describe("DownloadButton", () => {
     ).toBeInTheDocument();
   });
 
+  it("marks itself to be ignored during html2canvas capture when requested", () => {
+    const target = document.createElement("div");
+
+    render(
+      <DownloadButton
+        filename="sample"
+        getTarget={() => target}
+        label="Unduh"
+        ignoreDuringCapture
+      />
+    );
+
+    const wrapper = screen.getByRole("button", { name: /unduh/i }).parentElement;
+    expect(wrapper).toHaveAttribute("data-html2canvas-ignore", "true");
+  });
 });
