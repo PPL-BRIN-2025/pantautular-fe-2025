@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IndonesiaMap } from "../components/IndonesiaMap";
 import { useLocations } from "../../hooks/useLocations";
 import { useMapError } from "../../hooks/useMapError";
@@ -10,14 +10,31 @@ import MapLoadErrorPopup from "../components/MapLoadErrorPopup";
 import NoDataPopup from "../components/NoDataPopup"; 
 import MultiSelectForm from "../components/filter/MultiSelectForm";
 import FilterButton from "../components/floating_buttons/FilterButton";
+import TimeRangeFilter from "../components/filter/TimeRangeFilter";
 import { FilterState } from "../../types";
 
+const DEFAULT_FILTER_STATE: FilterState = {
+  diseases: [],
+  locations: [],
+  level_of_alertness: 0,
+  portals: [],
+  start_date: null,
+  end_date: null,
+};
+
 export default function MapPage() {
-  const [filterState, setFilterState] = useState<FilterState | null>(null);
-  const { data: locations, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData, provinceSeverityData } = useLocations(filterState as FilterState);
+  const [filterState, setFilterState] = useState<FilterState>(DEFAULT_FILTER_STATE);
+  const { data: locations, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData, provinceSeverityData } = useLocations(filterState);
   const { error: mapError, setError: setMapError, clearError } = useMapError();
   const [isEmptyData, setIsEmptyData] = useState(false);
   const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const timeRange = useMemo(
+    () => ({
+      start: filterState.start_date ?? null,
+      end: filterState.end_date ?? null,
+    }),
+    [filterState.start_date, filterState.end_date]
+  );
 
   useEffect(() => {
     if (error) {
@@ -81,8 +98,10 @@ export default function MapPage() {
           >
             <MultiSelectForm
               onSubmitFilterState={(state) => {
-
-                setFilterState(state);
+                setFilterState((prev) => ({
+                  ...prev,
+                  ...state,
+                }));
               }}
               initialFilterState={filterState}
               onError={
@@ -116,6 +135,25 @@ export default function MapPage() {
             provinceTemperatureData={provinceTemperatureData}
             provincePrecipitationData={provincePrecipitationData}
             provinceSeverityData={provinceSeverityData}
+            timeFilter={
+              <TimeRangeFilter
+                value={timeRange}
+                onApply={(range) => {
+                  setFilterState((prev) => ({
+                    ...prev,
+                    start_date: range.start,
+                    end_date: range.end,
+                  }));
+                }}
+                onReset={() => {
+                  setFilterState((prev) => ({
+                    ...prev,
+                    start_date: null,
+                    end_date: null,
+                  }));
+                }}
+              />
+            }
           />
         </div>
       </div>

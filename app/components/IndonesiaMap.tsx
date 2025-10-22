@@ -23,6 +23,7 @@ interface IndonesiaMapProps {
   provinceTemperatureData: ProvinceData[];
   provincePrecipitationData: ProvinceData[];
   provinceSeverityData: ProvinceData[];
+  timeFilter?: React.ReactNode;
 }
 
 export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
@@ -35,6 +36,7 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
   height = "100vh",
   width = "100vw",
   onError,
+  timeFilter,
 }) => {
   const mapContainerId = "chartdiv";
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
@@ -123,8 +125,11 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
         onAllow={handleAllow}
         onDeny={handleDeny}
       />
-      <div className="fixed bottom-5 left-5 z-20 bg-black/60 text-white text-lg font-bold p-2 rounded-lg">
-        {`Points Visible: ${countSelectedPoints}`}
+      <div className="fixed bottom-5 left-5 z-20 flex flex-col gap-3 md:flex-row md:items-end">
+        <div className="rounded-lg bg-black/60 p-2 text-lg font-bold text-white">
+          {`Points Visible: ${countSelectedPoints}`}
+        </div>
+        {timeFilter ? <div className="pointer-events-auto">{timeFilter}</div> : null}
       </div>
       
       {/* Popup error lokasi */}
