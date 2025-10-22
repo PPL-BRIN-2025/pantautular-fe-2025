@@ -89,6 +89,12 @@ const LegendItem = ({ color, label }: { color: string; label: string }) => (
   </div>
 );
 
+const SEVERITY_SERIES: SeverityChartProps["seriesConfig"] = [
+  { field: "hospitalisasi", name: "Hospitalisasi", color: "#3cb371" },
+  { field: "insiden", name: "Insiden", color: "#ffcd39" },
+  { field: "mortalitas", name: "Mortalitas", color: "#e35d6a" },
+];
+
 /* istanbul ignore next */
 const createTooltip = (root: am5.Root) => {
   const tooltip = am5.Tooltip.new(root, {
@@ -147,14 +153,22 @@ const setupXAxis = (root: am5.Root, chart: am5xy.XYChart, categoryField: string,
   return xAxis;
 };
 
-const setupYAxis = (root: am5.Root, chart: am5xy.XYChart, chartData: ChartData[], seriesConfig: SeverityChartProps['seriesConfig']) => {
-  // Ensure chartData is an array and has data
-  /* istanbul ignore next */
-  const maxValue = chartData && Array.isArray(chartData) && chartData.length > 0
-    ? Math.max(...chartData.map(item =>
-        seriesConfig.reduce((sum, config) => sum + (item[config.field] ?? 0), 0)
-      )) * 1.1
-    : 100; // Default max value if no data
+const setupYAxis = (
+  root: am5.Root,
+  chart: am5xy.XYChart,
+  chartData: ChartData[],
+  seriesConfig: SeverityChartProps["seriesConfig"]
+) => {
+  const effectiveData: ChartData[] = Array.isArray(chartData) ? chartData : [];
+
+  const maxValue =
+    effectiveData.length > 0
+      ? Math.max(
+          ...effectiveData.map((item) =>
+            Math.max(...seriesConfig.map((config) => item[config.field] ?? 0))
+          )
+        ) * 1.2
+      : 100;
 
   return chart.yAxes.push(
     am5xy.ValueAxis.new(root, {
@@ -174,6 +188,8 @@ const createSeries = (config: SeriesConfig) => {
   /* istanbul ignore next */
   const validData: ChartData[] = Array.isArray(chartData) ? chartData : [];
 
+  const totalSeriesCount = chart.series.length + 1;
+
   const series = chart.series.push(
     am5xy.ColumnSeries.new(root, {
       name: name,
@@ -181,14 +197,20 @@ const createSeries = (config: SeriesConfig) => {
       yAxis: yAxis,
       valueYField: field,
       categoryXField: categoryField,
-      stacked: true,
-      fill: am5.color(color)
+      stacked: false,
+      clustered: true,
+      sequencedInterpolation: true,
+      fill: am5.color(color),
+      stroke: am5.color(color)
     })
   );
 
   // Adjust width based on data length
   /* istanbul ignore next */
-  const width = validData.length <= 3 ? am5.percent(30) : am5.percent(60);
+  const width =
+    validData.length <= 3
+      ? am5.percent(50)
+      : am5.percent(Math.max(25, 80 / totalSeriesCount));
 
   series.columns.template.setAll({
     cornerRadiusTL: 6,
@@ -408,23 +430,25 @@ const SeverityChart = ({
   }, [transformedData, seriesConfig, chartId]);
 
   return (
-    <div ref={containerRef} className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex flex-wrap justify-between items-center gap-3">
-        <h3 className="chart-title">{title}</h3>
-        <div className="flex flex-wrap items-center gap-3 justify-end">
-          <DownloadButton
-            filename={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
-            getTarget={() => containerRef.current}
-            canDownload={() => hasData}
-          />
-          <div className="flex gap-3 items-center flex-wrap">
+    <div className="relative w-full pt-8">
+      <div className="absolute right-0 top-0 flex gap-2">
+        <DownloadButton
+          filename={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+          getTarget={() => containerRef.current}
+          canDownload={() => hasData}
+        />
+      </div>
+      <div ref={containerRef} className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex flex-wrap justify-between items-center gap-3">
+          <h3 className="chart-title">{title}</h3>
+          <div className="flex gap-3 items-center flex-wrap justify-end">
             {seriesConfig.map((config) => (
               <LegendItem key={config.field} color={config.color} label={config.name} />
             ))}
           </div>
         </div>
+        {renderContent()}
       </div>
-      {renderContent()}
     </div>
   );
 };
@@ -436,11 +460,7 @@ export const DiseaseSeverityChart = ({ filter }: { filter?: FilterState }) => {
       title="Kasus Jenis Penyakit"
       categoryField="name"
       fetchData={severityApi.getDiseaseSeverityStats}
-      seriesConfig={[
-        { field: "hospitalisasi", name: "Hospitalisasi", color: "#3cb371" },
-        { field: "insiden", name: "Insiden", color: "#ffcd39" },
-        { field: "mortalitas", name: "Mortalitas", color: "#e35d6a" },
-      ]}
+      seriesConfig={SEVERITY_SERIES.map((series) => ({ ...series }))}
       filter={filter}
       type="disease"
     />
@@ -454,11 +474,7 @@ export const ProvinceSeverityChart = ({ filter }: { filter?: FilterState }) => {
       title="Kasus Jangkauan Provinsi"
       categoryField="name"
       fetchData={severityApi.getProvinceSeverityStats}
-      seriesConfig={[
-        { field: "hospitalisasi", name: "Hospitalisasi", color: "#3cb371" },
-        { field: "insiden", name: "Insiden", color: "#ffcd39" },
-        { field: "mortalitas", name: "Mortalitas", color: "#e35d6a" },
-      ]}
+      seriesConfig={SEVERITY_SERIES.map((series) => ({ ...series }))}
       filter={filter}
       type="province"
     />
@@ -472,11 +488,7 @@ export const CitySeverityChart = ({ filter }: { filter?: FilterState }) => {
       title="Kasus Jangkauan Kota"
       categoryField="name"
       fetchData={severityApi.getCitySeverityStats}
-      seriesConfig={[
-        { field: "hospitalisasi", name: "Hospitalisasi", color: "#3cb371" },
-        { field: "insiden", name: "Insiden", color: "#ffcd39" },
-        { field: "mortalitas", name: "Mortalitas", color: "#e35d6a" },
-      ]}
+      seriesConfig={SEVERITY_SERIES.map((series) => ({ ...series }))}
       filter={filter}
       type="city"
     />

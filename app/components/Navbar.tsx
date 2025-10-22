@@ -55,7 +55,7 @@ const DEFAULT_ROLE_LINKS: RoleNavLink[] = [{ label: "Dashboard", href: "/dashboa
 const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ADMIN: [
     { label: "Admin Dashboard", href: "/admin-dashboard" },
-    { label: "Curator Dashboard", href: "/curator-dashboard" },
+    { label: "Dashboard Kurator", href: "/curator-dashboard" },
     { label: "Role Management", href: "/admin-role-management" },
     { label: "User Log", href: "/admin-user-log-menu" },
   ],
@@ -66,6 +66,7 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   CURATOR: [
     { label: "Add Data", href: "/curator-add-data" },
     { label: "Delete Data", href: "/curator-edit-delete-data" },
+    { label: "Dashboard Kurator", href: "/curator-dashboard" },
     { label: "Curator Dashboard", href: "/curator-dashboard" },
     { label: "Curator Data Management", href: "/curator-data-management" },
     { label: "Bantuan", href: "/help" },
@@ -74,6 +75,13 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     { label: "Beranda", href: "/" },
     { label: "Peta Sebaran", href: "/map" },
   ],
+};
+
+const ROLE_DISPLAY_LABELS: Record<string, string> = {
+  ADMIN: "Admin",
+  CURATOR: "Kurator",
+  EXP_USER: "Ahli",
+  CONTRIBUTOR: "Kontributor",
 };
 
 function resolveRoleLinks(role: string): RoleNavLink[] {
@@ -86,6 +94,12 @@ function resolveRoleLinks(role: string): RoleNavLink[] {
     ROLE_NAV_LINKS[normalized.toLowerCase()] ||
     DEFAULT_ROLE_LINKS
   );
+}
+
+function formatRoleLabel(role?: string | null): string {
+  if (!role) return "";
+  const normalized = role.trim().toUpperCase();
+  return ROLE_DISPLAY_LABELS[normalized] ?? role;
 }
 
 function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
@@ -169,7 +183,10 @@ function NavbarContent() {
         </div>
         {user ? (
           <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-[#0f172a] font-medium select-none">{user.name} | {user.role}</span>
+            <span className="hidden sm:block text-[#0f172a] font-medium select-none">
+              {user.name}
+              {user.role ? ` | ${formatRoleLabel(user.role)}` : ""}
+            </span>
             <RoleAccessMenu role={user.role} />
             <ProfileIcon logout={logout}/>
           </div>

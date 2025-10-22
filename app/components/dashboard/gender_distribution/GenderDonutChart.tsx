@@ -22,21 +22,23 @@ const GenderDonutChart: React.FC<GenderDonutChartProps> = ({ total, priaValue, w
   useDonutChart(chartRef, priaValue ?? 0, wanitaValue ?? 0);
 
   return (
-    <div ref={containerRef} className="bg-white rounded-md p-4 shadow-md w-full">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <ChartHeader
-          title="Jenis Kelamin"
-          total={total ?? 0}
-          action={
-            <DownloadButton
-              filename="distribusi-jenis-kelamin"
-              getTarget={() => containerRef.current}
-              canDownload={() => totalCount > 0}
-            />
-          }
+    <div className="relative w-full pt-8">
+      <div className="absolute right-0 top-0 flex gap-2">
+        <DownloadButton
+          filename="distribusi-jenis-kelamin"
+          getTarget={() => containerRef.current}
+          canDownload={() => totalCount > 0}
         />
       </div>
-      <div ref={chartRef} className="w-full h-64 mt-4" />
+      <div ref={containerRef} className="bg-white rounded-md p-4 shadow-md w-full">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ChartHeader
+            title="Jenis Kelamin"
+            total={total ?? 0}
+          />
+        </div>
+        <div ref={chartRef} className="w-full h-64 mt-4" />
+      </div>
     </div>
   );
 };
