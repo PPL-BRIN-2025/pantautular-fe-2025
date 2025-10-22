@@ -5,6 +5,33 @@ import { act } from 'react-dom/test-utils';
 // Mock Navbar and Footer to isolate the page component
 jest.mock('../../app/components/Navbar', () => () => <div data-testid="mock-navbar">Navbar</div>);
 jest.mock('../../app/components/Footer', () => () => <div data-testid="mock-footer">Footer</div>);
+// Provide a lightweight mock for next/app-router hooks used by the page so tests
+// don't error with "invariant expected app router to be mounted" when components
+// import useRouter/useSearchParams etc.
+jest.mock('next/navigation', () => {
+  return {
+    useRouter: () => ({
+      push: jest.fn(),
+      replace: jest.fn(),
+      back: jest.fn(),
+      prefetch: jest.fn(),
+    }),
+    useSearchParams: () => {
+      const raw = (global as any).location?.search || '';
+      const params = new URLSearchParams(raw.replace(/^\?/, ''));
+      return {
+        get: (k: string) => params.get(k),
+        toString: () => raw.replace(/^\?/, ''),
+        entries: () => params.entries(),
+      };
+    },
+    usePathname: () => (global as any).location?.pathname || '',
+    useParams: () => {
+      const raw = (global as any).location?.search || '';
+      return Object.fromEntries(new URLSearchParams(raw.replace(/^\?/, '')));
+    },
+  };
+});
 // Mock auth hook to return a CURATOR user by default for these tests
 const mockUseAuth = jest.fn(() => ({ user: { role: 'CURATOR' } }));
 jest.mock('../../app/auth/hooks/useAuth', () => ({

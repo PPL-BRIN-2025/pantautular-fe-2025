@@ -54,9 +54,9 @@ const DEFAULT_ROLE_LINKS: RoleNavLink[] = [{ label: "Dashboard", href: "/dashboa
 
 const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ADMIN: [
-    { label: "Admin Dashboard", href: "/admin-dashboard" },
+    { label: "Dashboard Admin", href: "/admin-dashboard" },
     { label: "Dashboard Kurator", href: "/curator-dashboard" },
-    { label: "Role Management", href: "/admin-role-management" },
+    { label: "Manajemen Role", href: "/admin-role-management" },
     { label: "User Log", href: "/admin-user-log-menu" },
   ],
   EXP_USER: [
@@ -64,11 +64,10 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     { label: "Peta Sebaran", href: "/map" },
   ],
   CURATOR: [
-    { label: "Add Data", href: "/curator-add-data" },
-    { label: "Delete Data", href: "/curator-edit-delete-data" },
+    { label: "Tambah Data", href: "/curator-add-data" },
+    { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
     { label: "Dashboard Kurator", href: "/curator-dashboard" },
-    { label: "Curator Dashboard", href: "/curator-dashboard" },
-    { label: "Curator Data Management", href: "/curator-data-management" },
+    { label: "Kurator Data Management", href: "/curator-data-management" },
     { label: "Bantuan", href: "/help" },
   ],
   CONTRIBUTOR: [
