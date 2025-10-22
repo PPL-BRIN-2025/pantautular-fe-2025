@@ -8,37 +8,69 @@ import Footer from "../components/Footer";
 import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
 
+import type { FilterState, FilterStateDashboard, User } from "@/types";
+
+
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
+
+const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR"]);
+
+const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
+
 const BLUE = "#0069cf";
 
 export default function CuratorEditDeleteDataPage() {
   const { user } = useAuth();
-  const router = useRouter();
-  // redirect to login when not authenticated
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (user === null || user === undefined)) {
-      try {
-        router.push('/login');
-      } catch (e) {
-        // fallback to direct location assignment
-        window.location.href = '/login';
+    const router = useRouter();
+    const [filterState, setFilterState] = useState<FilterState | undefined>(undefined);
+    const [effectiveUser, setEffectiveUser] = useState<User | null>(null);
+    const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+    const [accessState, setAccessState] = useState<AccessState>("loading");
+  
+    useEffect(() => {
+      // Attempt to recover persisted user data to avoid redirect flicker.
+      let resolvedUser = user;
+      if (!resolvedUser && typeof window !== "undefined") {
+        try {
+          const stored = window.localStorage.getItem("user");
+          if (stored) {
+            resolvedUser = JSON.parse(stored) as User;
+          }
+        } catch (error) {
+          console.warn("Failed to parse stored user information", error);
+        }
       }
-    }
-  }, [user, router]);
-  const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
-  const role = normalizeRole(user?.role);
-  // only CURATOR role allowed for this page
-  const allowed = role === "CURATOR";
-
-  if (!user || !allowed) {
-    return (
-      <div className="min-h-screen bg-[#f0f6f8] flex flex-col">
-        <Navbar />
-        <main className="flex-1">
-          <AccessDeniedNotice />
-        </main>
-      </div>
-    );
-  }
+      setEffectiveUser(resolvedUser ?? null);
+      setIsCheckingAccess(false);
+    }, [user]);
+  
+    useEffect(() => {
+      if (isCheckingAccess) {
+        return;
+      }
+  
+      if (!effectiveUser) {
+        setAccessState("redirect");
+        return;
+      }
+  
+      const role = normalizeRole(effectiveUser.role);
+      if (!ALLOWED_ROLES.has(role)) {
+        setAccessState("forbidden");
+        return;
+      }
+  
+      setAccessState("granted");
+    }, [effectiveUser, isCheckingAccess]);
+  
+    useEffect(() => {
+      if (accessState !== "redirect") {
+        return;
+      }
+  
+      const nextParam = encodeURIComponent("/curator-dashboard");
+      router.replace(`/login?next=${nextParam}`);
+    }, [accessState, router]);
 
   const [srcDatePublished, setSrcDatePublished] = useState("");
   const [srcDateDd, setSrcDateDd] = useState("");
@@ -621,12 +653,22 @@ export default function CuratorEditDeleteDataPage() {
           const apiModule = injected ?? await import('../../api/curatorCases').then(m => m);
           const deleteCuratorCase = injected ? injected.deleteCuratorCase : apiModule.deleteCuratorCase;
           await deleteCuratorCase(caseId);
-          // after deletion redirect back to the data management page (placeholder)
-          window.location.href = '/data-management';
+          // after deletion redirect back to the data management page
+          try {
+            router.push('/curator-data-management');
+          } catch (navErr) {
+            window.location.href = '/curator-data-management';
+          }
           return;
         }
         // if no caseId, redirect to data management page as well (placeholder)
-        try { window.location.href = '/data-management'; return; } catch(e) {}
+        try {
+          router.push('/curator-data-management');
+          return;
+        } catch(e) {
+          window.location.href = '/curator-data-management';
+          return;
+        }
         setSuccessMessage("Data berhasil dihapus.");
         setTimeout(() => setSuccessMessage(""), 3000);
         setShowDeleteConfirm(false);

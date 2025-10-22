@@ -58,6 +58,10 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     { label: "Dashboard Kurator", href: "/curator-dashboard" },
     { label: "Manajemen Role", href: "/admin-role-management" },
     { label: "User Log", href: "/admin-user-log-menu" },
+    { label: "Tambah Data", href: "/curator-add-data" },
+    { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+    { label: "Dashboard Kurator", href: "/curator-dashboard" },
+    { label: "Kurator Data Management", href: "/curator-data-management" },
   ],
   EXP_USER: [
     { label: "Dashboard", href: "/dashboard" },

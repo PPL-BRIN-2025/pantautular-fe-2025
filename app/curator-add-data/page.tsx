@@ -6,6 +6,14 @@ import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import type { FilterState, FilterStateDashboard, User } from "@/types";
+
+
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
+
+const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR"]);
+
+const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
 
 const BLUE = "#0069cf";
 
@@ -51,30 +59,56 @@ export function validateFormState(input: {
 export default function CuratorAddDataPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [filterState, setFilterState] = useState<FilterState | undefined>(undefined);
+  const [effectiveUser, setEffectiveUser] = useState<User | null>(null);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && (user === null || user === undefined)) {
+    // Attempt to recover persisted user data to avoid redirect flicker.
+    let resolvedUser = user;
+    if (!resolvedUser && typeof window !== "undefined") {
       try {
-        router.push('/login');
-      } catch (e) {
-        window.location.href = '/login';
+        const stored = window.localStorage.getItem("user");
+        if (stored) {
+          resolvedUser = JSON.parse(stored) as User;
+        }
+      } catch (error) {
+        console.warn("Failed to parse stored user information", error);
       }
     }
-  }, [user, router]);
-  const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
-  const role = normalizeRole(user?.role);
-  const allowed = role === "CURATOR";
+    setEffectiveUser(resolvedUser ?? null);
+    setIsCheckingAccess(false);
+  }, [user]);
 
-  if (!user || !allowed) {
-    return (
-      <div className="min-h-screen bg-[#f0f6f8] flex flex-col">
-        <Navbar />
-        <main className="flex-1">
-          <AccessDeniedNotice />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (isCheckingAccess) {
+      return;
+    }
+
+    if (!effectiveUser) {
+      setAccessState("redirect");
+      return;
+    }
+
+    const role = normalizeRole(effectiveUser.role);
+    if (!ALLOWED_ROLES.has(role)) {
+      setAccessState("forbidden");
+      return;
+    }
+
+    setAccessState("granted");
+  }, [effectiveUser, isCheckingAccess]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") {
+      return;
+    }
+
+    const nextParam = encodeURIComponent("/curator-dashboard");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
+  
   const [jenisPenyakit, setJenisPenyakit] = useState("");
   const [lokasi, setLokasi] = useState("");
   const [provinsi, setProvinsi] = useState("");
@@ -134,22 +168,7 @@ export default function CuratorAddDataPage() {
   // local lists (in real app this would come from API or shared store)
   // initial disease list: union of existing and requested items, alphabetized
   const initialJenis = [
-    'Campak',
-    'COVID-19',
-    'DBD',
-    'Flu Singapura',
-    'Gastroentritis',
-    'HMPV',
-    'HFMD',
-    'HIV',
-    'Hepatitis A',
-    'Hepatitis B',
-    'Influenza',
-    'Malaria',
-    'Mpox',
-    'Polio',
-    'TBC',
-    'Demam Berdarah',
+    "",
   ].map(s => s.trim());
   const uniqueJenis = Array.from(new Set(initialJenis.map(s => s)));
   uniqueJenis.sort((a,b) => a.toLowerCase().localeCompare(b.toLowerCase()));
@@ -972,7 +991,7 @@ export default function CuratorAddDataPage() {
             {addProvinsiFeedback && (
               <div className="flex items-center justify-center mb-3">
                 <div className={`text-4xl ${addProvinsiFeedback.status === 'success' ? 'animate-pulse' : 'animate-shake'}`} aria-hidden>
-                  {addProvinsiFeedback.status === 'success' ? '✅' : '❌'}
+                  {addProvinsiFeedback.status === 'success' ? '❌' : '✅'}
                 </div>
               </div>
             )}
