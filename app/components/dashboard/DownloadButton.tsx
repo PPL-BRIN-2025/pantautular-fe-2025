@@ -15,6 +15,7 @@ interface DownloadButtonProps {
   emptyMessage?: string;
   errorMessage?: string;
   missingTargetMessage?: string;
+  ignoreDuringCapture?: boolean;
 }
 
 const baseClasses =
@@ -38,7 +39,8 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   successMessage = "Berhasil mengunduh gambar visualisasi.",
   emptyMessage = "Gagal mengunduh gambar visualisasi karena data kosong.",
   errorMessage = "Gagal mengunduh gambar visualisasi karena terjadi kesalahan.",
-  missingTargetMessage = "Gagal mengunduh gambar visualisasi karena elemen visualisasi tidak ditemukan."
+  missingTargetMessage = "Gagal mengunduh gambar visualisasi karena elemen visualisasi tidak ditemukan.",
+  ignoreDuringCapture = false
 }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [notification, setNotification] = useState<
@@ -105,7 +107,10 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
     : "";
 
   return (
-    <div className="relative inline-flex items-center">
+    <div
+      className="relative inline-flex items-center"
+      data-html2canvas-ignore={ignoreDuringCapture ? "true" : undefined}
+    >
       <button
         type="button"
         onClick={handleDownload}

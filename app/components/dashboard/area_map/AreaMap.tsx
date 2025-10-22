@@ -7,10 +7,38 @@ const AreaMap: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   
   const areas = [
-    { id: 1, title: "Peta Geografis Ketinggian Wilayah", lastUpdated: "10 Mei 2025 00.25 WIB", imgUrl: "/dashboard/kondisi_wilayah/01_Ketinggian.png" },
-    { id: 2, title: "Peta Geografis Curah Hujan", lastUpdated: "10 Mei 2025 00.25 WIB", imgUrl: "/dashboard/kondisi_wilayah/02_CurahHujan.png" },
-    { id: 3, title: "Peta Kerentanan Penyakit Menular", lastUpdated: "10 Mei 2025 00.25 WIB", imgUrl: "/dashboard/kondisi_wilayah/03_KerentananPenyakit.png" },
-    { id: 4, title: "Peta Kepadatan Penduduk (orang per Km persegi)", lastUpdated: "10 Mei 2025 00.25 WIB", imgUrl: "/dashboard/kondisi_wilayah/04_KepadatanPenduduk.png" }
+    {
+      id: 1,
+      title: "Peta Geografis Ketinggian Wilayah",
+      lastUpdated: "10 Mei 2025 00.25 WIB",
+      imgUrl: "/dashboard/kondisi_wilayah/01_Ketinggian.png",
+      width: 2900,
+      height: 1460
+    },
+    {
+      id: 2,
+      title: "Peta Geografis Curah Hujan",
+      lastUpdated: "10 Mei 2025 00.25 WIB",
+      imgUrl: "/dashboard/kondisi_wilayah/02_CurahHujan.png",
+      width: 2900,
+      height: 1460
+    },
+    {
+      id: 3,
+      title: "Peta Kerentanan Penyakit Menular",
+      lastUpdated: "10 Mei 2025 00.25 WIB",
+      imgUrl: "/dashboard/kondisi_wilayah/03_KerentananPenyakit.png",
+      width: 2900,
+      height: 1460
+    },
+    {
+      id: 4,
+      title: "Peta Kepadatan Penduduk (orang per Km persegi)",
+      lastUpdated: "10 Mei 2025 00.25 WIB",
+      imgUrl: "/dashboard/kondisi_wilayah/04_KepadatanPenduduk.png",
+      width: 2900,
+      height: 1460
+    }
   ];
   
   const nextSlide = () => {
@@ -82,30 +110,32 @@ const AreaMap: React.FC = () => {
                   getTarget={() => cardRef.current}
                   label="Unduh Informasi"
                   size="sm"
+                  ignoreDuringCapture
                 />
               </div>
-              <div className="area-display-image" style={{ 
-                width: '100%', 
-                backgroundColor: '#f0f0f0', 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center',
+              <div className="area-display-image" style={{
+                width: '100%',
+                backgroundColor: '#f0f0f0',
+                borderBottomLeftRadius: '12px',
+                borderBottomRightRadius: '12px',
+                overflow: 'hidden'
               }}>
-                <Image 
-                src={currentArea.imgUrl} 
-                alt={currentArea.title} 
-                width={0}
-                height={0}
-                sizes="100vw"
-                style={{ 
-                  width: '100%', 
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-                onError={(e) => { 
-                  console.error(`Image failed to load: ${e.currentTarget.src}`);
-                  e.currentTarget.src = '/dashboard/placeholder.jpg'; 
-                }}
+                <Image
+                  src={currentArea.imgUrl}
+                  alt={currentArea.title}
+                  width={currentArea.width}
+                  height={currentArea.height}
+                  sizes="(min-width: 1024px) 560px, 100vw"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                    objectFit: 'contain'
+                  }}
+                  onError={(e) => {
+                    console.error(`Image failed to load: ${e.currentTarget.src}`);
+                    e.currentTarget.src = '/dashboard/placeholder.jpg';
+                  }}
                 />
               </div>
             </div>
