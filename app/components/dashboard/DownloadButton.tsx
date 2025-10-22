@@ -1,6 +1,6 @@
 "use client";
-import React, { useState } from "react";
-import { DownloadCloud } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { AlertCircle, CheckCircle2, DownloadCloud } from "lucide-react";
 import clsx from "clsx";
 import { exportElementAsPng } from "@/utils/exportAsImage";
 
@@ -14,6 +14,7 @@ interface DownloadButtonProps {
   successMessage?: string;
   emptyMessage?: string;
   errorMessage?: string;
+  missingTargetMessage?: string;
 }
 
 const baseClasses =
@@ -34,11 +35,34 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   label = "Unduh Gambar",
   className,
   size = "sm",
-  successMessage = "Berhasil mengunduh visualisasi.",
-  emptyMessage = "Gagal mengunduh: data kosong.",
-  errorMessage = "Gagal mengunduh visualisasi."
+  successMessage = "Berhasil mengunduh gambar visualisasi.",
+  emptyMessage = "Gagal mengunduh gambar visualisasi karena data kosong.",
+  errorMessage = "Gagal mengunduh gambar visualisasi karena terjadi kesalahan.",
+  missingTargetMessage = "Gagal mengunduh gambar visualisasi karena elemen visualisasi tidak ditemukan."
 }) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [notification, setNotification] = useState<
+    { type: "success" | "error"; message: string } | null
+  >(null);
+  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showNotification = (type: "success" | "error", message: string) => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+    setNotification({ type, message });
+    notificationTimeoutRef.current = setTimeout(() => {
+      setNotification(null);
+    }, 4000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleDownload = async () => {
     if (isExporting) return;
@@ -46,12 +70,12 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
     const target = getTarget();
     if (!target) {
       console.warn(`No element available for download: ${filename}`);
-      window.alert(errorMessage);
+      showNotification("error", missingTargetMessage);
       return;
     }
 
     if (canDownload && !canDownload()) {
-      window.alert(emptyMessage);
+      showNotification("error", emptyMessage);
       return;
     }
 
@@ -65,31 +89,59 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.alert(successMessage);
+      showNotification("success", successMessage);
     } catch (error) {
       console.error(`Failed to export ${filename} as image`, error);
-      window.alert(errorMessage);
+      showNotification("error", errorMessage);
     } finally {
       setIsExporting(false);
     }
   };
 
+  const toneClasses = notification
+    ? notification.type === "success"
+      ? "border-[#0069CF] bg-[#E6F4FF] text-[#11234B]"
+      : "border-[#DC2626] bg-[#FFE5E5] text-[#4C0519]"
+    : "";
+
   return (
-    <button
-      type="button"
-      onClick={handleDownload}
-      className={clsx(
-        baseClasses,
-        sizeClasses[size],
-        className,
-        isExporting && "opacity-60 cursor-wait"
+    <div className="relative inline-flex items-center">
+      <button
+        type="button"
+        onClick={handleDownload}
+        className={clsx(
+          baseClasses,
+          sizeClasses[size],
+          className,
+          isExporting && "cursor-wait opacity-60"
+        )}
+        aria-label={label}
+        disabled={isExporting}
+      >
+        <DownloadCloud className="h-4 w-4" aria-hidden="true" />
+        <span>{isExporting ? "Memproses..." : label}</span>
+      </button>
+      {notification && (
+        <div
+          data-testid="download-notification"
+          className={clsx(
+            "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max -translate-x-1/2 rounded-md border px-3 py-2 text-xs font-medium shadow-lg transition-opacity duration-200 ease-out",
+            toneClasses
+          )}
+          role={notification.type === "success" ? "status" : "alert"}
+          aria-live={notification.type === "success" ? "polite" : "assertive"}
+        >
+          <div className="flex items-center gap-2">
+            {notification.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+            )}
+            <span>{notification.message}</span>
+          </div>
+        </div>
       )}
-      aria-label={label}
-      disabled={isExporting}
-    >
-      <DownloadCloud className="h-4 w-4" aria-hidden="true" />
-      <span>{isExporting ? "Memproses..." : label}</span>
-    </button>
+    </div>
   );
 };
 
