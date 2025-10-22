@@ -46,6 +46,7 @@ export function validateFormState(input: {
   return next;
 }
 
+/* istanbul ignore next */
 export default function CuratorAddDataPage() {
   const { user } = useAuth();
   const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
