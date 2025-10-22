@@ -30,11 +30,40 @@ function useDebouncedValue<T>(value: T, delay = 350) {
   return v;
 }
 
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
+
 export default function CuratorDataManagementPage() {
   const router = useRouter();
-  const { user, getAccessToken } = useAuth(); 
-  const allowed = normalizeRole(user?.role) === "CURATOR";
+  const { user, getAccessToken } = useAuth();
 
+  // ---- access gate (redirect if not logged in, forbid if wrong role) ----
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+  useEffect(() => {
+    // try to recover a persisted user quickly to reduce flicker
+    let resolved = user;
+    if (!resolved && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) resolved = JSON.parse(stored);
+      } catch {}
+    }
+
+    if (!resolved) {
+      setAccessState("redirect");
+      return;
+    }
+
+    const allowed = normalizeRole(resolved.role) === "CURATOR";
+    setAccessState(allowed ? "granted" : "forbidden");
+  }, [user]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+    const nextParam = encodeURIComponent("/curator-data-management");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
+
+  // ---- component state ----
   const [data, setData] = useState<CuratorRow[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -52,8 +81,9 @@ export default function CuratorDataManagementPage() {
     firstClamp.current = false;
   }, [pageCount, page]);
 
+  // ---- data fetch (only when access granted) ----
   useEffect(() => {
-    if (!allowed) return;
+    if (accessState !== "granted") return;
 
     const ac = new AbortController();
 
@@ -77,7 +107,6 @@ export default function CuratorDataManagementPage() {
         if (!token && typeof window !== "undefined") {
           token = window.localStorage.getItem("accessToken");
         }
-
 
         const url = `${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`;
 
@@ -105,12 +134,11 @@ export default function CuratorDataManagementPage() {
             if (r.ok || r.status === 401 || r.status === 403) break;
           }
         } else {
-          // Cookie session path
           const r = await fetch(url, {
             method: "GET",
             mode: "cors",
             cache: "no-store",
-            credentials: "include", 
+            credentials: "include",
             signal: ac.signal,
           });
           bodyText = await r.clone().text();
@@ -124,7 +152,9 @@ export default function CuratorDataManagementPage() {
 
         if (res.status === 401) {
           if (typeof window !== "undefined") {
-            try { window.localStorage.removeItem("accessToken"); } catch {}
+            try {
+              window.localStorage.removeItem("accessToken");
+            } catch {}
           }
           setData([]);
           setTotal(0);
@@ -153,14 +183,21 @@ export default function CuratorDataManagementPage() {
 
     fetchLogs();
     return () => ac.abort();
-  }, [allowed, API_BASE, page, pageSize, search, router, getAccessToken]);
+  }, [accessState, API_BASE, page, pageSize, search, router, getAccessToken]);
 
-  // redirects
-  const goAdd = () => router.push("/curator-add-data");
-  const goEdit = (id: string) => router.push(`/curator-edit-delete-data?id=${id}`);
+  // ---- early returns for access states ----
+  if (accessState === "loading" || accessState === "redirect") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB]">
+        <Navbar />
+        <div className="flex min-h-screen items-center justify-center pt-24">
+          <span className="text-sm text-gray-700">Memeriksa akses…</span>
+        </div>
+      </div>
+    );
+  }
 
-  // guard
-  if (!user || !allowed) {
+  if (accessState === "forbidden") {
     return (
       <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
         <Navbar />
@@ -172,10 +209,13 @@ export default function CuratorDataManagementPage() {
     );
   }
 
+  // ---- normal render (granted) ----
+  const goAdd = () => router.push("/curator-add-data");
+  const goEdit = (id: string) => router.push(`/curator-edit-delete-data?id=${id}`);
+
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
       <Navbar />
-
       <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
         <div className="text-gray-500 text-base font-medium mb-4">&lt; Daftar Data</div>
 
@@ -233,7 +273,7 @@ export default function CuratorDataManagementPage() {
                     const who = r.submitted_by || r.submittedBy || "-";
                     return (
                       <li key={r.data_id} className="hover:bg-gray-50">
-                        <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">     
+                        <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
                           <div className="px-4 py-3 break-words">{r.data_id}</div>
                           <div className="px-4 py-3">{r.title}</div>
                           <div className="px-4 py-3">
