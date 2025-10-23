@@ -95,6 +95,43 @@ const SEVERITY_SERIES: SeverityChartProps["seriesConfig"] = [
   { field: "mortalitas", name: "Mortalitas", color: "#e35d6a" },
 ];
 
+const getFriendlyErrorCopy = (error: Error) => {
+  const rawMessage = error.message?.toLowerCase() ?? "";
+  if (/status:\s*400/.test(rawMessage)) {
+    return {
+      title: "Filter tidak valid",
+      description: "Kombinasi filter saat ini tidak bisa diproses. Sesuaikan pilihan filter Anda lalu coba lagi.",
+      detail: error.message,
+    };
+  }
+  if (/status:\s*401|status:\s*403/.test(rawMessage)) {
+    return {
+      title: "Akses ditolak",
+      description: "Sesi Anda mungkin sudah kedaluwarsa. Silakan masuk kembali atau hubungi administrator.",
+      detail: error.message,
+    };
+  }
+  if (/status:\s*5\d{2}/.test(rawMessage)) {
+    return {
+      title: "Layanan sedang bermasalah",
+      description: "Server sedang tidak dapat merespons. Tunggu beberapa saat sebelum mencoba kembali.",
+      detail: error.message,
+    };
+  }
+  if (rawMessage.includes("failed to fetch") || rawMessage.includes("network")) {
+    return {
+      title: "Koneksi bermasalah",
+      description: "Tidak dapat terhubung ke server. Periksa koneksi internet Anda dan coba lagi.",
+      detail: error.message,
+    };
+  }
+  return {
+    title: "Tidak dapat memuat data",
+    description: "Terjadi kesalahan saat memuat urutan kasus. Coba muat ulang atau hubungi administrator.",
+    detail: error.message || undefined,
+  };
+};
+
 /* istanbul ignore next */
 const createTooltip = (root: am5.Root) => {
   const tooltip = am5.Tooltip.new(root, {
@@ -365,9 +402,57 @@ const SeverityChart = ({
     }
 
     if (error) {
+      const { title, description, detail } = getFriendlyErrorCopy(error);
       return (
-        <div className="text-red-500 text-center p-4">
-          Error: {error.message}
+        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-6 text-left shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+              <svg
+                aria-hidden="true"
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 9v4" />
+                <path d="M12 17h0.01" />
+                <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <div className="flex-1 text-red-700">
+              <p className="font-semibold">{title}</p>
+              <p className="mt-1 text-sm leading-relaxed">{description}</p>
+              {detail && (
+                <p className="mt-3 text-xs text-red-500/80">
+                  Detail teknis: {detail}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={loadData}
+                disabled={isLoading}
+                className="mt-4 inline-flex items-center gap-2 rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 12a9 9 0 1 1-9-9" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+                Coba Lagi
+              </button>
+            </div>
+          </div>
         </div>
       );
     }
