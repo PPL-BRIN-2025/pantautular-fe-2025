@@ -460,7 +460,7 @@ const SeverityChart = ({
     if (transformedData.length === 0) {
       return (
         <div className="text-gray-500 text-center p-4">
-          No data available
+          Tidak ada data yang sesuai
         </div>
       );
     }
