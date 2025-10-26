@@ -68,8 +68,16 @@ export default function CuratorDataManagementPage() {
   const [data, setData] = useState<CuratorRow[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+
+  // search & filters
   const [rawSearch, setRawSearch] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [filterCurator, setFilterCurator] = useState("");
+
   const search = useDebouncedValue(rawSearch, 350);
+  const curator = useDebouncedValue(filterCurator, 350);
+  const date = useDebouncedValue(filterDate, 350);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,10 +100,13 @@ export default function CuratorDataManagementPage() {
       setLoading(true);
       setError(null);
       try {
+        // append new filters to query
         const params = new URLSearchParams({
           page: String(page),
           pageSize: String(pageSize),
           search: search.trim(),
+          curator: curator.trim(),
+          date: date.trim(),
           sort: "last_edited:desc",
         });
 
@@ -184,7 +195,7 @@ export default function CuratorDataManagementPage() {
 
     fetchLogs();
     return () => ac.abort();
-  }, [accessState, API_BASE, page, pageSize, search, router, getAccessToken]);
+  }, [accessState, API_BASE, page, pageSize, search, curator, date, router, getAccessToken]);
 
   // ---- early returns for access states ----
   if (accessState === "loading" || accessState === "redirect") {
@@ -220,14 +231,33 @@ export default function CuratorDataManagementPage() {
       <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
         <div className="text-gray-500 text-base font-medium mb-4">&lt; Daftar Data</div>
 
-        {/* Search + Add */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
+        {/* Filters + Add */}
+        <div className="flex flex-col sm:flex-row flex-wrap justify-between items-center gap-3 mb-4">
           <input
             type="text"
             placeholder="Cari ID / Judul"
             value={rawSearch}
             onChange={(e) => {
               setRawSearch(e.target.value);
+              setPage(1);
+            }}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
+          />
+          <input
+            type="text"
+            placeholder="Cari berdasarkan nama kurator"
+            value={filterCurator}
+            onChange={(e) => {
+              setFilterCurator(e.target.value);
+              setPage(1);
+            }}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
+          />
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => {
+              setFilterDate(e.target.value);
               setPage(1);
             }}
             className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
