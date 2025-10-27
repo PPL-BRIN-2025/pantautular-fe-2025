@@ -3,6 +3,7 @@ import "@testing-library/jest-dom";
 import MapPage from "../../app/map/page";
 import { useLocations } from "../../hooks/useLocations";
 import { useMapError } from "../../hooks/useMapError";
+import React from "react";
 
 // Mock the hooks
 jest.mock("../../hooks/useLocations");
@@ -10,15 +11,24 @@ jest.mock("../../hooks/useMapError");
 
 // Mock the components
 jest.mock("../../app/components/IndonesiaMap", () => ({
-  IndonesiaMap: ({ onError }: { onError: (message: string) => void }) => (
-    <button
-      type="button"
-      onClick={() => onError("Map error")}
-      className="w-full h-full"
-      data-testid="map-container"
-    >
-      Mock Indonesia Map
-    </button>
+  IndonesiaMap: ({
+    onError,
+    timeFilter,
+  }: {
+    onError: (message: string) => void;
+    timeFilter?: React.ReactNode;
+  }) => (
+    <div>
+      <button
+        type="button"
+        onClick={() => onError("Map error")}
+        className="w-full h-full"
+        data-testid="map-container"
+      >
+        Mock Indonesia Map
+      </button>
+      {timeFilter}
+    </div>
   ),
 }));
 
@@ -33,6 +43,26 @@ jest.mock("../../app/components/MapLoadErrorPopup", () => ({
         aria-label="Close error message"
       >
         Close
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock("../../app/components/filter/TimeRangeFilter", () => ({
+  __esModule: true,
+  default: ({
+    onApply,
+    onReset,
+  }: {
+    onApply: (value: { start: Date | null; end: Date | null }) => void;
+    onReset: () => void;
+  }) => (
+    <div data-testid="time-range-filter">
+      <button type="button" onClick={() => onApply({ start: null, end: null })}>
+        Terapkan Rentang
+      </button>
+      <button type="button" onClick={onReset}>
+        Atur Ulang Rentang
       </button>
     </div>
   ),
@@ -82,6 +112,7 @@ describe("MapPage Component", () => {
     
     // Map container should be visible
     expect(screen.getByTestId("map-container")).toBeInTheDocument();
+    expect(screen.getByTestId("time-range-filter")).toBeInTheDocument();
   });
 
   it("handles map errors correctly", async () => {
