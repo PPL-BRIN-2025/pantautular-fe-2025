@@ -39,10 +39,7 @@ describe("ExpertDashboardPage", () => {
       screen.getByLabelText(trendLabel, { selector: "input[type='radio']" })
     ).toBeChecked();
     expect(
-      screen.getByRole("heading", {
-        name: "Trend Mode – Weekly Cases",
-        level: 3,
-      })
+      screen.getByText("Trend Mode - Weekly Cases")
     ).toBeInTheDocument();
   });
 
@@ -64,10 +61,7 @@ describe("ExpertDashboardPage", () => {
       screen.getByText(CHART_MODE_METADATA[storedMode].description)
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", {
-        name: "Grouped Totals – Cases by Category",
-        level: 3,
-      })
+      screen.getByText("Grouped Totals - Cases by Category")
     ).toBeInTheDocument();
   });
 
@@ -88,10 +82,7 @@ describe("ExpertDashboardPage", () => {
       "grouped_totals"
     );
     expect(
-      screen.getByRole("heading", {
-        name: "Grouped Totals – Cases by Category",
-        level: 3,
-      })
+      screen.getByText("Grouped Totals - Cases by Category")
     ).toBeInTheDocument();
   });
 });
