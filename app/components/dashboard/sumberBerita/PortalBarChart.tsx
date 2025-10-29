@@ -7,6 +7,7 @@ import DownloadButton from "../DownloadButton";
 interface PortalData {
   portal: string;
   count: number;
+  tooltipText?: string;
 }
 
 interface PortalBarChartProps {
@@ -28,7 +29,8 @@ const prepareChartData = (data: PortalData[], colors: string[], am5: any) => {
   return data.map((item, idx) => ({
     source: item.portal,
     value: item.count,
-    color: getItemColor(idx, colors, am5)
+    color: getItemColor(idx, colors, am5),
+    tooltipText: item.tooltipText,
   }));
 };
 
@@ -224,7 +226,10 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
           series.get("tooltip").label.setAll({
             fontSize: 12,
             fontWeight: "400",
-            fill: am5.color("#333333")
+            fill: am5.color("#333333"),
+            lineHeight: 1.4,
+            textAlign: "left",
+            multiLine: true,
           });
         }
 
@@ -251,6 +256,14 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
           strokeOpacity: 0,
           strokeWidth: 0, 
           stroke: null
+        });
+
+        series.columns.template.adapters.add("tooltipText", (text: string | undefined, target: any) => {
+          const custom = target?.dataItem?.dataContext?.tooltipText;
+          if (typeof custom === "string" && custom.trim().length > 0) {
+            return custom;
+          }
+          return text;
         });
 
         // Prepare series data using the utility function
