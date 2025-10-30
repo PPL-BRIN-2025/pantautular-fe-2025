@@ -61,7 +61,15 @@ export default function ExpertDataManagementPage({
     }
   }, [initialRows, initialError, simulateLoadError]);
 
-  const goView = (id: string) => router.push(`/expert-data-management/view?id=${id}`);
+  // const goView = (id: string) => router.push(`/expert-data-management/view?id=${id}`);
+  const goView = (row: Row) => {
+  const url = new URL(window.location.origin + "/expert-data-management/view");
+  url.searchParams.set("id", row.data_id);
+  url.searchParams.set("fileName", row.file_name);
+  url.searchParams.set("lastEdited", row.last_edited);
+  url.searchParams.set("submittedBy", row.submitted_by);
+  router.push(url.pathname + "?" + url.searchParams.toString());
+};
 
   // --- FILTERED VIEW ---
   const filteredRows = useMemo(() => {
@@ -137,7 +145,7 @@ export default function ExpertDataManagementPage({
                         <div className="px-4 py-3">{r.submitted_by}</div>
                         <div className="px-4 py-3 flex justify-center">
                           <button
-                            onClick={() => goView(r.data_id)}
+                            onClick={() => goView(r)}
                             className="rounded-md bg-[#2E66D4] text-white px-4 py-1 text-sm font-medium hover:brightness-95 transition"
                           >
                             VIEW

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
@@ -18,7 +18,7 @@ type Row = {
 
 export default function ExpertViewPage({
   dataset,
-  fileName,
+  fileName, // optional prop fallback
 }: {
   dataset?: Row[];
   fileName?: string;
@@ -26,8 +26,13 @@ export default function ExpertViewPage({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // get id from query param (e.g. ?id=ID1)
-  const fileId = searchParams.get("id") || "CSV_1.xlsx";
+  // Query params (all optional, but we prefer URL → prop → fallback)
+  const fileId = searchParams.get("id") || "UNKNOWN_ID";
+  const qpFileName = searchParams.get("fileName") || undefined;
+  const lastEdited = searchParams.get("lastEdited") || "";
+  const submittedBy = searchParams.get("submittedBy") || "";
+
+  const effectiveFileName = qpFileName || fileName || fileId;
 
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +43,6 @@ export default function ExpertViewPage({
         setRows(dataset);
         return;
       }
-
       // Dummy fallback
       const dummy: Row[] = [
         { data_id: "ID1", gender: "perempuan", age: 14, city: "jakarta", status: "status a", disease_id: "ID A", location_id: "ID B", severity: "severity a" },
@@ -68,21 +72,30 @@ export default function ExpertViewPage({
           &lt; back
         </button>
 
-        {/* Title */}
+        {/* Title = file name */}
         <h1 className="text-2xl font-semibold text-gray-800 mb-1">
-          {fileName || fileId}
+          {effectiveFileName}
         </h1>
-        <p className="text-gray-500 text-sm mb-4">
-          {rows.length
-            ? `${rows.length} rows • 8 columns`
-            : "No data available"}
-        </p>
+
+        {/* Meta: rows/cols, then last-edited/submitted-by */}
+        <div className="text-gray-500 text-sm mb-4 space-y-0.5">
+          <p>
+            {rows.length ? `${rows.length} rows • 8 columns` : "No data available"}
+          </p>
+          {(lastEdited || submittedBy) && (
+            <p>
+              {lastEdited && <>Last edited: <span className="font-medium text-gray-600">{lastEdited}</span></>}
+              {lastEdited && submittedBy && " • "}
+              {submittedBy && <>Submitted by: <span className="font-medium text-gray-600">{submittedBy}</span></>}
+            </p>
+          )}
+        </div>
 
         {/* Table */}
         {rows.length ? (
           <div className="rounded-2xl border shadow-sm bg-white overflow-x-auto">
             <table className="min-w-full text-sm sm:text-base">
-              <thead className="bg-[#4A78E0] text-white rounded-t-2xl">
+              <thead className="bg-[#4A78E0] text-white">
                 <tr>
                   {[
                     "ID Data",
@@ -94,10 +107,7 @@ export default function ExpertViewPage({
                     "ID Lokasi",
                     "Tingkat Keparahan",
                   ].map((header) => (
-                    <th
-                      key={header}
-                      className="px-4 py-3 font-semibold text-left border-white/30"
-                    >
+                    <th key={header} className="px-4 py-3 font-semibold text-left">
                       {header}
                     </th>
                   ))}
@@ -120,9 +130,7 @@ export default function ExpertViewPage({
             </table>
           </div>
         ) : (
-          <div className="text-center py-10 text-gray-500 text-sm">
-            No data available
-          </div>
+          <div className="text-center py-10 text-gray-500 text-sm">No data available</div>
         )}
       </main>
 
