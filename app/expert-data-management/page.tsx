@@ -57,7 +57,7 @@ export default function ExpertDataManagementPage({
     }
   }, []);
 
-  const goView = (id: string) => router.push(`/expert-view?id=${id}`);
+  const goView = (id: string) => router.push(`/expert-data-management/view?id=${id}`);
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
