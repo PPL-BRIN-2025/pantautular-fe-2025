@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import { API_BASE } from '../../config';
 import Navbar from "../components/Navbar";
@@ -93,6 +93,12 @@ export default function CuratorEditDeleteDataPage() {
   const [kewaspadaan, setKewaspadaan] = useState(1);
   const [hoverKewaspadaan, setHoverKewaspadaan] = useState<number | null>(null);
   const [clickedKewaspadaan, setClickedKewaspadaan] = useState<number | null>(null);
+  const [isDraggingKewaspadaan, setIsDraggingKewaspadaan] = useState(false);
+  const emojiFor = (n: number) => (n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨');
+  // continuous raw value for main form slider and its track ref
+  const [kewaspadaanRaw, setKewaspadaanRaw] = useState<number>(kewaspadaan);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => { setKewaspadaanRaw(kewaspadaan); }, [kewaspadaan]);
   const [tanggal, setTanggal] = useState({ dd: "23", mm: "01", yyyy: "2024" });
   const [usia, setUsia] = useState("12");
 
@@ -122,7 +128,13 @@ export default function CuratorEditDeleteDataPage() {
   const [editJenisKelamin, setEditJenisKelamin] = useState(jenisKelamin);
   const [editTingkatKeparahan, setEditTingkatKeparahan] = useState(tingkatKeparahan);
   const [editKewaspadaan, setEditKewaspadaan] = useState(kewaspadaan);
+  // continuous raw value for smooth dragging in edit modal
+  const [editKewaspadaanRaw, setEditKewaspadaanRaw] = useState<number>(editKewaspadaan);
+  const editTrackRef = useRef<HTMLDivElement | null>(null);
   const [editHoverKewaspadaan, setEditHoverKewaspadaan] = useState<number | null>(null);
+  useEffect(() => {
+    setEditKewaspadaanRaw(editKewaspadaan);
+  }, [editKewaspadaan]);
   const [editClickedKewaspadaan, setEditClickedKewaspadaan] = useState<number | null>(null);
   const [editTanggal, setEditTanggal] = useState(tanggal);
   const [editUsia, setEditUsia] = useState(usia);
@@ -1130,32 +1142,161 @@ export default function CuratorEditDeleteDataPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tingkat Kewaspadaan</label>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2" role="radiogroup" aria-label="Tingkat Kewaspadaan">
-                        {[1,2,3,4].map((n) => {
-                          const emoji = n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨';
-                          return (
-                            <button
-                              key={n}
-                              type="button"
-                              onMouseEnter={() => setHoverKewaspadaan(n)}
-                              onMouseLeave={() => setHoverKewaspadaan(null)}
-                              onClick={() => { if (isEditing) { setKewaspadaan(n); setClickedKewaspadaan(n); setTimeout(() => setClickedKewaspadaan(null), 700); } }}
-                              onKeyDown={(e) => handleStarKey(e, n)}
-                              aria-pressed={kewaspadaan === n}
-                              className={`text-2xl transition-transform ${kewaspadaan === n ? 'scale-125' : ''} ${hoverKewaspadaan === n ? 'scale-125' : ''} ${clickedKewaspadaan === n ? 'animate-pulse scale-150' : ''}`} 
-                              title={`${n} dari 4`}
-                              disabled={!isEditing}
-                            >
-                              <span className="text-2xl" aria-hidden>{emoji}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm text-gray-500">{hoverKewaspadaan ?? kewaspadaan} / 4</span>
-                        <span className="text-xs text-gray-400">1: biasa — 2: minimal — 3: bahaya — 4: katastropik</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-4">Tingkat Kewaspadaan</label>
+                    <div className="w-full" role="group" aria-label="Tingkat Kewaspadaan">
+                      <div
+                        className={`relative select-none ${!isEditing ? 'opacity-60' : ''}`}
+                        style={{ height: 56 }}
+                        onKeyDown={(e) => {
+                          if (!isEditing) return;
+                          if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setKewaspadaan((v) => Math.max(1, (v || 1) - 1));
+                            setClickedKewaspadaan(kewaspadaan);
+                            setTimeout(() => setClickedKewaspadaan(null), 400);
+                          }
+                          if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setKewaspadaan((v) => Math.min(4, (v || 1) + 1));
+                            setClickedKewaspadaan(kewaspadaan);
+                            setTimeout(() => setClickedKewaspadaan(null), 400);
+                          }
+                        }}
+                      >
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div
+                            className="w-full max-w-full rounded-md overflow-hidden bg-gray-200"
+                            style={{ height: 12 }}
+                            onPointerDown={(e) => {
+                              if (!isEditing) return;
+                              (e.target as Element).setPointerCapture?.(e.pointerId);
+                              setIsDraggingKewaspadaan(true);
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              if (rect) {
+                                const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                const pct = rel / rect.width;
+                                const v = 1 + pct * 3;
+                                setKewaspadaanRaw(v);
+                                const approxSeg = Math.round(v);
+                                const centerPct = (approxSeg - 0.5) / 4;
+                                const distanceToCenter = Math.abs(pct - centerPct);
+                                if (distanceToCenter < 0.2) {
+                                  setHoverKewaspadaan(approxSeg);
+                                } else {
+                                  setHoverKewaspadaan(null);
+                                }
+                              }
+                            }}
+                            onPointerMove={(e) => {
+                              if (!isEditing) return;
+                              if (!isDraggingKewaspadaan) return;
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              if (rect) {
+                                const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                const pct = rel / rect.width;
+                                const v = 1 + pct * 3;
+                                setKewaspadaanRaw(v);
+                                const approxSeg = Math.round(v);
+                                const centerPct = (approxSeg - 0.5) / 4;
+                                const distanceToCenter = Math.abs(pct - centerPct);
+                                if (distanceToCenter < 0.2) {
+                                  setHoverKewaspadaan(approxSeg);
+                                } else {
+                                  setHoverKewaspadaan(null);
+                                }
+                              }
+                            }}
+                            onPointerUp={(e) => {
+                              if (!isEditing) return;
+                              try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                              setIsDraggingKewaspadaan(false);
+                              const rect2 = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              const rel2 = Math.min(Math.max(0, e.clientX - rect2.left), rect2.width);
+                              const pct2 = rect2.width ? rel2 / rect2.width : 0;
+                              const snappedSeg = Math.min(4, Math.max(1, Math.floor(pct2 * 4) + 1));
+                              setKewaspadaan(snappedSeg);
+                              setClickedKewaspadaan(snappedSeg);
+                              setTimeout(() => setClickedKewaspadaan(null), 400);
+                            }}
+                          >
+                            <div className="h-full flex">
+                              <div className="flex-1" style={{ background: '#2ecc71' }} onMouseEnter={() => isEditing && setHoverKewaspadaan(1)} onMouseLeave={() => isEditing && setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#f6c343' }} onMouseEnter={() => isEditing && setHoverKewaspadaan(2)} onMouseLeave={() => isEditing && setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#f39c12' }} onMouseEnter={() => isEditing && setHoverKewaspadaan(3)} onMouseLeave={() => isEditing && setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#e74c3c' }} onMouseEnter={() => isEditing && setHoverKewaspadaan(4)} onMouseLeave={() => isEditing && setHoverKewaspadaan(null)} />
+                            </div>
+                          </div>
+
+                          <div className="absolute right-3 -top-8 text-sm text-gray-500 pr-3">{hoverKewaspadaan ?? kewaspadaan} / 4</div>
+
+                          <div className="absolute left-0 right-0 top-full mt-0 -translate-y-2 flex items-center justify-between max-w-full px-0" style={{ width: '100%' }} aria-hidden>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Biasa</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Minimal</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Bahaya</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Katastropik</div>
+                          </div>
+                        </div>
+
+                        <div ref={trackRef} className="absolute inset-0 flex items-center justify-center">
+                          <div style={{ position: 'absolute', left: `${((kewaspadaanRaw - 1) / 3) * 100}%` }} className="transform -translate-x-1/2">
+                            <div className="relative flex items-center justify-center">
+                              <span className={`absolute -top-9 text-2xl ${clickedKewaspadaan ? 'scale-125' : ''}`}>{emojiFor(hoverKewaspadaan ?? kewaspadaan)}</span>
+                              <button
+                                type="button"
+                                aria-label="Geser tingkat kewaspadaan"
+                                disabled={!isEditing}
+                                onPointerDown={(e) => {
+                                  if (!isEditing) return;
+                                  (e.target as Element).setPointerCapture?.(e.pointerId);
+                                  setIsDraggingKewaspadaan(true);
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rel / rect.width;
+                                    const v = 1 + pct * 3;
+                                    setKewaspadaanRaw(v);
+                                    const seg = Math.min(4, Math.max(1, Math.round(v)));
+                                    setHoverKewaspadaan(seg);
+                                  }
+                                }}
+                                onPointerMove={(e) => {
+                                  if (!isEditing) return;
+                                  if (!isDraggingKewaspadaan) return;
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rel / rect.width;
+                                    const v = 1 + pct * 3;
+                                    setKewaspadaanRaw(v);
+                                    setHoverKewaspadaan(Math.min(4, Math.max(1, Math.round(v))));
+                                  }
+                                }}
+                                onPointerUp={(e) => {
+                                  if (!isEditing) return;
+                                  try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                                  setIsDraggingKewaspadaan(false);
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rect.width ? rel / rect.width : 0;
+                                    const v2 = 1 + pct * 3;
+                                    const snappedSeg = Math.min(4, Math.max(1, Math.round(v2)));
+                                    setKewaspadaan(snappedSeg);
+                                    setClickedKewaspadaan(snappedSeg);
+                                  } else {
+                                    const snapped = Math.min(4, Math.max(1, Math.round(kewaspadaanRaw)));
+                                    setKewaspadaan(snapped);
+                                    setKewaspadaanRaw(snapped);
+                                    setClickedKewaspadaan(snapped);
+                                  }
+                                  setTimeout(() => setClickedKewaspadaan(null), 400);
+                                }}
+                                className={`w-4 h-4 rounded-full shadow-sm bg-blue-500 border-2 border-white ${!isEditing ? 'cursor-not-allowed opacity-70' : 'cursor-grab active:cursor-grabbing'} -translate-y-1/8 transition-all duration-150`}
+                                style={{ touchAction: 'none' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1248,22 +1389,128 @@ export default function CuratorEditDeleteDataPage() {
 
                 <div>
                   <label className="text-xs text-gray-700 block mb-1">Tingkat Kewaspadaan</label>
-                  <div className="flex items-center gap-2">
-                    {[1,2,3,4].map((n) => {
-                      const emoji = n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨';
-                      return (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setEditKewaspadaan(n)}
-                          className={`text-2xl ${editKewaspadaan === n ? 'scale-125' : ''}`}
-                          title={`${n} dari 4`}
+                  <div className="w-full" role="group" aria-label="Tingkat Kewaspadaan">
+                    <div className="relative select-none" style={{ height: 56 }}>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div
+                          className="w-full max-w-full rounded-md overflow-hidden bg-gray-200"
+                          style={{ height: 12 }}
+                          onPointerDown={(e) => {
+                            (e.target as Element).setPointerCapture?.(e.pointerId);
+                            setIsDraggingKewaspadaan(true);
+                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            if (rect) {
+                              const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                              const pct = rel / rect.width;
+                              const v = 1 + pct * 3;
+                              setEditKewaspadaanRaw(v);
+                              const approxSeg = Math.round(v);
+                              const centerPct = (approxSeg - 0.5) / 4;
+                              const distanceToCenter = Math.abs(pct - centerPct);
+                              if (distanceToCenter < 0.2) setEditHoverKewaspadaan(approxSeg); else setEditHoverKewaspadaan(null);
+                            }
+                          }}
+                          onPointerMove={(e) => {
+                            if (!isDraggingKewaspadaan) return;
+                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            if (rect) {
+                              const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                              const pct = rel / rect.width;
+                              const v = 1 + pct * 3;
+                              setEditKewaspadaanRaw(v);
+                              const approxSeg = Math.round(v);
+                              const centerPct = (approxSeg - 0.5) / 4;
+                              const distanceToCenter = Math.abs(pct - centerPct);
+                              if (distanceToCenter < 0.2) setEditHoverKewaspadaan(approxSeg); else setEditHoverKewaspadaan(null);
+                            }
+                          }}
+                          onPointerUp={(e) => {
+                            try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                            setIsDraggingKewaspadaan(false);
+                            const rect2 = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            const rel2 = Math.min(Math.max(0, e.clientX - rect2.left), rect2.width);
+                            const pct2 = rect2.width ? rel2 / rect2.width : 0;
+                            const snappedSeg = Math.min(4, Math.max(1, Math.floor(pct2 * 4) + 1));
+                            setEditKewaspadaan(snappedSeg);
+                            setEditClickedKewaspadaan(snappedSeg);
+                            setTimeout(() => setEditClickedKewaspadaan(null), 400);
+                          }}
                         >
-                          <span aria-hidden>{emoji}</span>
-                        </button>
-                      );
-                    })}
-                    <span className="text-xs text-gray-500">{editKewaspadaan} / 4</span>
+                          <div className="h-full flex">
+                            <div className="flex-1" style={{ background: '#2ecc71' }} onMouseEnter={() => setEditHoverKewaspadaan(1)} onMouseLeave={() => setEditHoverKewaspadaan(null)} />
+                            <div className="flex-1" style={{ background: '#f6c343' }} onMouseEnter={() => setEditHoverKewaspadaan(2)} onMouseLeave={() => setEditHoverKewaspadaan(null)} />
+                            <div className="flex-1" style={{ background: '#f39c12' }} onMouseEnter={() => setEditHoverKewaspadaan(3)} onMouseLeave={() => setEditHoverKewaspadaan(null)} />
+                            <div className="flex-1" style={{ background: '#e74c3c' }} onMouseEnter={() => setEditHoverKewaspadaan(4)} onMouseLeave={() => setEditHoverKewaspadaan(null)} />
+                          </div>
+                        </div>
+
+                        <div className="absolute right-3 -top-8 text-sm text-gray-500 pr-3">{editHoverKewaspadaan ?? editKewaspadaan} / 4</div>
+
+                        <div className="absolute left-0 right-0 top-full mt-0 -translate-y-2 flex items-center justify-between max-w-full px-0" style={{ width: '100%' }} aria-hidden>
+                          <div className="w-1/4 text-center text-xs text-gray-500">Biasa</div>
+                          <div className="w-1/4 text-center text-xs text-gray-500">Minimal</div>
+                          <div className="w-1/4 text-center text-xs text-gray-500">Bahaya</div>
+                          <div className="w-1/4 text-center text-xs text-gray-500">Katastropik</div>
+                        </div>
+                      </div>
+
+                      <div ref={editTrackRef} className="absolute inset-0 flex items-center justify-center">
+                        <div style={{ position: 'absolute', left: `${((editKewaspadaanRaw - 1) / 3) * 100}%` }} className="transform -translate-x-1/2">
+                          <div className="relative flex items-center justify-center">
+                            <span className={`absolute -top-9 text-2xl ${editClickedKewaspadaan ? 'scale-125' : ''}`}>{emojiFor(editHoverKewaspadaan ?? editKewaspadaan)}</span>
+                            <button
+                              type="button"
+                              aria-label="Geser tingkat kewaspadaan"
+                              onPointerDown={(e) => {
+                                (e.target as Element).setPointerCapture?.(e.pointerId);
+                                setIsDraggingKewaspadaan(true);
+                                const rect = editTrackRef.current?.getBoundingClientRect();
+                                if (rect) {
+                                  const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                  const pct = rel / rect.width;
+                                  const v = 1 + pct * 3;
+                                  setEditKewaspadaanRaw(v);
+                                  const seg = Math.min(4, Math.max(1, Math.round(v)));
+                                  setEditHoverKewaspadaan(seg);
+                                }
+                              }}
+                              onPointerMove={(e) => {
+                                if (!isDraggingKewaspadaan) return;
+                                const rect = editTrackRef.current?.getBoundingClientRect();
+                                if (rect) {
+                                  const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                  const pct = rel / rect.width;
+                                  const v = 1 + pct * 3;
+                                  setEditKewaspadaanRaw(v);
+                                  setEditHoverKewaspadaan(Math.min(4, Math.max(1, Math.round(v))));
+                                }
+                              }}
+                              onPointerUp={(e) => {
+                                try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                                setIsDraggingKewaspadaan(false);
+                                const rect = editTrackRef.current?.getBoundingClientRect();
+                                if (rect) {
+                                  const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                  const pct = rect.width ? rel / rect.width : 0;
+                                  const v2 = 1 + pct * 3;
+                                  const snappedSeg = Math.min(4, Math.max(1, Math.round(v2)));
+                                  setEditKewaspadaan(snappedSeg);
+                                  setEditClickedKewaspadaan(snappedSeg);
+                                } else {
+                                  const snapped = Math.min(4, Math.max(1, Math.round(editKewaspadaanRaw)));
+                                  setEditKewaspadaan(snapped);
+                                  setEditKewaspadaanRaw(snapped);
+                                  setEditClickedKewaspadaan(snapped);
+                                }
+                                setTimeout(() => setEditClickedKewaspadaan(null), 400);
+                              }}
+                              className="w-4 h-4 rounded-full shadow-sm bg-blue-500 border-2 border-white cursor-grab active:cursor-grabbing -translate-y-1/8 transition-all duration-150"
+                              style={{ touchAction: 'none' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
