@@ -61,17 +61,17 @@ export default function ExpertDataManagementPage({
     }
   }, [initialRows, initialError, simulateLoadError]);
 
-  // const goView = (id: string) => router.push(`/expert-data-management/view?id=${id}`);
+  // Navigate and pass row info in the URL 
   const goView = (row: Row) => {
-  const url = new URL(window.location.origin + "/expert-data-management/view");
-  url.searchParams.set("id", row.data_id);
-  url.searchParams.set("fileName", row.file_name);
-  url.searchParams.set("lastEdited", row.last_edited);
-  url.searchParams.set("submittedBy", row.submitted_by);
-  router.push(url.pathname + "?" + url.searchParams.toString());
-};
+    const url = new URL(window.location.origin + "/expert-data-management/view");
+    url.searchParams.set("id", row.data_id);
+    url.searchParams.set("fileName", row.file_name);
+    url.searchParams.set("lastEdited", row.last_edited);
+    url.searchParams.set("submittedBy", row.submitted_by);
+    router.push(url.pathname + "?" + url.searchParams.toString());
+  };
 
-  // --- FILTERED VIEW ---
+  // FILTERED VIEW (case-insensitive contains across all columns) 
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
