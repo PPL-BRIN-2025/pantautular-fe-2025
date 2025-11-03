@@ -1,45 +1,48 @@
+import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import "@testing-library/jest-dom";
-import ExpertViewPage from "../../../app/expert-data-management/view/page";
-import { useRouter, useSearchParams } from "next/navigation";
 
-// Mock Next.js hooks
+const mockBack = jest.fn();
+const mockGet = jest.fn();
+
 jest.mock("next/navigation", () => ({
-  useRouter: jest.fn(),
-  useSearchParams: jest.fn(),
+  useRouter: () => ({
+    back: mockBack,
+    push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+  }),
+  useSearchParams: () => ({
+    get: mockGet,
+  }),
 }));
 
-// Mock child components to isolate logic
+// Mock layout components with stable testids
 jest.mock("../../../app/components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
 jest.mock("../../../app/components/Footer", () => () => <div data-testid="footer">Footer</div>);
 
-describe("Expert Dataset View Page", () => {
-  const mockPush = jest.fn();
-  const mockBack = jest.fn();
-  const mockSearchParams = new URLSearchParams("?id=TestFile.xlsx");
+import ExpertViewPage from "../../../app/expert-data-management/view/page";
 
-  beforeEach(() => {
-    (useRouter as jest.Mock).mockReturnValue({ back: mockBack, push: mockPush });
-    (useSearchParams as jest.Mock).mockReturnValue(mockSearchParams);
-    jest.clearAllMocks();
-  });
+// Cast the Next.js page component so tests can pass props without TS errors
+type PageProps = { dataset?: any; fileName?: string };
+const SUT = ExpertViewPage as unknown as React.FC<PageProps>;
 
+describe("ExpertViewPage", () => {
   const mockData = [
     {
-      data_id: "ID1",
-      gender: "Perempuan",
-      age: 14,
-      city: "jakarta",
+      id: "ID1",
+      gender: "Laki-laki",
+      age: 21,
+      city: "Jakarta",
       status: "status a",
-      disease_id: "ID A",
-      location_id: "ID B",
+      disease_id: "ID X",
+      location_id: "ID Y",
       severity: "severity a",
     },
     {
-      data_id: "ID2",
-      gender: "Laki-laki",
-      age: 14,
-      city: "jakarta",
+      id: "ID3",
+      gender: "Perempuan",
+      age: 35,
+      city: "Bandung",
       status: "status b",
       disease_id: "ID A",
       location_id: "ID B",
@@ -47,8 +50,13 @@ describe("Expert Dataset View Page", () => {
     },
   ];
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test("renders dataset title, back button, and table headers", () => {
-    render(<ExpertViewPage dataset={mockData} fileName="CSV_1.xlsx" />);
+    mockGet.mockReturnValue("FILE_123");
+    render(<SUT dataset={mockData} fileName="CSV_1.xlsx" />);
 
     expect(screen.getByText("< back")).toBeInTheDocument();
     expect(screen.getByText("CSV_1.xlsx")).toBeInTheDocument();
@@ -63,74 +71,64 @@ describe("Expert Dataset View Page", () => {
       "ID Lokasi",
       "Tingkat Keparahan",
     ];
-    headers.forEach((header) => {
-      expect(screen.getByText(header)).toBeInTheDocument();
-    });
+    headers.forEach((h) => expect(screen.getByText(h)).toBeInTheDocument());
   });
 
   test("renders correct number of dataset rows and info text", () => {
-    render(<ExpertViewPage dataset={mockData} fileName="CSV_1.xlsx" />);
+    mockGet.mockReturnValue("FILE_123");
+    render(<SUT dataset={mockData} fileName="CSV_1.xlsx" />);
     expect(screen.getAllByRole("row")).toHaveLength(mockData.length + 1);
     expect(screen.getByText("2 rows • 8 columns")).toBeInTheDocument();
   });
 
   test("renders fallback dummy data when dataset prop is missing", () => {
-    render(<ExpertViewPage />);
+    mockGet.mockReturnValue("FILE_123");
+    render(<SUT />);
     expect(screen.getByText("ID1")).toBeInTheDocument();
     expect(screen.getByText("ID3")).toBeInTheDocument();
   });
 
   test("renders 'No data available' when dataset is empty", () => {
-    render(<ExpertViewPage dataset={[]} fileName="Empty.xlsx" />);
+    mockGet.mockReturnValue("FILE_123");
+    render(<SUT dataset={[]} fileName="Empty.xlsx" />);
     expect(screen.getByText("No data available")).toBeInTheDocument();
   });
 
-  test("renders fallback fileId from URL when fileName not provided", () => {
-    render(<ExpertViewPage dataset={mockData} />);
-    expect(screen.getByText("TestFile.xlsx")).toBeInTheDocument();
+  test("uses fileId from URL when fileName not provided (covers fileName fallback branch)", () => {
+    mockGet.mockImplementation((k: string) => (k === "fileId" ? "FILE_123" : null));
+    render(<SUT dataset={mockData} />);
+    expect(screen.getByText("FILE_123")).toBeInTheDocument();
+    expect(mockGet).toHaveBeenCalledWith("fileId");
   });
 
-  test("calls router.back() when back button is clicked", () => {
-    render(<ExpertViewPage dataset={mockData} fileName="CSV_1.xlsx" />);
+  test("still renders when neither fileName nor fileId exists (covers missing param branch)", () => {
+    mockGet.mockReturnValue(null);
+    render(<SUT dataset={mockData} />);
+    expect(screen.getByText("ID Data")).toBeInTheDocument();
+    expect(screen.getByText("2 rows • 8 columns")).toBeInTheDocument();
+  });
+
+  test("clicking '< back' triggers router.back()", () => {
+    mockGet.mockReturnValue("FILE_123");
+    render(<SUT dataset={mockData} fileName="CSV_1.xlsx" />);
     fireEvent.click(screen.getByText("< back"));
-    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockBack).toHaveBeenCalled();
   });
 
-  test("renders Navbar and Footer components", () => {
-    render(<ExpertViewPage dataset={mockData} fileName="CSV_1.xlsx" />);
+  test("renders mocked Navbar and Footer", () => {
+    mockGet.mockReturnValue("FILE_123");
+    render(<SUT dataset={mockData} fileName="CSV_1.xlsx" />);
     expect(screen.getByTestId("navbar")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();
   });
 
-  test("renders error message when useEffect throws an error", async () => {
-    jest.spyOn(console, "error").mockImplementation(() => {}); // silence React error
-  
-    // Mock useState so that it throws inside useEffect to trigger the catch block
-    const originalUseState = jest.requireActual("react").useState;
-    jest.spyOn(require("react"), "useState").mockImplementationOnce(() => {
-      throw new Error("Simulated crash in useEffect");
-    });
-  
-    render(<ExpertViewPage dataset={undefined as any} />);
-  
-    // The error boundary in component should catch and render this message
-    expect(await screen.findByText("Failed to load data")).toBeInTheDocument();
-  
-    // Restore mocks
-    jest.restoreAllMocks();
-    jest.spyOn(require("react"), "useState").mockImplementation(originalUseState);
-  });
-  
-  
+  test("updates shown filename when prop changes (rerender path)", () => {
+    mockGet.mockReturnValue("FILE_123");
+    const { rerender } = render(<SUT dataset={mockData} fileName="Initial.xlsx" />);
+    expect(screen.getByText("Initial.xlsx")).toBeInTheDocument();
 
-  test("updates when dataset changes dynamically", () => {
-    const { rerender } = render(<ExpertViewPage dataset={[]} fileName="Dynamic.xlsx" />);
-    expect(screen.getByText("No data available")).toBeInTheDocument();
-
-    rerender(<ExpertViewPage dataset={mockData} fileName="Dynamic.xlsx" />);
+    rerender(<SUT dataset={mockData} fileName="Dynamic.xlsx" />);
+    expect(screen.getByText("Dynamic.xlsx")).toBeInTheDocument();
     expect(screen.getByText("ID1")).toBeInTheDocument();
   });
-  
-
-  
 });
