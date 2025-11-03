@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import AccessDeniedNotice from "../../components/AccessDenied";
+// import AccessDeniedNotice from "../../components/AccessDenied2";
+// note: when connected to backend uncomment
 import { useAuth } from "../../auth/hooks/useAuth";
 
 const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
@@ -32,49 +33,51 @@ export default function ExpertViewPage({
   const searchParams = useSearchParams();
   const { user } = useAuth();
 
-  // RBAC guard
-  const [accessState, setAccessState] = useState<AccessState>("loading");
-  useEffect(() => {
-    let resolved = user;
-    if (!resolved && typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem("user");
-        if (stored) resolved = JSON.parse(stored);
-      } catch {}
-    }
-    if (!resolved) {
-      setAccessState("redirect");
-      return;
-    }
-    const allowed = normalizeRole(resolved.role) === "EXP_USER";
-    setAccessState(allowed ? "granted" : "forbidden");
-  }, [user]);
+  // // RBAC guard
+  // temporarily commented out while waiting for backend integration
+  // --- access state ---
+  // const [accessState, setAccessState] = useState<AccessState>("loading");
+  // useEffect(() => {
+  //   let resolved = user;
+  //   if (!resolved && typeof window !== "undefined") {
+  //     try {
+  //       const stored = window.localStorage.getItem("user");
+  //       if (stored) resolved = JSON.parse(stored);
+  //     } catch {}
+  //   }
+  //   if (!resolved) {
+  //     setAccessState("redirect");
+  //     return;
+  //   }
+  //   const allowed = normalizeRole(resolved.role) === "EXP_USER";
+  //   setAccessState(allowed ? "granted" : "forbidden");
+  // }, [user]);
 
-  useEffect(() => {
-    if (accessState !== "redirect") return;
-    const nextParam = encodeURIComponent("/expert-data-management");
-    router.replace(`/login?next=${nextParam}`);
-  }, [accessState, router]);
+  // useEffect(() => {
+  //   if (accessState !== "redirect") return;
+  //   const nextParam = encodeURIComponent("/expert-data-management");
+  //   router.replace(`/login?next=${nextParam}`);
+  // }, [accessState, router]);
 
-  if (accessState === "loading" || accessState === "redirect") {
-    return (
-      <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
-        <span className="text-sm text-gray-600">Memeriksa akses…</span>
-      </div>
-    );
-  }
+  // if (accessState === "loading" || accessState === "redirect") {
+  //   return (
+  //     <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
+  //       <span className="text-sm text-gray-600">Memeriksa akses…</span>
+  //     </div>
+  //   );
+  // }
 
-  if (accessState === "forbidden") {
-    return (
-      <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
-        <Navbar />
-        <main className="flex-1">
-          <AccessDeniedNotice />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  // if (accessState === "forbidden") {
+  //   return (
+  //     <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
+  //       <Navbar />
+  //       <main className="flex-1">
+  //         <AccessDeniedNotice />
+  //       </main>
+  //       <Footer />
+  //     </div>
+  //   );
+  // }
 
   // Normal page
   const fileId = searchParams.get("id") || "UNKNOWN_ID";
