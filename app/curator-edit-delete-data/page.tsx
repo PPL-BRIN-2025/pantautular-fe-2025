@@ -19,6 +19,7 @@ const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase(
 
 const BLUE = "#0069cf";
 
+import CsvUpload from "../components/CsvUpload";
 export default function CuratorEditDeleteDataPage() {
   const { user } = useAuth();
     const router = useRouter();
@@ -1431,6 +1432,17 @@ export default function CuratorEditDeleteDataPage() {
                     <div className="text-xs text-gray-400">Batas 2000 karakter.</div>
                     <div className="text-xs text-gray-500">{ringkasan.length}/2000</div>
                   </div>
+                </div>
+
+                {/* CSV upload area (below ringkasan) */}
+                <div className="mt-4">
+                  <label className="text-sm font-medium text-gray-700 block mb-2">Upload CSV (hanya EXP_USER)</label>
+                  <CsvUpload
+                    effectiveUser={effectiveUser}
+                    onSuccessAction={(m: string) => { setSuccessMessage(m); setTimeout(() => setSuccessMessage(''), 3000); }}
+                    onErrorAction={(e: string) => setErrors((p) => ({ ...p, csv: e }))}
+                  />
+                  {errors.csv && <div className="text-xs text-red-600 mt-1">{errors.csv}</div>}
                 </div>
 
                 <div className="flex justify-end items-center gap-4 mt-8">
