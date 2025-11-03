@@ -1,6 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapLocation, FilterState } from '../types';
 import { mapApi } from '../services/api';
+
+const serializeFilterState = (state: FilterState): string => {
+  const normalizeDate = (value: FilterState["start_date"]) => {
+    if (!value) {
+      return null;
+    }
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    return value;
+  };
+
+  return JSON.stringify({
+    ...state,
+    start_date: normalizeDate(state.start_date),
+    end_date: normalizeDate(state.end_date),
+  });
+};
 
 export const useLocations = (filterState: FilterState) => {
   const [data, setData] = useState<MapLocation[]>([]);
@@ -10,9 +28,14 @@ export const useLocations = (filterState: FilterState) => {
   const [provinceTemperatureData, setProvinceTemperatureData] = useState<any[]>([]);
   const [provincePrecipitationData, setProvincePrecipitationData] = useState<any[]>([]);
   const [provinceSeverityData, setProvinceSeverityData] = useState<any[]>([]);
+  const lastSerializedFilterRef = useRef<string | null>(null);
 
   // Token validation function
   const isTokenValid = () => {
+    if (typeof localStorage === 'undefined') {
+      return false;
+    }
+
     const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) return false;
     
@@ -31,11 +54,15 @@ export const useLocations = (filterState: FilterState) => {
   // Function to handle auto logout
   const handleAutoLogout = () => {
     // Clear token and user data
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+    }
     
     // Redirect to login page
-    window.location.href = '/login';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   };
 
   // Helper to check if an error is a token validation error
@@ -67,77 +94,106 @@ export const useLocations = (filterState: FilterState) => {
   };
 
   useEffect(() => {
+    const serializedFilter = serializeFilterState(filterState);
+
+    // Skip re-fetching when filters are effectively unchanged
+    if (lastSerializedFilterRef.current === serializedFilter) {
+      return;
+    }
+
+    lastSerializedFilterRef.current = serializedFilter;
+    let isCancelled = false;
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
+
         const locations = await mapApi.getFilteredLocations(filterState);
+        if (isCancelled || lastSerializedFilterRef.current !== serializedFilter) {
+          return;
+        }
         setData(locations);
-        
-        // Check if token exists
-        const accessToken = localStorage.getItem('accessToken');
+
+        const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
         if (accessToken) {
-          // If token exists but invalid (expired), trigger auto logout
           if (!isTokenValid()) {
             console.log('Token expired, logging out automatically');
             handleAutoLogout();
             return;
           }
-          
-          // Only fetch province data if token is valid
+
           try {
-            const humidityData = await mapApi.getProvinceData('humidity');
-            const temperatureData = await mapApi.getProvinceData('temperature');
-            const precipitationData = await mapApi.getProvinceData('precipitation');
-            const severityData = await mapApi.getProvinceData('weighted-severity');
-            
-            // Set empty arrays as fallback if data is null or undefined
+            const [humidityData, temperatureData, precipitationData, severityData] = await Promise.all([
+              mapApi.getProvinceData('humidity'),
+              mapApi.getProvinceData('temperature'),
+              mapApi.getProvinceData('precipitation'),
+              mapApi.getProvinceData('weighted-severity'),
+            ]);
+
+            if (isCancelled || lastSerializedFilterRef.current !== serializedFilter) {
+              return;
+            }
+
             setProvinceHumidityData(humidityData || []);
             setProvinceTemperatureData(temperatureData || []);
             setProvincePrecipitationData(precipitationData || []);
             setProvinceSeverityData(severityData || []);
           } catch (err) {
+            if (isCancelled || lastSerializedFilterRef.current !== serializedFilter) {
+              return;
+            }
+
             console.error('Error fetching province data:', err);
-            
-            // Check if error is due to invalid/expired token
+
             if (isTokenError(err)) {
               console.log('Token validation error detected, logging out');
               handleAutoLogout();
               return;
             }
-            
-            // Use empty arrays as fallback on other errors
+
             setProvinceHumidityData([]);
             setProvinceTemperatureData([]);
             setProvincePrecipitationData([]);
             setProvinceSeverityData([]);
           }
         } else {
-          // Reset province data states with empty arrays
+          if (isCancelled || lastSerializedFilterRef.current !== serializedFilter) {
+            return;
+          }
+
           setProvinceHumidityData([]);
           setProvinceTemperatureData([]);
           setProvincePrecipitationData([]);
           setProvinceSeverityData([]);
         }
       } catch (err) {
+        if (isCancelled || lastSerializedFilterRef.current !== serializedFilter) {
+          return;
+        }
+
         console.error('Error in useLocations:', err);
-        
-        // Also check for token errors in the main try-catch
+
         if (isTokenError(err)) {
           console.log('Token validation error detected, logging out');
           handleAutoLogout();
           return;
         }
-        
+
         setError(err instanceof Error ? err : new Error('Failed to fetch locations'));
-        // Optionally set fallback data
         setData([]);
       } finally {
-        setIsLoading(false);
+        if (!isCancelled && lastSerializedFilterRef.current === serializedFilter) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [filterState]);
 
   return { data, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData, provinceSeverityData };
