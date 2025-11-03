@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 
@@ -82,8 +82,8 @@ describe("ExpertDataManagementPage", () => {
   });
 });
 
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+// import React from "react";
+// import { screen, fireEvent } from "@testing-library/react";
 
 const mockBack = jest.fn();
 const mockGet = jest.fn();
@@ -104,7 +104,7 @@ jest.mock("next/navigation", () => ({
 jest.mock("../../../app/components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
 jest.mock("../../../app/components/Footer", () => () => <div data-testid="footer">Footer</div>);
 
-import ExpertViewPage from "../../../app/expert-data-management/view/page";
+import ExpertViewPage from "../../app/expert-data-management/view/page";
 
 // Cast the Next.js page component so tests can pass props without TS errors
 type PageProps = { dataset?: any; fileName?: string };
