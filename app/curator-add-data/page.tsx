@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
@@ -117,6 +117,9 @@ export default function CuratorAddDataPage() {
   const [jenisKelamin, setJenisKelamin] = useState("");
   const [tingkatKeparahan, setTingkatKeparahan] = useState("insiden");
   const [kewaspadaan, setKewaspadaan] = useState(1);
+  const [kewaspadaanRaw, setKewaspadaanRaw] = useState<number>(kewaspadaan);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [isDraggingKewaspadaan, setIsDraggingKewaspadaan] = useState(false);
   const [tanggal, setTanggal] = useState({ dd: "", mm: "", yyyy: "" });
   const [usia, setUsia] = useState("");
 
@@ -298,11 +301,34 @@ export default function CuratorAddDataPage() {
   const [hoverKewaspadaan, setHoverKewaspadaan] = useState<number | null>(null);
   const [clickedKewaspadaan, setClickedKewaspadaan] = useState<number | null>(null);
 
+  useEffect(() => {
+    setKewaspadaanRaw(kewaspadaan);
+  }, [kewaspadaan]);
+  // continuous raw value for smooth dragging (1..4) is declared earlier with other states.
+
+  const emojiFor = (n: number) => (n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨');
+
   const canSubmit = Boolean(jenisPenyakit && lokasi && !submitting);
 
 
   function validate() {
     const next = validateFormState({ jenisPenyakit, lokasi, tanggal, sumberBerita, usia });
+    setErrors(next);
+    // additional required checks for fields that are composed in the UI
+    if (!ringkasan || !ringkasan.trim()) {
+      next.ringkasan = "Ringkasan wajib diisi.";
+    }
+    // require provinsi and keparahan as well
+    if (!provinsi || !provinsi.trim()) {
+      next.provinsi = "Provinsi wajib diisi.";
+    }
+    if (!tingkatKeparahan || !tingkatKeparahan.trim()) {
+      next.keparahan = "Tingkat keparahan wajib dipilih.";
+    }
+    // ensure a sumber is selected or a sumber URL/text was provided
+    if (!(selectedSumber || (sumberBerita && sumberBerita.trim()))) {
+      next.sumberBerita = next.sumberBerita || "Sumber berita wajib diisi.";
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -684,7 +710,7 @@ export default function CuratorAddDataPage() {
                   <div>
                     <label htmlFor="jenisPenyakit" className="block text-sm font-medium text-gray-700 mb-2">Jenis Penyakit <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input id="jenisSearch" value={jenisSearch} onChange={(e) => setJenisSearch(e.target.value)} placeholder="Cari atau pilih..." className="flex-1 border rounded-md px-3 py-2" />
+                      <input id="jenisSearch" value={jenisSearch} onChange={(e) => setJenisSearch(e.target.value)} placeholder="Cari atau pilih..." className="flex-1 border rounded-md px-3 py-2" required />
                       <button type="button" onClick={() => setShowAddJenisModal(true)} className="px-3 py-2 bg-white border rounded-md">Tambah baru</button>
                     </div>
                     <div className="mt-2 max-h-40 overflow-auto border rounded-md p-2 bg-white">
@@ -692,7 +718,7 @@ export default function CuratorAddDataPage() {
                         <div className="text-xs text-gray-500">Tidak ada hasil</div>
                       ) : (
                         filteredJenis.map((j) => (
-                          <div key={j} className={`py-1 px-2 rounded-md cursor-pointer ${jenisPenyakit === j ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => setJenisPenyakit(j)}>
+                          <div key={j} className={`py-1 px-2 rounded-md cursor-pointer ${jenisPenyakit === j ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => { setJenisPenyakit(j); setJenisSearch(j); }}>
                             {j}
                           </div>
                         ))
@@ -705,18 +731,19 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="keparahan" className="block text-sm font-medium text-gray-700 mb-2">Tingkat Keparahan</label>
-                    <select id="keparahan" value={tingkatKeparahan} onChange={(e) => setTingkatKeparahan(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                    <label htmlFor="keparahan" className="block text-sm font-medium text-gray-700 mb-2">Tingkat Keparahan <span className="text-red-500">*</span></label>
+                    <select id="keparahan" value={tingkatKeparahan} onChange={(e) => setTingkatKeparahan(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                       <option value="insiden">Insiden</option>
                       <option value="hospitalisasi">Hospitalisasi</option>
                       <option value="mortalitas">Mortalitas</option>
                     </select>
+                    {errors.keparahan && <div className="text-xs text-red-600 mt-1">{errors.keparahan}</div>}
                   </div>
 
                   <div>
                     <label htmlFor="lokasi" className="block text-sm font-medium text-gray-700 mb-2">Lokasi <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input id="lokasiSearch" value={lokasiSearch} onChange={(e) => setLokasiSearch(e.target.value)} placeholder="Cari atau pilih lokasi..." className="flex-1 border rounded-md px-3 py-2" />
+                      <input id="lokasiSearch" value={lokasiSearch} onChange={(e) => setLokasiSearch(e.target.value)} placeholder="Cari atau pilih lokasi..." className="flex-1 border rounded-md px-3 py-2" required />
                       <button type="button" onClick={() => setShowAddLokasiModal(true)} className="px-3 py-2 bg-white border rounded-md">Tambah baru</button>
                     </div>
                     <div className="mt-2 max-h-40 overflow-auto border rounded-md p-2 bg-white">
@@ -724,7 +751,7 @@ export default function CuratorAddDataPage() {
                         <div className="text-xs text-gray-500">Tidak ada hasil</div>
                       ) : (
                         filteredLokasi.map((l) => (
-                          <div key={l} className={`py-1 px-2 rounded-md cursor-pointer ${lokasi === l ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => setLokasi(l)}>
+                          <div key={l} className={`py-1 px-2 rounded-md cursor-pointer ${lokasi === l ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => { setLokasi(l); setLokasiSearch(l); }}>
                             {l}
                           </div>
                         ))
@@ -734,9 +761,9 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="provinsi" className="block text-sm font-medium text-gray-700 mb-2">Provinsi</label>
+                    <label htmlFor="provinsi" className="block text-sm font-medium text-gray-700 mb-2">Provinsi <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input id="provinsiSearch" value={typeof provinsiSearch !== 'undefined' ? provinsiSearch : ''} onChange={(e) => setProvinsiSearch(e.target.value)} placeholder="Cari atau pilih provinsi..." className="flex-1 border rounded-md px-3 py-2" />
+                      <input id="provinsiSearch" value={typeof provinsiSearch !== 'undefined' ? provinsiSearch : ''} onChange={(e) => setProvinsiSearch(e.target.value)} placeholder="Cari atau pilih provinsi..." className="flex-1 border rounded-md px-3 py-2" required />
                       <button type="button" onClick={() => setShowAddProvinsiModal(true)} className="px-3 py-2 bg-white border rounded-md">Tambah baru</button>
                     </div>
                     <div className="mt-2 max-h-40 overflow-auto border rounded-md p-2 bg-white">
@@ -744,20 +771,21 @@ export default function CuratorAddDataPage() {
                         <div className="text-xs text-gray-500">Tidak ada hasil</div>
                       ) : (
                         filteredProvinsi.map((p) => (
-                          <div key={p} className={`py-1 px-2 rounded-md cursor-pointer ${provinsi === p ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => setProvinsi(p)}>
+                          <div key={p} className={`py-1 px-2 rounded-md cursor-pointer ${provinsi === p ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => { setProvinsi(p); setProvinsiSearch(p); }}>
                             {p}
                           </div>
                         ))
                       )}
                     </div>
+                    {errors.provinsi && <div className="text-xs text-red-600 mt-1">{errors.provinsi}</div>}
                   </div>
 
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="jk" className="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin</label>
-                    <select id="jk" value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                    <label htmlFor="jk" className="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin <span className="text-red-500">*</span></label>
+                    <select id="jk" value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                       <option value="">Pilih...</option>
                       <option value="male">Laki-laki</option>
                       <option value="female">Perempuan</option>
@@ -766,32 +794,164 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tingkat Kewaspadaan</label>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2" role="radiogroup" aria-label="Tingkat Kewaspadaan">
-                        {[1,2,3,4].map((n) => {
-                          // emoji scale: 1..4 -> biasa, minimal, bahaya, katastropik
-                          const emoji = n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨';
-                          return (
-                            <button
-                              key={n}
-                              type="button"
-                              onMouseEnter={() => setHoverKewaspadaan(n)}
-                              onMouseLeave={() => setHoverKewaspadaan(null)}
-                              onClick={() => { setKewaspadaan(n); setClickedKewaspadaan(n); setTimeout(() => setClickedKewaspadaan(null), 700); }}
-                              onKeyDown={(e) => handleStarKey(e, n)}
-                              aria-pressed={kewaspadaan === n}
-                              className={`text-2xl transition-transform ${kewaspadaan === n ? 'scale-125' : ''} ${hoverKewaspadaan === n ? 'scale-125' : ''} ${clickedKewaspadaan === n ? 'animate-pulse scale-150' : ''}`} 
-                              title={`${n} dari 4`}
-                            >
-                              <span className="text-2xl" aria-hidden>{emoji}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm text-gray-500">{hoverKewaspadaan ?? kewaspadaan} / 4</span>
-                        <span className="text-xs text-gray-400">1: biasa — 2: minimal — 3: bahaya — 4: katastropik</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-4">Tingkat Kewaspadaan <span className="text-red-500">*</span></label>
+                    {/* 4-section draggable slider: green, yellow, orange, red */}
+                    <div className="w-full" role="group" aria-label="Tingkat Kewaspadaan">
+                      <div
+                        className="relative select-none"
+                        style={{ height: 56 }}
+                        onKeyDown={(e) => {
+                          // keyboard support: left/right to change value
+                          if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setKewaspadaan((v) => Math.max(1, (v || 1) - 1));
+                            setClickedKewaspadaan(kewaspadaan);
+                            setTimeout(() => setClickedKewaspadaan(null), 400);
+                          }
+                          if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setKewaspadaan((v) => Math.min(4, (v || 1) + 1));
+                            setClickedKewaspadaan(kewaspadaan);
+                            setTimeout(() => setClickedKewaspadaan(null), 400);
+                          }
+                        }}
+                      >
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div
+                            className="w-full max-w-full rounded-md overflow-hidden bg-gray-200"
+                            style={{ height: 12 }}
+                            // allow pointer interaction anywhere on the track so the dot can be placed continuously
+                            onPointerDown={(e) => {
+                              (e.target as Element).setPointerCapture?.(e.pointerId);
+                              setIsDraggingKewaspadaan(true);
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              if (rect) {
+                                const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                const pct = rel / rect.width;
+                                const v = 1 + pct * 3;
+                                setKewaspadaanRaw(v);
+                                // conservative deadzone: only change hover emoji when pointer is within 20% of the segment center
+                                const approxSeg = Math.round(v);
+                                const centerPct = (approxSeg - 0.5) / 4;
+                                const distanceToCenter = Math.abs(pct - centerPct);
+                                if (distanceToCenter < 0.2) {
+                                  setHoverKewaspadaan(approxSeg);
+                                } else {
+                                  setHoverKewaspadaan(null);
+                                }
+                              }
+                            }}
+                            onPointerMove={(e) => {
+                              if (!isDraggingKewaspadaan) return;
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              if (rect) {
+                                const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                const pct = rel / rect.width;
+                                const v = 1 + pct * 3;
+                                setKewaspadaanRaw(v);
+                                const approxSeg = Math.round(v);
+                                const centerPct = (approxSeg - 0.5) / 4;
+                                const distanceToCenter = Math.abs(pct - centerPct);
+                                if (distanceToCenter < 0.2) {
+                                  setHoverKewaspadaan(approxSeg);
+                                } else {
+                                  setHoverKewaspadaan(null);
+                                }
+                              }
+                            }}
+                            onPointerUp={(e) => {
+                              try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                              setIsDraggingKewaspadaan(false);
+                              // compute pointer position to snap to the segment under the pointer
+                              const rect2 = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              const rel2 = Math.min(Math.max(0, e.clientX - rect2.left), rect2.width);
+                              const pct2 = rect2.width ? rel2 / rect2.width : 0;
+                              const snappedSeg = Math.min(4, Math.max(1, Math.floor(pct2 * 4) + 1));
+                              // set integer value for submission but KEEP visual raw value where pointer was released
+                              setKewaspadaan(snappedSeg);
+                              setClickedKewaspadaan(snappedSeg);
+                              setTimeout(() => setClickedKewaspadaan(null), 400);
+                            }}
+                          >
+                            <div className="h-full flex">
+                              <div className="flex-1" style={{ background: '#2ecc71' }} onMouseEnter={() => setHoverKewaspadaan(1)} onMouseLeave={() => setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#f6c343' }} onMouseEnter={() => setHoverKewaspadaan(2)} onMouseLeave={() => setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#f39c12' }} onMouseEnter={() => setHoverKewaspadaan(3)} onMouseLeave={() => setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#e74c3c' }} onMouseEnter={() => setHoverKewaspadaan(4)} onMouseLeave={() => setHoverKewaspadaan(null)} />
+                            </div>
+                          </div>
+
+                          {/* Status counter above-right of the strip */}
+                          <div className="absolute right-3 -top-8 text-sm text-gray-500 pr-3">{hoverKewaspadaan ?? kewaspadaan} / 4</div>
+
+                          {/* Labels centered under each color section (tighter spacing) */}
+                          <div className="absolute left-0 right-0 top-full mt-0 -translate-y-2 flex items-center justify-between max-w-full px-0" style={{ width: '100%' }} aria-hidden>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Biasa</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Minimal</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Bahaya</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Katastropik</div>
+                          </div>
+                        </div>
+
+                        {/* Draggable dot + emoji (standalone, no <input>) */}
+                        <div ref={trackRef} className="absolute inset-0 flex items-center justify-center">
+                          {/* positioned relative container for the dot */}
+                          <div style={{ position: 'absolute', left: `${((kewaspadaanRaw - 1) / 3) * 100}%` }} className="transform -translate-x-1/2">
+                            <div className="relative flex items-center justify-center">
+                              <span className={`absolute -top-9 text-2xl ${clickedKewaspadaan ? 'scale-125' : ''}`}>{emojiFor(hoverKewaspadaan ?? kewaspadaan)}</span>
+                              <button
+                                type="button"
+                                aria-label="Geser tingkat kewaspadaan"
+                                onPointerDown={(e) => {
+                                  (e.target as Element).setPointerCapture?.(e.pointerId);
+                                  setIsDraggingKewaspadaan(true);
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rel / rect.width;
+                                    const v = 1 + pct * 3;
+                                    setKewaspadaanRaw(v);
+                                    const seg = Math.min(4, Math.max(1, Math.round(v)));
+                                    setHoverKewaspadaan(seg);
+                                  }
+                                }}
+                                onPointerMove={(e) => {
+                                  if (!isDraggingKewaspadaan) return;
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rel / rect.width;
+                                    const v = 1 + pct * 3;
+                                    setKewaspadaanRaw(v);
+                                    setHoverKewaspadaan(Math.min(4, Math.max(1, Math.round(v))));
+                                  }
+                                }}
+                                onPointerUp={(e) => {
+                                  try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                                  setIsDraggingKewaspadaan(false);
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rect.width ? rel / rect.width : 0;
+                                    const v2 = 1 + pct * 3;
+                                    const snappedSeg = Math.min(4, Math.max(1, Math.round(v2)));
+                                    // set integer value for submission but keep visual raw at released location
+                                    setKewaspadaan(snappedSeg);
+                                    setClickedKewaspadaan(snappedSeg);
+                                  } else {
+                                    const snapped = Math.min(4, Math.max(1, Math.round(kewaspadaanRaw)));
+                                    setKewaspadaan(snapped);
+                                    setKewaspadaanRaw(snapped);
+                                    setClickedKewaspadaan(snapped);
+                                  }
+                                  setTimeout(() => setClickedKewaspadaan(null), 400);
+                                }}
+                                className="w-4 h-4 rounded-full shadow-sm bg-blue-500 border-2 border-white cursor-grab active:cursor-grabbing -translate-y-1/8 transition-all duration-150"
+                                style={{ touchAction: 'none' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -799,13 +959,13 @@ export default function CuratorAddDataPage() {
                   {/* Tanggal removed from main form per UX revisions */}
 
                   <div>
-                    <label htmlFor="usia" className="block text-sm font-medium text-gray-700 mb-2">Usia Penderita</label>
-                    <input id="usia" value={usia} onChange={(e) => setUsia(e.target.value)} placeholder="Type.." className="w-full border rounded-md px-3 py-2" inputMode="numeric" maxLength={6} />
+                    <label htmlFor="usia" className="block text-sm font-medium text-gray-700 mb-2">Usia Penderita <span className="text-red-500">*</span></label>
+                    <input id="usia" value={usia} onChange={(e) => setUsia(e.target.value)} placeholder="Type.." className="w-full border rounded-md px-3 py-2" inputMode="numeric" maxLength={6} required />
                     {errors.usia && <div className="text-xs text-red-600 mt-1">{errors.usia}</div>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sumber Berita</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sumber Berita <span className="text-red-500">*</span></label>
                     <div className="flex gap-2 items-start">
                       <div className="flex-1">
                         {selectedSumber ? (
@@ -828,8 +988,9 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="ringkasan" className="block text-sm font-medium text-gray-700 mb-2">Ringkasan</label>
-                    <textarea id="ringkasan" value={ringkasan} onChange={(e) => setRingkasan(e.target.value)} placeholder="Tulis ringkasan singkat..." rows={10} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} />
+                    <label htmlFor="ringkasan" className="block text-sm font-medium text-gray-700 mb-2">Ringkasan <span className="text-red-500">*</span></label>
+                    <textarea id="ringkasan" value={ringkasan} onChange={(e) => setRingkasan(e.target.value)} placeholder="Tulis ringkasan singkat..." rows={10} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} required />
+                    {errors.ringkasan && <div className="text-xs text-red-600 mt-1">{errors.ringkasan}</div>}
                     <div className="flex items-center justify-between mt-1">
                       <div className="text-xs text-gray-400">Batas 2000 karakter.</div>
                       <div className="text-xs text-gray-500">{ringkasan.length}/2000</div>
@@ -905,53 +1066,58 @@ export default function CuratorAddDataPage() {
             <h3 className="font-semibold mb-2">Tambah Sumber Berita</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="sumber-portal" className="text-xs text-gray-700">Portal</label>
-                <input id="sumber-portal" value={srcPortal} onChange={(e) => setSrcPortal(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-portal" className="text-xs text-gray-700">Portal <span className="text-red-500">*</span></label>
+                <input id="sumber-portal" value={srcPortal} onChange={(e) => setSrcPortal(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
               <div>
-                <label htmlFor="sumber-author" className="text-xs text-gray-700">Penulis</label>
-                <input id="sumber-author" value={srcAuthor} onChange={(e) => setSrcAuthor(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-author" className="text-xs text-gray-700">Penulis <span className="text-red-500">*</span></label>
+                <input id="sumber-author" value={srcAuthor} onChange={(e) => setSrcAuthor(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="sumber-title" className="text-xs text-gray-700">Judul</label>
-                <input id="sumber-title" value={srcTitle} onChange={(e) => setSrcTitle(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-title" className="text-xs text-gray-700">Judul <span className="text-red-500">*</span></label>
+                <input id="sumber-title" value={srcTitle} onChange={(e) => setSrcTitle(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
               <div>
-                <label htmlFor="sumber-type" className="text-xs text-gray-700">Tipe</label>
-                <select id="sumber-type" value={srcType} onChange={(e) => setSrcType(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                <label htmlFor="sumber-type" className="text-xs text-gray-700">Tipe <span className="text-red-500">*</span></label>
+                <select id="sumber-type" value={srcType} onChange={(e) => setSrcType(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                   <option value="artikel">artikel</option>
                   <option value="video">video</option>
                   <option value="laporan">laporan</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-700">Tanggal Terbit (DD / MM / YYYY)</label>
+                <label className="text-xs text-gray-700">Tanggal Terbit (DD / MM / YYYY) <span className="text-red-500">*</span></label>
                 <div className="flex gap-2 mt-1">
-                  <input id="sumber-date-dd" value={srcDateDd} onChange={(e) => setSrcDateDd(e.target.value)} placeholder="DD" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" />
-                  <input id="sumber-date-mm" value={srcDateMm} onChange={(e) => setSrcDateMm(e.target.value)} placeholder="MM" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" />
-                  <input id="sumber-date-yyyy" value={srcDateYyyy} onChange={(e) => setSrcDateYyyy(e.target.value)} placeholder="YYYY" maxLength={4} className="w-28 border rounded-md px-3 py-2" inputMode="numeric" />
+                  <input id="sumber-date-dd" value={srcDateDd} onChange={(e) => setSrcDateDd(e.target.value)} placeholder="DD" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
+                  <input id="sumber-date-mm" value={srcDateMm} onChange={(e) => setSrcDateMm(e.target.value)} placeholder="MM" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
+                  <input id="sumber-date-yyyy" value={srcDateYyyy} onChange={(e) => setSrcDateYyyy(e.target.value)} placeholder="YYYY" maxLength={4} className="w-28 border rounded-md px-3 py-2" inputMode="numeric" required />
                 </div>
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="sumber-url" className="text-xs text-gray-700">URL</label>
-                <input id="sumber-url" value={srcUrl} onChange={(e) => setSrcUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-url" className="text-xs text-gray-700">URL <span className="text-red-500">*</span></label>
+                <input id="sumber-url" value={srcUrl} onChange={(e) => setSrcUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="sumber-img" className="text-xs text-gray-700">URL Gambar</label>
-                <input id="sumber-img" value={srcImgUrl} onChange={(e) => setSrcImgUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-img" className="text-xs text-gray-700">URL Gambar <span className="text-red-500">*</span></label>
+                <input id="sumber-img" value={srcImgUrl} onChange={(e) => setSrcImgUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setShowAddSumberModal(false)} className="px-3 py-2 border rounded-md">Batal</button>
               <button onClick={() => {
-                // minimal validation: require url and title
-                const maybeUrl = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/.*)?$/.test(srcUrl.trim());
-                if (!srcTitle.trim() || !maybeUrl) {
-                  setErrors((p) => ({ ...p, sumberBerita: "Masukkan sumber berita yang valid (judul dan URL diperlukan)." }));
+                // required validation for sumber fields
+                const urlPattern = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/.*)?$/;
+                const maybeUrl = urlPattern.test(srcUrl.trim());
+                const maybeImg = urlPattern.test(srcImgUrl.trim());
+                const dd = (srcDateDd || '').trim();
+                const mm = (srcDateMm || '').trim();
+                const yyyy = (srcDateYyyy || '').trim();
+                if (!srcPortal.trim() || !srcAuthor.trim() || !srcTitle.trim() || !srcType.trim() || !srcUrl.trim() || !maybeUrl || !srcImgUrl.trim() || !maybeImg || !(dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4)) {
+                  setErrors((p) => ({ ...p, sumberBerita: "Semua field sumber wajib diisi dengan format yang valid (judul, portal, penulis, tipe, tanggal, URL, dan URL gambar)." }));
                   return;
                 }
                 const s = {
-                  portal: srcPortal.trim() || 'Unknown',
+                  portal: srcPortal.trim(),
                   title: srcTitle.trim(),
                   type: srcType,
                   content: srcContent.trim(),
@@ -960,11 +1126,7 @@ export default function CuratorAddDataPage() {
                   // store null when empty so backend DateTime field isn't given an empty string
                   // assemble date_published from DD/MM/YYYY inputs to ISO UTC midnight when provided
                   date_published: (function() {
-                    const dd = (srcDateDd || '').trim();
-                    const mm = (srcDateMm || '').trim();
-                    const yyyy = (srcDateYyyy || '').trim();
                     if (dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4) {
-                      // create ISO date at UTC midnight
                       const d = new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0));
                       if (!isNaN(d.getTime())) return d.toISOString();
                     }
@@ -1049,3 +1211,5 @@ export default function CuratorAddDataPage() {
     </div>
   );
 }
+
+// Slider replaced by range input with colored track and emoji above thumb.
