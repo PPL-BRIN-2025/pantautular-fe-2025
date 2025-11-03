@@ -314,6 +314,22 @@ export default function CuratorAddDataPage() {
   function validate() {
     const next = validateFormState({ jenisPenyakit, lokasi, tanggal, sumberBerita, usia });
     setErrors(next);
+    // additional required checks for fields that are composed in the UI
+    if (!ringkasan || !ringkasan.trim()) {
+      next.ringkasan = "Ringkasan wajib diisi.";
+    }
+    // require provinsi and keparahan as well
+    if (!provinsi || !provinsi.trim()) {
+      next.provinsi = "Provinsi wajib diisi.";
+    }
+    if (!tingkatKeparahan || !tingkatKeparahan.trim()) {
+      next.keparahan = "Tingkat keparahan wajib dipilih.";
+    }
+    // ensure a sumber is selected or a sumber URL/text was provided
+    if (!(selectedSumber || (sumberBerita && sumberBerita.trim()))) {
+      next.sumberBerita = next.sumberBerita || "Sumber berita wajib diisi.";
+    }
+    setErrors(next);
     return Object.keys(next).length === 0;
   }
 
@@ -694,7 +710,7 @@ export default function CuratorAddDataPage() {
                   <div>
                     <label htmlFor="jenisPenyakit" className="block text-sm font-medium text-gray-700 mb-2">Jenis Penyakit <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input id="jenisSearch" value={jenisSearch} onChange={(e) => setJenisSearch(e.target.value)} placeholder="Cari atau pilih..." className="flex-1 border rounded-md px-3 py-2" />
+                      <input id="jenisSearch" value={jenisSearch} onChange={(e) => setJenisSearch(e.target.value)} placeholder="Cari atau pilih..." className="flex-1 border rounded-md px-3 py-2" required />
                       <button type="button" onClick={() => setShowAddJenisModal(true)} className="px-3 py-2 bg-white border rounded-md">Tambah baru</button>
                     </div>
                     <div className="mt-2 max-h-40 overflow-auto border rounded-md p-2 bg-white">
@@ -702,7 +718,7 @@ export default function CuratorAddDataPage() {
                         <div className="text-xs text-gray-500">Tidak ada hasil</div>
                       ) : (
                         filteredJenis.map((j) => (
-                          <div key={j} className={`py-1 px-2 rounded-md cursor-pointer ${jenisPenyakit === j ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => setJenisPenyakit(j)}>
+                          <div key={j} className={`py-1 px-2 rounded-md cursor-pointer ${jenisPenyakit === j ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => { setJenisPenyakit(j); setJenisSearch(j); }}>
                             {j}
                           </div>
                         ))
@@ -715,18 +731,19 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="keparahan" className="block text-sm font-medium text-gray-700 mb-2">Tingkat Keparahan</label>
-                    <select id="keparahan" value={tingkatKeparahan} onChange={(e) => setTingkatKeparahan(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                    <label htmlFor="keparahan" className="block text-sm font-medium text-gray-700 mb-2">Tingkat Keparahan <span className="text-red-500">*</span></label>
+                    <select id="keparahan" value={tingkatKeparahan} onChange={(e) => setTingkatKeparahan(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                       <option value="insiden">Insiden</option>
                       <option value="hospitalisasi">Hospitalisasi</option>
                       <option value="mortalitas">Mortalitas</option>
                     </select>
+                    {errors.keparahan && <div className="text-xs text-red-600 mt-1">{errors.keparahan}</div>}
                   </div>
 
                   <div>
                     <label htmlFor="lokasi" className="block text-sm font-medium text-gray-700 mb-2">Lokasi <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input id="lokasiSearch" value={lokasiSearch} onChange={(e) => setLokasiSearch(e.target.value)} placeholder="Cari atau pilih lokasi..." className="flex-1 border rounded-md px-3 py-2" />
+                      <input id="lokasiSearch" value={lokasiSearch} onChange={(e) => setLokasiSearch(e.target.value)} placeholder="Cari atau pilih lokasi..." className="flex-1 border rounded-md px-3 py-2" required />
                       <button type="button" onClick={() => setShowAddLokasiModal(true)} className="px-3 py-2 bg-white border rounded-md">Tambah baru</button>
                     </div>
                     <div className="mt-2 max-h-40 overflow-auto border rounded-md p-2 bg-white">
@@ -734,7 +751,7 @@ export default function CuratorAddDataPage() {
                         <div className="text-xs text-gray-500">Tidak ada hasil</div>
                       ) : (
                         filteredLokasi.map((l) => (
-                          <div key={l} className={`py-1 px-2 rounded-md cursor-pointer ${lokasi === l ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => setLokasi(l)}>
+                          <div key={l} className={`py-1 px-2 rounded-md cursor-pointer ${lokasi === l ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => { setLokasi(l); setLokasiSearch(l); }}>
                             {l}
                           </div>
                         ))
@@ -744,9 +761,9 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="provinsi" className="block text-sm font-medium text-gray-700 mb-2">Provinsi</label>
+                    <label htmlFor="provinsi" className="block text-sm font-medium text-gray-700 mb-2">Provinsi <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input id="provinsiSearch" value={typeof provinsiSearch !== 'undefined' ? provinsiSearch : ''} onChange={(e) => setProvinsiSearch(e.target.value)} placeholder="Cari atau pilih provinsi..." className="flex-1 border rounded-md px-3 py-2" />
+                      <input id="provinsiSearch" value={typeof provinsiSearch !== 'undefined' ? provinsiSearch : ''} onChange={(e) => setProvinsiSearch(e.target.value)} placeholder="Cari atau pilih provinsi..." className="flex-1 border rounded-md px-3 py-2" required />
                       <button type="button" onClick={() => setShowAddProvinsiModal(true)} className="px-3 py-2 bg-white border rounded-md">Tambah baru</button>
                     </div>
                     <div className="mt-2 max-h-40 overflow-auto border rounded-md p-2 bg-white">
@@ -754,20 +771,21 @@ export default function CuratorAddDataPage() {
                         <div className="text-xs text-gray-500">Tidak ada hasil</div>
                       ) : (
                         filteredProvinsi.map((p) => (
-                          <div key={p} className={`py-1 px-2 rounded-md cursor-pointer ${provinsi === p ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => setProvinsi(p)}>
+                          <div key={p} className={`py-1 px-2 rounded-md cursor-pointer ${provinsi === p ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`} onClick={() => { setProvinsi(p); setProvinsiSearch(p); }}>
                             {p}
                           </div>
                         ))
                       )}
                     </div>
+                    {errors.provinsi && <div className="text-xs text-red-600 mt-1">{errors.provinsi}</div>}
                   </div>
 
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="jk" className="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin</label>
-                    <select id="jk" value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                    <label htmlFor="jk" className="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin <span className="text-red-500">*</span></label>
+                    <select id="jk" value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                       <option value="">Pilih...</option>
                       <option value="male">Laki-laki</option>
                       <option value="female">Perempuan</option>
@@ -776,7 +794,7 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-4">Tingkat Kewaspadaan</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-4">Tingkat Kewaspadaan <span className="text-red-500">*</span></label>
                     {/* 4-section draggable slider: green, yellow, orange, red */}
                     <div className="w-full" role="group" aria-label="Tingkat Kewaspadaan">
                       <div
@@ -941,13 +959,13 @@ export default function CuratorAddDataPage() {
                   {/* Tanggal removed from main form per UX revisions */}
 
                   <div>
-                    <label htmlFor="usia" className="block text-sm font-medium text-gray-700 mb-2">Usia Penderita</label>
-                    <input id="usia" value={usia} onChange={(e) => setUsia(e.target.value)} placeholder="Type.." className="w-full border rounded-md px-3 py-2" inputMode="numeric" maxLength={6} />
+                    <label htmlFor="usia" className="block text-sm font-medium text-gray-700 mb-2">Usia Penderita <span className="text-red-500">*</span></label>
+                    <input id="usia" value={usia} onChange={(e) => setUsia(e.target.value)} placeholder="Type.." className="w-full border rounded-md px-3 py-2" inputMode="numeric" maxLength={6} required />
                     {errors.usia && <div className="text-xs text-red-600 mt-1">{errors.usia}</div>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sumber Berita</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sumber Berita <span className="text-red-500">*</span></label>
                     <div className="flex gap-2 items-start">
                       <div className="flex-1">
                         {selectedSumber ? (
@@ -970,8 +988,9 @@ export default function CuratorAddDataPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="ringkasan" className="block text-sm font-medium text-gray-700 mb-2">Ringkasan</label>
-                    <textarea id="ringkasan" value={ringkasan} onChange={(e) => setRingkasan(e.target.value)} placeholder="Tulis ringkasan singkat..." rows={10} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} />
+                    <label htmlFor="ringkasan" className="block text-sm font-medium text-gray-700 mb-2">Ringkasan <span className="text-red-500">*</span></label>
+                    <textarea id="ringkasan" value={ringkasan} onChange={(e) => setRingkasan(e.target.value)} placeholder="Tulis ringkasan singkat..." rows={10} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} required />
+                    {errors.ringkasan && <div className="text-xs text-red-600 mt-1">{errors.ringkasan}</div>}
                     <div className="flex items-center justify-between mt-1">
                       <div className="text-xs text-gray-400">Batas 2000 karakter.</div>
                       <div className="text-xs text-gray-500">{ringkasan.length}/2000</div>
@@ -1047,53 +1066,58 @@ export default function CuratorAddDataPage() {
             <h3 className="font-semibold mb-2">Tambah Sumber Berita</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="sumber-portal" className="text-xs text-gray-700">Portal</label>
-                <input id="sumber-portal" value={srcPortal} onChange={(e) => setSrcPortal(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-portal" className="text-xs text-gray-700">Portal <span className="text-red-500">*</span></label>
+                <input id="sumber-portal" value={srcPortal} onChange={(e) => setSrcPortal(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
               <div>
-                <label htmlFor="sumber-author" className="text-xs text-gray-700">Penulis</label>
-                <input id="sumber-author" value={srcAuthor} onChange={(e) => setSrcAuthor(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-author" className="text-xs text-gray-700">Penulis <span className="text-red-500">*</span></label>
+                <input id="sumber-author" value={srcAuthor} onChange={(e) => setSrcAuthor(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="sumber-title" className="text-xs text-gray-700">Judul</label>
-                <input id="sumber-title" value={srcTitle} onChange={(e) => setSrcTitle(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-title" className="text-xs text-gray-700">Judul <span className="text-red-500">*</span></label>
+                <input id="sumber-title" value={srcTitle} onChange={(e) => setSrcTitle(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
               <div>
-                <label htmlFor="sumber-type" className="text-xs text-gray-700">Tipe</label>
-                <select id="sumber-type" value={srcType} onChange={(e) => setSrcType(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                <label htmlFor="sumber-type" className="text-xs text-gray-700">Tipe <span className="text-red-500">*</span></label>
+                <select id="sumber-type" value={srcType} onChange={(e) => setSrcType(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                   <option value="artikel">artikel</option>
                   <option value="video">video</option>
                   <option value="laporan">laporan</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-700">Tanggal Terbit (DD / MM / YYYY)</label>
+                <label className="text-xs text-gray-700">Tanggal Terbit (DD / MM / YYYY) <span className="text-red-500">*</span></label>
                 <div className="flex gap-2 mt-1">
-                  <input id="sumber-date-dd" value={srcDateDd} onChange={(e) => setSrcDateDd(e.target.value)} placeholder="DD" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" />
-                  <input id="sumber-date-mm" value={srcDateMm} onChange={(e) => setSrcDateMm(e.target.value)} placeholder="MM" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" />
-                  <input id="sumber-date-yyyy" value={srcDateYyyy} onChange={(e) => setSrcDateYyyy(e.target.value)} placeholder="YYYY" maxLength={4} className="w-28 border rounded-md px-3 py-2" inputMode="numeric" />
+                  <input id="sumber-date-dd" value={srcDateDd} onChange={(e) => setSrcDateDd(e.target.value)} placeholder="DD" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
+                  <input id="sumber-date-mm" value={srcDateMm} onChange={(e) => setSrcDateMm(e.target.value)} placeholder="MM" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
+                  <input id="sumber-date-yyyy" value={srcDateYyyy} onChange={(e) => setSrcDateYyyy(e.target.value)} placeholder="YYYY" maxLength={4} className="w-28 border rounded-md px-3 py-2" inputMode="numeric" required />
                 </div>
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="sumber-url" className="text-xs text-gray-700">URL</label>
-                <input id="sumber-url" value={srcUrl} onChange={(e) => setSrcUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-url" className="text-xs text-gray-700">URL <span className="text-red-500">*</span></label>
+                <input id="sumber-url" value={srcUrl} onChange={(e) => setSrcUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="sumber-img" className="text-xs text-gray-700">URL Gambar</label>
-                <input id="sumber-img" value={srcImgUrl} onChange={(e) => setSrcImgUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                <label htmlFor="sumber-img" className="text-xs text-gray-700">URL Gambar <span className="text-red-500">*</span></label>
+                <input id="sumber-img" value={srcImgUrl} onChange={(e) => setSrcImgUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setShowAddSumberModal(false)} className="px-3 py-2 border rounded-md">Batal</button>
               <button onClick={() => {
-                // minimal validation: require url and title
-                const maybeUrl = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/.*)?$/.test(srcUrl.trim());
-                if (!srcTitle.trim() || !maybeUrl) {
-                  setErrors((p) => ({ ...p, sumberBerita: "Masukkan sumber berita yang valid (judul dan URL diperlukan)." }));
+                // required validation for sumber fields
+                const urlPattern = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/.*)?$/;
+                const maybeUrl = urlPattern.test(srcUrl.trim());
+                const maybeImg = urlPattern.test(srcImgUrl.trim());
+                const dd = (srcDateDd || '').trim();
+                const mm = (srcDateMm || '').trim();
+                const yyyy = (srcDateYyyy || '').trim();
+                if (!srcPortal.trim() || !srcAuthor.trim() || !srcTitle.trim() || !srcType.trim() || !srcUrl.trim() || !maybeUrl || !srcImgUrl.trim() || !maybeImg || !(dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4)) {
+                  setErrors((p) => ({ ...p, sumberBerita: "Semua field sumber wajib diisi dengan format yang valid (judul, portal, penulis, tipe, tanggal, URL, dan URL gambar)." }));
                   return;
                 }
                 const s = {
-                  portal: srcPortal.trim() || 'Unknown',
+                  portal: srcPortal.trim(),
                   title: srcTitle.trim(),
                   type: srcType,
                   content: srcContent.trim(),
@@ -1102,11 +1126,7 @@ export default function CuratorAddDataPage() {
                   // store null when empty so backend DateTime field isn't given an empty string
                   // assemble date_published from DD/MM/YYYY inputs to ISO UTC midnight when provided
                   date_published: (function() {
-                    const dd = (srcDateDd || '').trim();
-                    const mm = (srcDateMm || '').trim();
-                    const yyyy = (srcDateYyyy || '').trim();
                     if (dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4) {
-                      // create ISO date at UTC midnight
                       const d = new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0));
                       if (!isNaN(d.getTime())) return d.toISOString();
                     }
