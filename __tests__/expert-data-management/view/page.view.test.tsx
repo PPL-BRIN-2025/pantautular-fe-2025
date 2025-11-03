@@ -133,3 +133,44 @@ describe("ExpertViewPage", () => {
   });
 });
 
+describe("RBAC – ExpertViewPage", () => {
+  const mockReplace = jest.fn();
+  const mockUser = (role: string | null) =>
+    jest.fn().mockReturnValue({ user: role ? { role } : null });
+
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  test("redirects guest user to login", async () => {
+    jest.doMock("../../../app/auth/hooks/useAuth", () => ({
+      useAuth: mockUser(null),
+    }));
+    jest.doMock("next/navigation", () => ({
+      useRouter: () => ({ replace: mockReplace }),
+      useSearchParams: () => ({ get: jest.fn() }),
+    }));
+    const Page = (await import("../../../app/expert-data-management/view/page")).default;
+    render(<Page />);
+    expect(screen.getByText(/Memeriksa akses/i)).toBeInTheDocument();
+  });
+
+  test("shows AccessDeniedNotice for non-EXP_USER", async () => {
+    jest.doMock("../../../app/auth/hooks/useAuth", () => ({
+      useAuth: mockUser("CURATOR"),
+    }));
+    const Page = (await import("../../../app/expert-data-management/view/page")).default;
+    render(<Page />);
+    expect(await screen.findByText(/akses/i)).toBeInTheDocument();
+  });
+
+  test("renders dataset normally for EXP_USER", async () => {
+    jest.doMock("../../../app/auth/hooks/useAuth", () => ({
+      useAuth: mockUser("EXP_USER"),
+    }));
+    const Page = (await import("../../../app/expert-data-management/view/page")).default;
+    render(<Page />);
+    expect(await screen.findByText(/ID Data/i)).toBeInTheDocument();
+  });
+});
+

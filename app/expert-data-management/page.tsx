@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import AccessDeniedNotice from "../components/AccessDenied";
+import { useAuth } from "../auth/hooks/useAuth";
+
+const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
 type Row = {
   data_id: string;
@@ -22,17 +27,63 @@ export default function ExpertDataManagementPage({
   simulateLoadError?: boolean;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
 
-  const [rows, setRows] = useState<Row[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  // --- access state ---
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
+  useEffect(() => {
+    let resolved = user;
+    if (!resolved && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) resolved = JSON.parse(stored);
+      } catch {}
+    }
+    if (!resolved) {
+      setAccessState("redirect");
+      return;
+    }
+    const allowed = normalizeRole(resolved.role) === "EXP_USER";
+    setAccessState(allowed ? "granted" : "forbidden");
+  }, [user]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+    const nextParam = encodeURIComponent("/expert-data-management");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
+
+  if (accessState === "loading" || accessState === "redirect") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
+        <span className="text-sm text-gray-600">Memeriksa akses…</span>
+      </div>
+    );
+  }
+
+  if (accessState === "forbidden") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <AccessDeniedNotice />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   // --- FILTER STATE ---
   const [query, setQuery] = useState("");
 
+  // --- DATA STATE (✅ inside component) ---
+  const [rows, setRows] = useState<Row[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     try {
       if (simulateLoadError) {
-        // exercise catch branch in tests
         throw new Error("simulate load error");
       }
       if (typeof initialError !== "undefined" && initialError !== null) {
@@ -43,7 +94,6 @@ export default function ExpertDataManagementPage({
         setRows(initialRows);
         return;
       }
-
       const data: Row[] = [
         { data_id: "ID1", file_name: "Report_Jakarta.xlsx",         last_edited: "2025-09-01 09:23:45", submitted_by: "EXPERTA" },
         { data_id: "ID2", file_name: "Survey_Bandung.csv",          last_edited: "2025-09-05 11:12:30", submitted_by: "EXPERTB" },
@@ -61,7 +111,6 @@ export default function ExpertDataManagementPage({
     }
   }, [initialRows, initialError, simulateLoadError]);
 
-  // Navigate and pass row info in the URL 
   const goView = (row: Row) => {
     const url = new URL(window.location.origin + "/expert-data-management/view");
     url.searchParams.set("id", row.data_id);
@@ -71,7 +120,6 @@ export default function ExpertDataManagementPage({
     router.push(url.pathname + "?" + url.searchParams.toString());
   };
 
-  // FILTERED VIEW (case-insensitive contains across all columns) 
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
@@ -92,7 +140,6 @@ export default function ExpertDataManagementPage({
           &lt; Expert / Dataset
         </div>
 
-        {/* Filter Bar */}
         <div className="mb-4 flex items-center gap-2">
           <input
             type="text"
@@ -115,15 +162,12 @@ export default function ExpertDataManagementPage({
         <div className="rounded-2xl border shadow-sm bg-white">
           <div className="overflow-x-auto">
             <div className="min-w-[980px] rounded-2xl">
-              {/* Header */}
               <div className="sticky top-0 z-10 bg-[#4A78E0] text-white rounded-t-2xl">
                 <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr]">
                   {["Data ID", "File Name", "Last Edited", "Submitted by", "Action"].map((label, idx) => (
                     <div
                       key={label}
-                      className={`px-4 py-3 text-sm sm:text-base font-semibold ${
-                        idx !== 0 ? "border-l border-white/40" : ""
-                      }`}
+                      className={`px-4 py-3 text-sm sm:text-base font-semibold ${idx !== 0 ? "border-l border-white/40" : ""}`}
                     >
                       {label}
                     </div>
@@ -131,7 +175,6 @@ export default function ExpertDataManagementPage({
                 </div>
               </div>
 
-              {/* Body */}
               {error ? (
                 <div className="text-center py-6 text-red-500 text-sm">{error}</div>
               ) : filteredRows.length ? (
