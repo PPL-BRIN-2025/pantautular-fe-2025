@@ -11,7 +11,7 @@ import type { FilterState, FilterStateDashboard, User } from "@/types";
 
 type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
-const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR"]);
+const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR", "EXP_USER"]);
 
 const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
 
