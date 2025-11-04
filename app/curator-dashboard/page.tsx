@@ -11,7 +11,7 @@ import type { FilterState, FilterStateDashboard, User } from "@/types";
 
 type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
-const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR"]);
+const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR", "EXP_USER"]);
 
 const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
 
@@ -118,7 +118,7 @@ export default function CuratorDashboardPage() {
           <FilterSection onSubmitFilterState={handleFilterSubmit} onError={handleError} />
         </div>
         <div className="w-3/5 bg-transparent">
-          <InformationSection filterState={filterState} />
+          <InformationSection filterState={filterState} userRole={effectiveUser?.role ?? null} />
         </div>
       </div>
     </div>

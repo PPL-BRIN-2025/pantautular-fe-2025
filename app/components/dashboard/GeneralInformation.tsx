@@ -7,6 +7,7 @@ import AmChartTingkatanKasus from "./CasesLevel";
 import AgeStatisticCard from "./age_statistic/AgeStatisticCard";
 import PortalBarChart from "./sumberBerita/PortalBarChart";
 import DetailDistribution from "./DetailDistribution";
+import ExcelVisualizationCard from "./ExcelVisualizationCard";
 import { DistributionData, StatisticsData } from "@/types";
 
 // Optional: initial data structure to fallback to if no data is provided.
@@ -47,9 +48,10 @@ const initialData: StatisticsData = {
 
 interface GeneralInformationProps {
   data?: StatisticsData;
+  showExcelView?: boolean;
 }
 
-const GeneralInformation = ({ data }: GeneralInformationProps) => {
+const GeneralInformation = ({ data, showExcelView = false }: GeneralInformationProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error] = useState<string | null>(null);
 
@@ -198,7 +200,9 @@ const GeneralInformation = ({ data }: GeneralInformationProps) => {
       </div>
       
       {contentToRender}
-      
+
+      {showExcelView && <ExcelVisualizationCard data={statsData} />}
+
       {/* Detail Distribution Modal with Wrapper */}
       {modalData.isShowModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50" data-testid="modal-wrapper">
