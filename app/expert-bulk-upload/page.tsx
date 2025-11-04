@@ -16,6 +16,7 @@ export default function CuratorBulkUploadPage() {
   const router = useRouter();
   const [effectiveUser, setEffectiveUser] = useState(user ?? null);
   const [loading, setLoading] = useState(true);
+  const [uploadFeedback, setUploadFeedback] = useState<{ status: 'success' | 'error' | 'info'; msg: string } | null>(null);
 
   useEffect(() => {
     if (!user && typeof window !== 'undefined') {
@@ -33,6 +34,13 @@ export default function CuratorBulkUploadPage() {
 
   const role = normalizeRole(effectiveUser?.role);
   const isExpert = role === 'EXP_USER';
+  
+  // auto-dismiss upload feedback after a short delay
+  useEffect(() => {
+    if (!uploadFeedback) return;
+    const t = setTimeout(() => setUploadFeedback(null), 5000);
+    return () => clearTimeout(t);
+  }, [uploadFeedback]);
   // redirect unauthenticated users to login (when loading finished)
   useEffect(() => {
     if (!loading && !effectiveUser) {
@@ -75,10 +83,39 @@ export default function CuratorBulkUploadPage() {
               <div className="text-sm text-gray-500">Memeriksa akses…</div>
             ) : (
               <div>
+                {/* Inline toast feedback (replaces alert popups) */}
+                {uploadFeedback && (
+                  (() => {
+                    const msg = (uploadFeedback.msg || '').toString();
+                    const hasLeadingEmoji = /^\s*(?:✅|❌|ℹ️|ℹ|✔|✖|✔️|❗|⚠️)/.test(msg);
+                    return (
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        className={`mb-4 p-3 rounded-md text-sm shadow-sm flex items-start gap-3 ${uploadFeedback.status === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : uploadFeedback.status === 'error' ? 'bg-red-50 border border-red-200 text-red-800' : 'bg-blue-50 border border-blue-200 text-blue-800'}`}
+                      >
+                        {!hasLeadingEmoji && (
+                          <div className="text-xl">
+                            {uploadFeedback.status === 'success' ? '✅' : uploadFeedback.status === 'error' ? '❌' : 'ℹ️'}
+                          </div>
+                        )}
+                        <div className="flex-1 text-xs leading-snug break-words">{msg}</div>
+                        <button
+                          aria-label="Tutup pesan"
+                          onClick={() => setUploadFeedback(null)}
+                          className="ml-2 text-sm opacity-70 hover:opacity-100"
+                        >
+                          ✖
+                        </button>
+                      </div>
+                    );
+                  })()
+                )}
+
                 <CsvUpload
                   effectiveUser={effectiveUser}
-                  onSuccessAction={(m: string) => { /* show inline feedback */ alert(m); }}
-                  onErrorAction={(e: string) => { /* show inline feedback */ alert(e); }}
+                  onSuccessAction={(m: string) => { setUploadFeedback({ status: 'success', msg: m }); }}
+                  onErrorAction={(e: string) => { setUploadFeedback({ status: 'error', msg: e }); }}
                 />
                 <div className="mt-4 text-xs text-gray-600 space-y-2 border-t pt-3">
                 <p className="font-medium text-gray-700">Format CSV yang didukung:</p>
