@@ -10,9 +10,11 @@ jest.mock("../../hooks/useDashboardData", () => ({
 }));
 
 // Mock child components
+const mockGeneralInformation = jest.fn(() => <div>General Information Content</div>);
+
 jest.mock("../../app/components/dashboard/GeneralInformation", () => ({
   __esModule: true,
-  default: () => <div>General Information Content</div>,
+  default: (props: any) => mockGeneralInformation(props),
 }));
 
 jest.mock("../../app/components/dashboard/CasesOrder", () => ({
@@ -45,6 +47,7 @@ describe("InformationSection", () => {
       isLoading: false,
       error: null,
     });
+    mockGeneralInformation.mockClear();
   });
 
   it("renders correctly", () => {
@@ -93,6 +96,20 @@ describe("InformationSection", () => {
 
     render(<InformationSection />);
     expect(screen.getByText("General Information Content")).toBeInTheDocument();
+  });
+
+  it("enables excel view for EXP_USER", () => {
+    render(<InformationSection userRole="EXP_USER" />);
+    expect(mockGeneralInformation).toHaveBeenCalledWith(
+      expect.objectContaining({ showExcelView: true })
+    );
+  });
+
+  it("does not enable excel view for other roles", () => {
+    render(<InformationSection userRole="CURATOR" />);
+    expect(mockGeneralInformation).toHaveBeenCalledWith(
+      expect.not.objectContaining({ showExcelView: true })
+    );
   });
 
   it("shows loading state", () => {
