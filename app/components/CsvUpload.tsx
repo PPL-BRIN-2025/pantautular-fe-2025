@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { API_BASE as CONFIG_API_BASE } from "../../config";
+import AccessDeniedNotice from "./AccessDenied";
 
 const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
 
@@ -18,6 +20,26 @@ export default function CsvUpload({
   const [busy, setBusy] = useState(false);
   const [filename, setFilename] = useState<string | null>(null);
   const isExpert = normalizeRole(effectiveUser?.role) === "EXP_USER";
+  const router = useRouter();
+
+  // If the user isn't logged in, redirect immediately to login page with a next param.
+  useEffect(() => {
+    // treat null/undefined as not logged in
+    if (!effectiveUser) {
+      try {
+        const next = encodeURIComponent(window.location.pathname || "/expert-bulk-upload");
+        router.replace(`/login?next=${next}`);
+      } catch (e) {
+        // fallback to full navigation
+        try { window.location.href = `/login?next=${encodeURIComponent(window.location.pathname || "/expert-bulk-upload")}`; } catch {}
+      }
+    }
+  }, [effectiveUser, router]);
+
+  // If user is present but not EXP_USER show AccessDenied component
+  if (effectiveUser && !isExpert) {
+    return <AccessDeniedNotice />;
+  }
 
   const acceptFile = (file?: File | null) => {
     if (!file) return "No file provided.";

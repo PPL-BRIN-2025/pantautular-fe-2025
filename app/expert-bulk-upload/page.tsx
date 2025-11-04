@@ -33,6 +33,28 @@ export default function CuratorBulkUploadPage() {
 
   const role = normalizeRole(effectiveUser?.role);
   const isExpert = role === 'EXP_USER';
+  // redirect unauthenticated users to login (when loading finished)
+  useEffect(() => {
+    if (!loading && !effectiveUser) {
+      try {
+        const next = encodeURIComponent(window.location.pathname || '/expert-bulk-upload');
+        router.replace(`/login?next=${next}`);
+      } catch (e) {
+        try { window.location.href = `/login?next=${encodeURIComponent(window.location.pathname || '/expert-bulk-upload')}`; } catch {}
+      }
+    }
+  }, [loading, effectiveUser, router]);
+
+  // If authenticated but not EXP_USER, show AccessDenied with site chrome (navbar/footer)
+  if (!loading && effectiveUser && !isExpert) {
+    return (
+      <div className="min-h-screen bg-[#f0f6f8]">
+        <Navbar />
+        <AccessDeniedNotice />
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f0f6f8]">
@@ -51,8 +73,6 @@ export default function CuratorBulkUploadPage() {
 
             {loading ? (
               <div className="text-sm text-gray-500">Memeriksa akses…</div>
-            ) : !isExpert ? (
-              <AccessDeniedNotice />
             ) : (
               <div>
                 <CsvUpload
