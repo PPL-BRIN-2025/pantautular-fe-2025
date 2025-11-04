@@ -60,7 +60,28 @@ export default function CuratorBulkUploadPage() {
                   onSuccessAction={(m: string) => { /* show inline feedback */ alert(m); }}
                   onErrorAction={(e: string) => { /* show inline feedback */ alert(e); }}
                 />
-                <div className="text-xs text-gray-500 mt-2">Catatan: format CSV harus sesuai ketentuan backend.</div>
+                <div className="mt-4 text-xs text-gray-600 space-y-2 border-t pt-3">
+                <p className="font-medium text-gray-700">Format CSV yang didukung:</p>
+                <p className="text-[11px] break-all">
+                  disease, gender, age, city, status, severity, location_city, location_province, news_portal, news_title, news_type, news_content, news_url, news_author, news_date_published
+                </p>
+
+                <p className="text-gray-500">Contoh baris:</p>
+                <pre className="bg-gray-50 border rounded p-2 text-[10px] leading-tight overflow-x-auto">
+              Rabies,L,9,Denpasar,bahaya,insiden,Denpasar,Bali,Kompas,"Kasus Gigitan Anjing Dilaporkan","artikel","Dinas kesehatan mencatat peningkatan gigitan anjing","https://kompas.com/rabies1","Reporter Q",2024-05-01T08:00:00Z
+                </pre>
+
+                <p className="text-gray-500">Pastikan file dalam format <strong>.csv (UTF-8)</strong> dengan header yang sesuai.</p>
+
+                <a
+                  href="/templates/example_cases.csv"
+                  download
+                  className="inline-block text-blue-600 hover:underline mt-1"
+                >
+                  📥 Download contoh template CSV
+                </a>
+              </div>
+
               </div>
             )}
           </div>
