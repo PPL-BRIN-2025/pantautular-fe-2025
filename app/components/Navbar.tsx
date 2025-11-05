@@ -58,30 +58,36 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     { label: "Dashboard Admin", href: "/admin-dashboard" },
     { label: "Manajemen Role", href: "/admin-role-management" },
     { label: "User Log", href: "/admin-user-log-menu" },
-    {
-      label: "Dashboard Kurator",
-      href: "/curator-dashboard",
+    { label: "Dashboard Kurator", href: "/curator-dashboard" },
+    { 
+      label: "Kurator Data Management", href: "/curator-data-management",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
         { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
       ],
     },
-    { label: "Kurator Data Management", href: "/curator-data-management" },
   ],
   EXP_USER: [
     { label: "Dashboard", href: "/dashboard" },
-    { label: "Peta Sebaran", href: "/map" },
+    { 
+      label: "Data Management", href: "/curator-data-management",
+      children: [
+        { label: "Tambah Data", href: "/curator-add-data" },
+        { label: "Tambah Data (CSV)", href: "/expert-bulk-upload" },
+        { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+      ],
+    },
+    { label: "Bantuan", href: "/help" },
   ],
   CURATOR: [
-    {
-      label: "Dashboard Kurator",
-      href: "/curator-dashboard",
+    { label: "Dashboard Kurator", href: "/curator-dashboard" },
+    { 
+      label: "Kurator Data Management", href: "/curator-data-management",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
         { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
       ],
     },
-    { label: "Kurator Data Management", href: "/curator-data-management" },
     { label: "Bantuan", href: "/help" },
   ],
   CONTRIBUTOR: [
