@@ -1,66 +1,126 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import ChartModeSelector from "./ChartModeSelector";
-import ChartRenderer from "./ChartRenderer";
-import {
-  type ChartMode,
-  CHART_MODE_METADATA,
-  DEFAULT_CHART_MODE,
-  loadChartModePreference,
-  saveChartModePreference,
-} from "./chartModePreference";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Navbar from "../components/Navbar";
+import FilterSection from "../components/dashboard/FilterSection";
+import InformationSection from "../components/dashboard/InformationSection";
+import AccessDeniedNotice from "./_components/AccessDenied";
+import { useAuth } from "../auth/hooks/useAuth";
+import type { FilterState, FilterStateDashboard, User } from "@/types";
+
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
+
+const ALLOWED_ROLES = new Set(["ADMIN", "EXP_USER"]);
+
+const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
 
 export default function ExpertDashboardPage() {
-  const [mode, setMode] = useState<ChartMode>(DEFAULT_CHART_MODE);
+  const { user } = useAuth();
+  const router = useRouter();
+  const [filterState, setFilterState] = useState<FilterState | undefined>(undefined);
+  const [effectiveUser, setEffectiveUser] = useState<User | null>(null);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [accessState, setAccessState] = useState<AccessState>("loading");
 
   useEffect(() => {
-    const stored = loadChartModePreference();
-    if (stored && stored !== mode) {
-      setMode(stored);
+    let resolvedUser = user;
+    if (!resolvedUser && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) {
+          resolvedUser = JSON.parse(stored) as User;
+        }
+      } catch (error) {
+        console.warn("Failed to parse stored user information", error);
+      }
     }
-    // We intentionally run this effect only once to hydrate from storage.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setEffectiveUser(resolvedUser ?? null);
+    setIsCheckingAccess(false);
+  }, [user]);
 
-  const modeMeta = useMemo(() => CHART_MODE_METADATA[mode], [mode]);
+  useEffect(() => {
+    if (isCheckingAccess) {
+      return;
+    }
 
-  const handleModeChange = (nextMode: ChartMode) => {
-    if (nextMode === mode) return;
-    setMode(nextMode);
-    saveChartModePreference(nextMode);
+    if (!effectiveUser) {
+      setAccessState("redirect");
+      return;
+    }
+
+    const role = normalizeRole(effectiveUser.role);
+    if (!ALLOWED_ROLES.has(role)) {
+      setAccessState("forbidden");
+      return;
+    }
+
+    setAccessState("granted");
+  }, [effectiveUser, isCheckingAccess]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") {
+      return;
+    }
+
+    const nextParam = encodeURIComponent("/expert-dashboard");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
+
+  const handleFilterSubmit = (filters: FilterStateDashboard) => {
+    const flatLocations = [
+      ...(filters.locations.provinces ?? []),
+      ...(filters.locations.cities ?? []),
+    ];
+    const converted: FilterState = {
+      diseases: filters.diseases,
+      locations: flatLocations,
+      level_of_alertness: filters.level_of_alertness,
+      portals: filters.portals,
+      start_date: filters.start_date,
+      end_date: filters.end_date,
+      batch: filters.batch ?? null,
+    };
+    setFilterState(converted);
   };
 
-  return (
-    <main className="mx-auto max-w-6xl px-6 py-10" data-testid="expert-dashboard">
-      <div className="space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-[#0069CF]">
-            Expert Dashboard
-          </h1>
-          <p className="text-sm text-slate-600">
-            Explore critical indicators with flexible visualization modes tailored
-            for expert reviews.
-          </p>
-        </header>
-        <section className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-1">
-              <h2 className="text-xl font-semibold text-slate-900">
-                Visualization Mode
-              </h2>
-              <p
-                className="text-sm text-slate-500"
-                data-testid="mode-description"
-              >
-                {modeMeta.description}
-              </p>
-            </div>
-            <ChartModeSelector value={mode} onChange={handleModeChange} />
-          </div>
-          <ChartRenderer mode={mode} />
-        </section>
+  const handleError = (message: string) => {
+    console.error(message);
+  };
+
+  if (accessState === "loading" || accessState === "redirect") {
+    return (
+      <div className="min-h-screen bg-[#ebf3f5]">
+        <Navbar />
+        <div className="flex min-h-screen items-center justify-center px-4 pt-24">
+          <span className="text-sm text-[#0f172a]">Memeriksa akses.</span>
+        </div>
       </div>
-    </main>
+    );
+  }
+
+  if (accessState === "forbidden") {
+    return (
+      <div className="min-h-screen bg-[#ebf3f5]">
+        <Navbar />
+        <main className="mx-auto max-w-3xl px-4 pb-10 pt-24">
+          <AccessDeniedNotice />
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#ebf3f5]">
+      <Navbar />
+      <div className="h-full flex w-full gap-5 pt-24">
+        <div className="w-2/5 bg-transparent">
+          <FilterSection onSubmitFilterState={handleFilterSubmit} onError={handleError} />
+        </div>
+        <div className="w-3/5 bg-transparent">
+          <InformationSection filterState={filterState} showExcelView />
+        </div>
+      </div>
+    </div>
   );
 }

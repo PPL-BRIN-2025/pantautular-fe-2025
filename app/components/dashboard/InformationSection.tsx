@@ -10,16 +10,13 @@ import { FilterState } from "../../../types";
 
 interface InformationSectionProps {
   filterState?: FilterState;
-  userRole?: string | null;
+  showExcelView?: boolean;
 }
 
-const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
-
-const InformationSection = ({ filterState, userRole }: InformationSectionProps) => {
+const InformationSection = ({ filterState, showExcelView = false }: InformationSectionProps) => {
   const [activeSection, setActiveSection] = useState("section1");
   // Pass the filterState to the hook so it refetches when filters change.
   const { data, isLoading, error } = useDashboardData(filterState);
-  const showExcelView = normalizeRole(userRole) === "EXP_USER";
 
   let content;
   if (isLoading) {

@@ -1,4 +1,4 @@
-import { MapLocation, FilterState, ProvinceData} from "../types";
+import { MapLocation, FilterState, ProvinceData, ExpertBatch } from "../types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
@@ -33,6 +33,11 @@ export const mapApi = {
   async getFilteredLocations(filters: FilterState): Promise<MapLocation[]> {
     try {
       const accessToken = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const payload =
+        filters.batch === undefined
+          ? filters
+          : { ...filters, batch: filters.batch ?? null };
+
       const response = await fetch(`${API_BASE_URL}/cases/locations/`, {
         method: 'POST',
         headers: {
@@ -42,7 +47,7 @@ export const mapApi = {
           ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
         },
         credentials: 'include',
-        body: JSON.stringify(filters),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -58,8 +63,13 @@ export const mapApi = {
 
   async getDashboardData(filters?: FilterState): Promise<any> {
     // Use POST if filters are provided; otherwise, GET.
-    const method = filters ? "POST" : "GET";
-    const body = filters ? JSON.stringify(filters) : undefined;
+    const shouldPost = Boolean(filters);
+    const payload =
+      filters && filters.batch !== undefined
+        ? { ...filters, batch: filters.batch ?? null }
+        : filters;
+    const method = shouldPost ? "POST" : "GET";
+    const body = shouldPost && payload ? JSON.stringify(payload) : undefined;
   
     const response = await fetch(`${API_BASE_URL}/api/statistics/`, {
       method,
@@ -69,7 +79,7 @@ export const mapApi = {
         "x-api-key": String(API_KEY),
       },
       credentials: "include",
-      ...(filters && { body }),
+      ...(body ? { body } : {}),
     });
     
     if (!response.ok) {
@@ -127,7 +137,41 @@ export const mapApi = {
       console.error("Error fetching case detail:", error);
       throw error;
     }
-  }
+  },
+
+  async getExpertBatches(): Promise<ExpertBatch[]> {
+    try {
+      const accessToken = typeof localStorage !== "undefined" ? localStorage.getItem("accessToken") : null;
+      const response = await fetch(`${API_BASE_URL}/expert-feature/experts/batches/`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "x-api-key": String(API_KEY),
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const payload = await response.json();
+      if (Array.isArray(payload)) {
+        return payload;
+      }
+
+      if (payload && Array.isArray(payload.results)) {
+        return payload.results;
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Error fetching expert batches:", error);
+      throw error;
+    }
+  },
 };
 
 const fetchSeverityStats = async (endpoint: string, filter?: FilterState) => {
@@ -144,6 +188,19 @@ const fetchSeverityStats = async (endpoint: string, filter?: FilterState) => {
       /* istanbul ignore next */
       console.log('Using filter endpoint:', filterUrl);
       
+      const payload: Record<string, unknown> = {
+        diseases: filter.diseases || [],
+        locations: filter.locations || [],
+        portals: filter.portals || [],
+        level_of_alertness: filter.level_of_alertness || 0,
+        start_date: filter.start_date || null,
+        end_date: filter.end_date || null,
+      };
+
+      if (filter.batch !== undefined) {
+        payload.batch = filter.batch ?? null;
+      }
+
       /* istanbul ignore next */
       const response = await fetch(filterUrl, {
         method: 'POST',
@@ -153,14 +210,7 @@ const fetchSeverityStats = async (endpoint: string, filter?: FilterState) => {
           "x-api-key": String(API_KEY),
         },
         credentials: "include",
-        body: JSON.stringify({
-          diseases: filter.diseases || [],
-          locations: filter.locations || [],
-          portals: filter.portals || [],
-          level_of_alertness: filter.level_of_alertness || 0,
-          start_date: filter.start_date || null,
-          end_date: filter.end_date || null
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {

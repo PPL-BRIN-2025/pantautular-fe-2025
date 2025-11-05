@@ -80,6 +80,7 @@ export default function CuratorDashboardPage() {
       portals: filters.portals,
       start_date: filters.start_date,
       end_date: filters.end_date,
+      batch: filters.batch ?? null,
     };
     setFilterState(converted);
   };
@@ -118,7 +119,7 @@ export default function CuratorDashboardPage() {
           <FilterSection onSubmitFilterState={handleFilterSubmit} onError={handleError} />
         </div>
         <div className="w-3/5 bg-transparent">
-          <InformationSection filterState={filterState} userRole={effectiveUser?.role ?? null} />
+          <InformationSection filterState={filterState} />
         </div>
       </div>
     </div>
