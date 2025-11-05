@@ -24,10 +24,10 @@ const mockUseDashboardData = jest.fn(() => ({
   error: null,
 }));
 
-const mockInformationSection = jest.fn(({ userRole }: { userRole?: string | null }) => (
+const mockInformationSection = jest.fn((props: any) => (
   <div>
     <div>Filter Informasi Penyakit Menular</div>
-    {userRole?.toUpperCase() === "EXP_USER" && <div>Visualisasi Excel</div>}
+    {props?.marker ?? null}
   </div>
 ));
 
@@ -65,7 +65,20 @@ jest.mock("../../app/components/dashboard/FilterSection", () => ({
   default: (props: any) => (
     <div>
       <div>Filter Informasi Penyakit Menular</div>
-      <button type="button" onClick={() => props?.onSubmitFilterState?.({})}>
+      <button
+        type="button"
+        onClick={() =>
+          props?.onSubmitFilterState?.({
+            diseases: [],
+            locations: { provinces: [], cities: [] },
+            portals: [],
+            level_of_alertness: 0,
+            start_date: null,
+            end_date: null,
+            batch: null,
+          })
+        }
+      >
         Terapkan Filter
       </button>
     </div>
@@ -93,6 +106,8 @@ describe("CuratorDashboardPage", () => {
 
     const filterHeadings = await screen.findAllByText(/Filter Informasi Penyakit Menular/i);
     expect(filterHeadings.length).toBeGreaterThan(0);
+    expect(mockInformationSection).toHaveBeenCalled();
+    expect(mockInformationSection.mock.calls[0][0]).not.toHaveProperty("showExcelView");
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
@@ -106,7 +121,9 @@ describe("CuratorDashboardPage", () => {
 
     const filterHeadings = await screen.findAllByText(/Filter Informasi Penyakit Menular/i);
     expect(filterHeadings.length).toBeGreaterThan(0);
-    expect(await screen.findByText("Visualisasi Excel")).toBeInTheDocument();
+    expect(mockInformationSection).toHaveBeenCalled();
+    expect(mockInformationSection.mock.calls[0][0]).not.toHaveProperty("showExcelView");
+    expect(screen.queryByText("Visualisasi Excel")).not.toBeInTheDocument();
     expect(screen.queryByText("Akses Ditolak")).not.toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
   });

@@ -18,7 +18,8 @@ describe('useLocations', () => {
     level_of_alertness: 0,
     portals: [],
     start_date: null,
-    end_date: null
+    end_date: null,
+    batch: null,
   };
 
   beforeEach(() => {

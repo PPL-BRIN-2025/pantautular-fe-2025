@@ -30,6 +30,7 @@ describe("FilterSection Component", () => {
     portals: [],
     start_date: null,
     end_date: null,
+    batch: null,
   };
 
   beforeEach(() => {

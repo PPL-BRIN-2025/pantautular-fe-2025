@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import InformationSection from "../../app/components/dashboard/InformationSection";
 import { useDashboardData } from "../../hooks/useDashboardData";
-import { FilterState } from "../../types";
 
 // Mock the useDashboardData hook
 jest.mock("../../hooks/useDashboardData", () => ({
@@ -31,15 +30,6 @@ jest.mock("../../app/components/floating_buttons/MapButton", () => ({
 }));
 
 describe("InformationSection", () => {
-  const mockFilterState: FilterState = {
-    diseases: [],
-    locations: [],
-    portals: [],
-    level_of_alertness: 0,
-    start_date: null,
-    end_date: null,
-  };
-
   beforeEach(() => {
     // Reset mock implementation before each test
     (useDashboardData as jest.Mock).mockReturnValue({
@@ -98,17 +88,17 @@ describe("InformationSection", () => {
     expect(screen.getByText("General Information Content")).toBeInTheDocument();
   });
 
-  it("enables excel view for EXP_USER", () => {
-    render(<InformationSection userRole="EXP_USER" />);
+  it("disables csv visualization by default", () => {
+    render(<InformationSection />);
     expect(mockGeneralInformation).toHaveBeenCalledWith(
-      expect.objectContaining({ showExcelView: true })
+      expect.objectContaining({ showExcelView: false })
     );
   });
 
-  it("does not enable excel view for other roles", () => {
-    render(<InformationSection userRole="CURATOR" />);
+  it("enables csv visualization when requested", () => {
+    render(<InformationSection showExcelView />);
     expect(mockGeneralInformation).toHaveBeenCalledWith(
-      expect.not.objectContaining({ showExcelView: true })
+      expect.objectContaining({ showExcelView: true })
     );
   });
 

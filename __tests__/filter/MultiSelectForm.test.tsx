@@ -5,46 +5,73 @@ import MultiSelectForm from "../../app/components/filter/MultiSelectForm";
 // Mock the react-select component
 jest.mock("react-select", () => {
   return function MockSelect({
-    isMulti, 
-    options, 
-    value, 
-    onChange 
-  }: { 
-    isMulti?: boolean; 
-    options: Array<{value: string; label: string} | {label: string; options: Array<{value: string; label: string}>}>; 
-    value: Array<{value: string; label: string}> | null; 
+    isMulti,
+    options,
+    value,
+    onChange,
+    isClearable,
+  }: {
+    isMulti?: boolean;
+    options: Array<
+      | { value: string; label: string }
+      | { label: string; options: Array<{ value: string; label: string }> }
+    >;
+    value:
+      | Array<{ value: string; label: string }>
+      | { value: string; label: string }
+      | null;
     onChange: (val: unknown) => void;
+    isClearable?: boolean;
   }) {
-    function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
-      // Handle grouped options
-      const allOptions = options.reduce((acc: Array<{value: string; label: string}>, opt) => {
-        if ('options' in opt) {
+    const flattenOptions = () =>
+      options.reduce((acc: Array<{ value: string; label: string }>, opt) => {
+        if ("options" in opt) {
           return [...acc, ...opt.options];
         }
         return [...acc, opt];
       }, []);
 
-      const option = allOptions.find(opt => opt.value === event.target.value);
-      if (!option) return;
-      
-      // For multi-select
+    function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
+      const selectedValue = event.target.value;
+
+      if (!isMulti && isClearable && selectedValue === "__clear__") {
+        onChange(null);
+        return;
+      }
+
+      const allOptions = flattenOptions();
+      const option = allOptions.find((opt) => opt.value === selectedValue);
+      if (!option) {
+        return;
+      }
+
       if (isMulti) {
-        onChange([...(value || []), option]);
+        const current = Array.isArray(value) ? value : [];
+        onChange([...(current || []), option]);
       } else {
         onChange(option);
       }
     }
 
+    const selectedValues = Array.isArray(value)
+      ? value.map((v) => v.value)
+      : value
+      ? [value.value]
+      : [];
+
+    const selectValue = isMulti ? selectedValues : selectedValues[0] ?? "";
+
     return (
       <select
         data-testid="select"
-        multiple={isMulti}
-        value={value ? value.map(v => v.value) : []}
+        multiple={Boolean(isMulti)}
+        value={isMulti ? selectedValues : selectValue}
         onChange={handleChange}
       >
-        {options?.map(option => {
-          if ('options' in option) {
-            return option.options.map(opt => (
+        {isClearable && !isMulti && <option value="__clear__">__clear__</option>}
+        {options?.flatMap((option) => {
+          if ("options" in option) {
+            return option.options.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -117,6 +144,11 @@ describe("MultiSelectForm Component", () => {
     }
   };
 
+  const mockBatches = [
+    { id: "batch-1", filename: "Upload 1", uploaded_at: "2025-01-01T00:00:00Z", total_cases: 10 },
+    { id: "batch-2", filename: "Upload 2", uploaded_at: "2025-01-15T00:00:00Z", total_cases: 25 },
+  ];
+
   // Helper functions to reduce duplication
   const waitForLoading = async () => {
     await waitFor(() => {
@@ -148,6 +180,7 @@ describe("MultiSelectForm Component", () => {
   const selectDisease = async (value: string) => selectOption(0, value);
   const selectLocation = async (value: string) => selectOption(1, value);
   const selectNews = async (value: string) => selectOption(2, value);
+  const selectBatch = async (value: string) => selectOption(3, value);
 
   const setAlertLevel = async (level: number) => {
     const starButtons = screen.getAllByRole("button").filter(btn => 
@@ -171,12 +204,26 @@ describe("MultiSelectForm Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     console.error = jest.fn();
-    (global.fetch as jest.Mock).mockImplementation(() =>
-      Promise.resolve({
+    (global.fetch as jest.Mock).mockImplementation((input: any) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input && typeof input.url === "string"
+          ? input.url
+          : "";
+
+      if (url.includes("/expert-feature/experts/batches/")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ results: mockBatches }),
+        });
+      }
+
+      return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(mockFilterOptions)
-      })
-    );
+        json: () => Promise.resolve(mockFilterOptions),
+      });
+    });
   });
 
   // Add a mock error handler for fixing the linter errors
@@ -193,6 +240,7 @@ describe("MultiSelectForm Component", () => {
       expect(screen.getByText("Jenis Penyakit")).toBeInTheDocument();
       expect(screen.getByText("Lokasi")).toBeInTheDocument();
       expect(screen.getByText("Sumber Berita")).toBeInTheDocument();
+      expect(screen.getByText("CSV Upload")).toBeInTheDocument();
       expect(screen.getByText("Tingkat Kewaspadaan:")).toBeInTheDocument();
       expect(screen.getByText("Tanggal")).toBeInTheDocument();
     });
@@ -207,6 +255,7 @@ describe("MultiSelectForm Component", () => {
       await selectDisease("covid");
       await selectLocation("jakarta");
       await selectNews("cnn");
+      await selectBatch("batch-1");
       await setAlertLevel(3);
       await setDateRange("2023-01-01", "2023-01-31");
 
@@ -221,7 +270,8 @@ describe("MultiSelectForm Component", () => {
           portals: ["cnn"],
           level_of_alertness: 3,
           start_date: expect.any(Date),
-          end_date: expect.any(Date)
+          end_date: expect.any(Date),
+          batch: "batch-1"
         })
       );
     });
@@ -234,6 +284,7 @@ describe("MultiSelectForm Component", () => {
 
       // Set values first
       await selectDisease("covid");
+      await selectBatch("batch-1");
       await setAlertLevel(4);
       await setDateRange("2023-01-01", "2023-01-31");
 
@@ -250,7 +301,8 @@ describe("MultiSelectForm Component", () => {
         portals: [],
         level_of_alertness: 0,
         start_date: null,
-        end_date: null
+        end_date: null,
+        batch: null
       });
     });
   });
@@ -281,6 +333,23 @@ describe("MultiSelectForm Component", () => {
       
       await waitForLoading();
       expect(console.error).toHaveBeenCalled();
+    });
+
+    test("notifies when batch fetch fails", async () => {
+      (global.fetch as jest.Mock)
+        .mockImplementationOnce(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockFilterOptions),
+          })
+        )
+        .mockImplementationOnce(() => Promise.reject(new Error("Batch fetch failed")));
+
+      render(<MultiSelectForm onError={mockOnError} />);
+
+      await waitForLoading();
+
+      expect(mockOnError).toHaveBeenCalledWith("Failed to load CSV uploads. Please try again.");
     });
 
     test("handles submission error", async () => {
@@ -357,7 +426,8 @@ describe("MultiSelectForm Component", () => {
           portals: [],
           level_of_alertness: 0,
           start_date: null,
-          end_date: null
+          end_date: null,
+          batch: null
         });
       };
       
@@ -442,7 +512,8 @@ describe("MultiSelectForm Component", () => {
       expect(mockOnSubmitFilterState).toHaveBeenCalledWith(
         expect.objectContaining({
           start_date: expect.any(Date),
-          end_date: expect.any(Date)
+          end_date: expect.any(Date),
+          batch: "batch-1"
         })
       );
     });
@@ -462,6 +533,7 @@ describe("MultiSelectForm Component", () => {
           level_of_alertness: 0,
           start_date: null,
           end_date: null
+          batch: null
         })
       );
     });
@@ -476,6 +548,7 @@ describe("MultiSelectForm Component", () => {
       level_of_alertness: 4,
       start_date: new Date("2023-02-01"),
       end_date: new Date("2023-02-28"),
+      batch: "batch-1",
       ...overrides
     });
 
@@ -561,7 +634,7 @@ describe("MultiSelectForm Component", () => {
     test("handles null dates in initialFilterState", async () => {
       const initialStateWithNullDates = createInitialState({
         start_date: null,
-        end_date: null
+        end_date: null,
       });
       
       render(<MultiSelectForm initialFilterState={initialStateWithNullDates} onError={mockOnError} />);
@@ -594,6 +667,7 @@ describe("MultiSelectForm Component", () => {
       expect(selectElements[0]).toHaveValue(["malaria"]);
       expect(selectElements[1]).toHaveValue(["surabaya"]);
       expect(selectElements[2]).toHaveValue(["reuters"]);
+      expect(selectElements[3]).toHaveValue("custom-batch");
       
       // Check level of alertness
       const starButtons = screen.getAllByRole("button").filter(btn => 
@@ -632,7 +706,8 @@ describe("MultiSelectForm Component", () => {
         portals: ["cnn"],
         level_of_alertness: 3,
         start_date: expect.any(Date),
-        end_date: expect.any(Date)
+        end_date: expect.any(Date),
+        batch: "batch-1"
       });
     });
     
@@ -662,7 +737,8 @@ describe("MultiSelectForm Component", () => {
         portals: [],
         level_of_alertness: 0,
         start_date: null,
-        end_date: null
+        end_date: null,
+        batch: null
       });
     });
   });
