@@ -93,6 +93,7 @@ describe("Dashboard Page", () => {
       portals: ["news-portal-1", "news-portal-2"],
       start_date: new Date(),
       end_date: new Date() 
+      batch: "batch-1"
     };
     
     // Call the handleFilterSubmit function passed to FilterSection

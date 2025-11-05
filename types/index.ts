@@ -21,6 +21,7 @@ export interface FilterStateDashboard {
   portals: string[];
   start_date: null | Date;
   end_date: null | Date;
+  batch?: string | null;
 }
 
 export interface FilterState {
@@ -30,6 +31,7 @@ export interface FilterState {
   portals: string[];
   start_date: null | Date;
   end_date: null | Date;
+  batch?: string | null;
 }
 
 export interface DistributionData {
@@ -114,6 +116,13 @@ export interface ProvinceData {
   id: string;
   value: string | number;
   status: string | null;
+}
+
+export interface ExpertBatch {
+  id: string;
+  filename: string;
+  uploaded_at: string;
+  total_cases: number;
 }
 
 export const TEMPERATURE_COLORS: Record<number, string> = {

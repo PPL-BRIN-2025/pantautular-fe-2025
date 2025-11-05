@@ -1,9 +1,10 @@
 "use client"
 import { useEffect, useState, FormEvent } from "react";
-import Select, { MultiValue, components } from "react-select";
+import Select, { MultiValue, SingleValue, components } from "react-select";
 import DatePicker from "react-datepicker";
-import { FilterState } from "../../../types";
+import type { FilterState, ExpertBatch } from "../../../types";
 import "react-datepicker/dist/react-datepicker.css";
+import { mapApi } from "../../../services/api";
 
 // Define option type for Select components
 interface SelectOption {
@@ -28,6 +29,16 @@ interface MultiSelectFormProps {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const ALL_UPLOADS_OPTION = { value: "", label: "All uploads" };
+
+const createBatchSelectOptions = (batches: ExpertBatch[]) => {
+  const batchOptions = batches.map((batch) => ({
+    value: batch.id,
+    label: batch.filename || batch.id,
+  }));
+
+  return [ALL_UPLOADS_OPTION, ...batchOptions];
+};
 
 // Custom Group component for locations
 const Group = (props: any) => (
@@ -70,6 +81,8 @@ export default function MultiSelectForm({
   const [selectedLevelOfAlertness, setSelectedLevelOfAlertness] = useState(0);
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
+  const [batchOptions, setBatchOptions] = useState<SelectOption[]>([ALL_UPLOADS_OPTION]);
+  const [selectedBatch, setSelectedBatch] = useState<SelectOption | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -88,6 +101,7 @@ export default function MultiSelectForm({
     setSelectedLevelOfAlertness(0);
     setSelectedStartDate(null);
     setSelectedEndDate(null);
+    setSelectedBatch(null);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -100,7 +114,8 @@ export default function MultiSelectForm({
       portals: selectedNews.map((news) => news.value),
       level_of_alertness: selectedLevelOfAlertness,
       start_date: selectedStartDate,
-      end_date: selectedEndDate
+      end_date: selectedEndDate,
+      batch: selectedBatch && selectedBatch.value !== "" ? selectedBatch.value : null
     };
 
     try {
@@ -116,6 +131,8 @@ export default function MultiSelectForm({
   }
 
   useEffect(() => {
+    let isActive = true;
+
     async function fetchFilters() {
       setIsLoadingFilters(true);
       try {
@@ -126,54 +143,111 @@ export default function MultiSelectForm({
           },
           mode: "cors",
         });
-        
-        if (response.ok) {
-          const responseFilters = await response.json();
-          const options = {
-            diseases: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.diseases],
-            locations: {
-              provinces: responseFilters.data.locations.provinces,
-              cities: responseFilters.data.locations.cities
-            },
-            news: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.news],
-          };
-          setFilterOptions(options);
-          
-          // Populate form with initialFilterState if available
-          if (initialFilterState) {
-            setSelectedDiseases(
-              initialFilterState.diseases.map(disease => 
-                options.diseases.find(option => option.value === disease) || 
-                { value: disease, label: disease }
-              )
-            );
-            
-            setSelectedLocations(getSelectedLocations(initialFilterState.locations, options.locations.provinces, options.locations.cities));
 
-            setSelectedNews(
-              initialFilterState.portals.map(portal => 
-                options.news.find(option => option.value === portal) || 
-                { value: portal, label: portal }
-              )
+        if (!response.ok) {
+          throw new Error("Failed to fetch filter options");
+        }
+
+        const responseFilters = await response.json();
+        if (!isActive) return;
+
+        const options = {
+          diseases: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.diseases],
+          locations: {
+            provinces: responseFilters.data.locations.provinces,
+            cities: responseFilters.data.locations.cities,
+          },
+          news: [{ value: "all", label: "Pilih Semua" }, ...responseFilters.data.news],
+        };
+
+        setFilterOptions(options);
+
+        let batchSelectOptions = [ALL_UPLOADS_OPTION];
+        try {
+          const batches = await mapApi.getExpertBatches();
+          if (!isActive) return;
+          batchSelectOptions = createBatchSelectOptions(batches);
+        } catch (batchError) {
+          console.error("Error fetching expert batches:", batchError);
+          if (isActive) {
+            onError("Failed to load CSV uploads. Please try again.");
+          }
+        }
+
+        if (!isActive) return;
+
+        if (
+          initialFilterState?.batch &&
+          !batchSelectOptions.some((option) => option.value === initialFilterState.batch)
+        ) {
+          batchSelectOptions = [
+            ...batchSelectOptions,
+            { value: initialFilterState.batch, label: initialFilterState.batch },
+          ];
+        }
+
+        setBatchOptions(batchSelectOptions);
+
+        if (initialFilterState) {
+          setSelectedDiseases(
+            initialFilterState.diseases.map((disease) =>
+              options.diseases.find((option) => option.value === disease) || {
+                value: disease,
+                label: disease,
+              }
+            )
+          );
+
+          setSelectedLocations(
+            getSelectedLocations(initialFilterState.locations, options.locations.provinces, options.locations.cities)
+          );
+
+          setSelectedNews(
+            initialFilterState.portals.map((portal) =>
+              options.news.find((option) => option.value === portal) || {
+                value: portal,
+                label: portal,
+              }
+            )
+          );
+
+          setSelectedLevelOfAlertness(initialFilterState.level_of_alertness || 0);
+          setSelectedStartDate(initialFilterState.start_date ? new Date(initialFilterState.start_date) : null);
+          setSelectedEndDate(initialFilterState.end_date ? new Date(initialFilterState.end_date) : null);
+
+          if (initialFilterState.batch) {
+            const matchingBatch = batchSelectOptions.find(
+              (option) => option.value === initialFilterState.batch
             );
-            
-            /* istanbul ignore next */
-            setSelectedLevelOfAlertness(initialFilterState.level_of_alertness || 0);
-            setSelectedStartDate(initialFilterState.start_date ? new Date(initialFilterState.start_date) : null);
-            setSelectedEndDate(initialFilterState.end_date ? new Date(initialFilterState.end_date) : null);
+            setSelectedBatch(
+              matchingBatch || {
+                value: initialFilterState.batch,
+                label: initialFilterState.batch,
+              }
+            );
+          } else if (initialFilterState.batch === null) {
+            setSelectedBatch(null);
           }
         } else {
-          console.error("Failed to fetch filter options");
+          setSelectedBatch(null);
         }
       } catch (error) {
         console.error("Error fetching filter data", error);
-        onError("Failed to load the map. Please try again.");
+        if (isActive) {
+          onError("Failed to load the map. Please try again.");
+        }
       } finally {
-        setIsLoadingFilters(false);
+        if (isActive) {
+          setIsLoadingFilters(false);
+        }
       }
     }
 
     fetchFilters();
+
+    return () => {
+      isActive = false;
+    };
   }, [apiFilterOptions, initialFilterState, onError]);
 
   // Handle onChange for Select components
@@ -215,6 +289,20 @@ export default function MultiSelectForm({
     } else {
       setSelectedNews(newValue as SelectOption[]);
     }  
+  };
+
+  const handleBatchChange = (newValue: SingleValue<SelectOption>) => {
+    if (!newValue) {
+      setSelectedBatch(null);
+      return;
+    }
+
+    if (newValue.value === "") {
+      setSelectedBatch(newValue);
+      return;
+    }
+
+    setSelectedBatch(newValue);
   };
 
   // Group locations into provinces and cities
@@ -305,6 +393,17 @@ export default function MultiSelectForm({
             value={selectedNews}
             onChange={handleNewsChange}
             className="mt-1 text-sm"
+          />
+        </div>
+        {/* csv batches */}
+        <div>
+          <label className="block text-sm font-medium">CSV Upload</label>
+          <Select
+            options={batchOptions}
+            value={selectedBatch}
+            onChange={handleBatchChange}
+            className="mt-1 text-sm"
+            isClearable
           />
         </div>
         {/* level of alertness */}

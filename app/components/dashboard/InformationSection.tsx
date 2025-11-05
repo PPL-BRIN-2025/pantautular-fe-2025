@@ -10,10 +10,10 @@ import { FilterState } from "../../../types";
 
 interface InformationSectionProps {
   filterState?: FilterState;
+  showExcelView?: boolean;
 }
 
-const InformationSection = ({ filterState }: InformationSectionProps) => {
-  console.log('InformationSection received filter:', filterState);
+const InformationSection = ({ filterState, showExcelView = false }: InformationSectionProps) => {
   const [activeSection, setActiveSection] = useState("section1");
   // Pass the filterState to the hook so it refetches when filters change.
   const { data, isLoading, error } = useDashboardData(filterState);
@@ -24,7 +24,7 @@ const InformationSection = ({ filterState }: InformationSectionProps) => {
   } else if (error) {
     content = <p className="text-red-500">{error}</p>;
   } else if (activeSection === "section1") {
-    content = <GeneralInformation data={data} />;
+    content = <GeneralInformation data={data} showExcelView={showExcelView} />;
   } else {
     content = <CasesOrder filter={filterState} />;
   }
