@@ -998,15 +998,17 @@ export default function CuratorAddDataPage() {
                     </div>
                   </div>
 
-                    {/* CSV upload link: navigate to bulk upload page */}
-                    <div className="mt-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload CSV (bulk)</label>
-                      <div className="flex items-center gap-3">
-                        <button type="button" onClick={() => router.push('/curator-bulk-upload')} className="px-4 py-2 bg-white border rounded-md">Buka halaman Upload CSV</button>
-                        <div className="text-sm text-gray-500">Gunakan halaman upload CSV untuk mengunggah banyak data sekaligus. Untuk menambah satu-per-satu, gunakan form di atas.</div>
+                    {/* CSV upload link: only visible to expert users (EXP_USER) */}
+                    {typeof user !== 'undefined' && (user?.role || '').toUpperCase().trim() === 'EXP_USER' && (
+                      <div className="mt-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Unggah CSV (bulk)</label>
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => router.push('/expert-bulk-upload')} className="px-4 py-2 bg-white border rounded-md">Buka halaman Unggah CSV</button>
+                          <div className="text-sm text-gray-500">Gunakan halaman unggah CSV untuk mengunggah banyak data sekaligus. Untuk menambah satu-per-satu, gunakan form di atas.</div>
+                        </div>
+                        {errors.csv && <div className="text-xs text-red-600 mt-1">{errors.csv}</div>}
                       </div>
-                      {errors.csv && <div className="text-xs text-red-600 mt-1">{errors.csv}</div>}
-                    </div>
+                    )}
 
                   <div className="flex justify-end items-center gap-4 mt-10">
                     <button type="button" onClick={resetForm} className="px-4 py-2 border rounded-md bg-white">Reset</button>

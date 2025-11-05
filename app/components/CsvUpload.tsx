@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { API_BASE as CONFIG_API_BASE } from "../../config";
+import AccessDeniedNotice from "./AccessDenied";
 
 const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
 
@@ -18,6 +20,26 @@ export default function CsvUpload({
   const [busy, setBusy] = useState(false);
   const [filename, setFilename] = useState<string | null>(null);
   const isExpert = normalizeRole(effectiveUser?.role) === "EXP_USER";
+  const router = useRouter();
+
+  // If the user isn't logged in, redirect immediately to login page with a next param.
+  useEffect(() => {
+    // treat null/undefined as not logged in
+    if (!effectiveUser) {
+      try {
+        const next = encodeURIComponent(window.location.pathname || "/expert-bulk-upload");
+        router.replace(`/login?next=${next}`);
+      } catch (e) {
+        // fallback to full navigation
+        try { window.location.href = `/login?next=${encodeURIComponent(window.location.pathname || "/expert-bulk-upload")}`; } catch {}
+      }
+    }
+  }, [effectiveUser, router]);
+
+  // If user is present but not EXP_USER show AccessDenied component
+  if (effectiveUser && !isExpert) {
+    return <AccessDeniedNotice />;
+  }
 
   const acceptFile = (file?: File | null) => {
     if (!file) return "No file provided.";
@@ -28,53 +50,65 @@ export default function CsvUpload({
   };
 
   const uploadFile = async (file: File) => {
-    const err = acceptFile(file);
-    if (err) return onErrorAction?.(err) as any;
-    setBusy(true);
+  const err = acceptFile(file);
+  if (err) return onErrorAction?.(err) as any;
+  setBusy(true);
 
-    try {
-      // runtime API base & key
-      const API_BASE =
-        process.env.NEXT_PUBLIC_API_URL?.trim() || CONFIG_API_BASE || "http://localhost:8000";
-      const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
-      const UPLOAD_PATH = "/expert-feature/experts/cases/upload-csv/";
+  try {
+    const API_BASE =
+      process.env.NEXT_PUBLIC_API_URL?.trim() || CONFIG_API_BASE || "http://localhost:8000";
+    const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
+    const UPLOAD_PATH = "/expert-feature/experts/cases/upload-csv/";
 
-      const fd = new FormData();
-      fd.append("file", file, file.name);
+    const fd = new FormData();
+    fd.append("file", file, file.name);
 
-      const accessToken =
-        typeof localStorage !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const accessToken =
+      typeof localStorage !== "undefined" ? localStorage.getItem("accessToken") : null;
 
-      const url = `${API_BASE}${UPLOAD_PATH}`;
-      console.debug("[CsvUpload] POST URL:", url);
+    const res = await fetch(`${API_BASE}${UPLOAD_PATH}`, {
+      method: "POST",
+      headers: {
+        "X-API-KEY": API_KEY,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: fd,
+    });
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "X-API-KEY": API_KEY,
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: fd,
-      });
+    // Handle errors first
+    if (!res.ok) {
+      let errorMessage = `Upload gagal (${res.status})`;
 
-      if (!res.ok) {
+      try {
+        // Try to parse JSON structured error first
+        const errorJson = await res.json();
+        if (errorJson.message) errorMessage = errorJson.message;
+        if (errorJson.errors) errorMessage = JSON.stringify(errorJson.errors);
+      } catch {
+        // fallback to plain text
         const text = await res.text();
-        throw new Error(`Upload gagal: ${res.status} ${res.statusText} - ${text}`);
+        if (text) errorMessage = text;
       }
 
-      const data = await res.json().catch(() => ({}));
-      setFilename(file.name);
-      onSuccessAction?.(
-        data && data.created
-          ? `Berhasil membuat ${data.created} kasus`
-          : "CSV terunggah."
-      );
+      return onErrorAction?.(errorMessage);
+    }
+
+    const data = await res.json().catch(() => ({}));
+    setFilename(file.name);
+
+    const successMsg =
+      data?.created != null
+        ? `✅ Berhasil membuat ${data.created} kasus (Batch: ${data.batch_id})`
+        : "✅ CSV berhasil diunggah";
+
+      onSuccessAction?.(successMsg);
     } catch (e: any) {
       onErrorAction?.(String(e?.message || e || "Upload gagal"));
     } finally {
       setBusy(false);
     }
   };
+
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();

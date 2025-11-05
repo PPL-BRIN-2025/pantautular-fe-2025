@@ -1434,17 +1434,6 @@ export default function CuratorEditDeleteDataPage() {
                   </div>
                 </div>
 
-                {/* CSV upload area (below ringkasan) */}
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-700 block mb-2">Upload CSV (hanya EXP_USER)</label>
-                  <CsvUpload
-                    effectiveUser={effectiveUser}
-                    onSuccessAction={(m: string) => { setSuccessMessage(m); setTimeout(() => setSuccessMessage(''), 3000); }}
-                    onErrorAction={(e: string) => setErrors((p) => ({ ...p, csv: e }))}
-                  />
-                  {errors.csv && <div className="text-xs text-red-600 mt-1">{errors.csv}</div>}
-                </div>
-
                 <div className="flex justify-end items-center gap-4 mt-8">
                   <button
                     type="button"
