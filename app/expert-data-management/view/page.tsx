@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
@@ -16,13 +16,12 @@ type Row = {
   severity: string;
 };
 
-export default function ExpertViewPage({
-  dataset,
-  fileName, // optional prop fallback
-}: {
+type ExpertViewPageProps = {
   dataset?: Row[];
   fileName?: string;
-}) {
+};
+
+function ExpertViewPageContent({ dataset, fileName }: ExpertViewPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -136,5 +135,13 @@ export default function ExpertViewPage({
 
       <Footer />
     </div>
+  );
+}
+
+export default function ExpertViewPage(props: ExpertViewPageProps) {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-500">Loading data…</div>}>
+      <ExpertViewPageContent {...props} />
+    </Suspense>
   );
 }
