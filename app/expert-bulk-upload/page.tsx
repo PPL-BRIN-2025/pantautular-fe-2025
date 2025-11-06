@@ -120,12 +120,12 @@ export default function CuratorBulkUploadPage() {
                 <div className="mt-4 text-xs text-gray-600 space-y-2 border-t pt-3">
                 <p className="font-medium text-gray-700">Format CSV yang didukung:</p>
                 <p className="text-[11px] break-all">
-                  disease, gender, age, city, status, severity, location_city, location_province, news_portal, news_title, news_type, news_content, news_url, news_author, news_date_published
+                  disease,gender,age,city,status,severity,location_city,location_province,news_portal,news_title,news_type,news_content,news_url,news_author,news_date_published,location_latitude,location_longitude,news_img_url
                 </p>
 
                 <p className="text-gray-500">Contoh baris:</p>
                 <pre className="bg-gray-50 border rounded p-2 text-[10px] leading-tight overflow-x-auto">
-              Rabies,L,9,Denpasar,bahaya,insiden,Denpasar,Bali,Kompas,"Kasus Gigitan Anjing Dilaporkan","artikel","Dinas kesehatan mencatat peningkatan gigitan anjing","https://kompas.com/rabies1","Reporter Q",2024-05-01T08:00:00Z
+              Dengue,Male,14,Yogyakarta,Bahaya,Mortalitas,Yogyakarta,DI Yogyakarta,Tribun,Kasus DBD Meningkat Saat Musim Hujan,artikel,Dinas kesehatan mengimbau masyarakat menjaga kebersihan lingkungan untuk mencegah sarang nyamuk.,https://tribunnews.com/dbd-yogya,Reporter A,2024-07-10T10:15:00Z,-7.7956,110.3695,https://example.com/dbd-image.jpg
                 </pre>
 
                 <p className="text-gray-500">Pastikan file dalam format <strong>.csv (UTF-8)</strong> dengan header yang sesuai.</p>
