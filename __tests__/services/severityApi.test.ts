@@ -12,7 +12,8 @@ describe('severityApi', () => {
         portals: ['Portal1'],
         level_of_alertness: 1,
         start_date: new Date('2024-01-01'),
-        end_date: new Date('2024-12-31')
+        end_date: new Date('2024-12-31'),
+        batch: "batch-1"
     };
 
     const mockResponse = {

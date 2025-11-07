@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import InformationSection from "../../app/components/dashboard/InformationSection";
 import { useDashboardData } from "../../hooks/useDashboardData";
-import { FilterState } from "../../types";
 
 // Mock the useDashboardData hook
 jest.mock("../../hooks/useDashboardData", () => ({
@@ -10,9 +9,11 @@ jest.mock("../../hooks/useDashboardData", () => ({
 }));
 
 // Mock child components
+const mockGeneralInformation = jest.fn(() => <div>General Information Content</div>);
+
 jest.mock("../../app/components/dashboard/GeneralInformation", () => ({
   __esModule: true,
-  default: () => <div>General Information Content</div>,
+  default: (props: any) => mockGeneralInformation(props),
 }));
 
 jest.mock("../../app/components/dashboard/CasesOrder", () => ({
@@ -29,15 +30,6 @@ jest.mock("../../app/components/floating_buttons/MapButton", () => ({
 }));
 
 describe("InformationSection", () => {
-  const mockFilterState: FilterState = {
-    diseases: [],
-    locations: [],
-    portals: [],
-    level_of_alertness: 0,
-    start_date: null,
-    end_date: null,
-  };
-
   beforeEach(() => {
     // Reset mock implementation before each test
     (useDashboardData as jest.Mock).mockReturnValue({
@@ -45,6 +37,7 @@ describe("InformationSection", () => {
       isLoading: false,
       error: null,
     });
+    mockGeneralInformation.mockClear();
   });
 
   it("renders correctly", () => {
@@ -93,6 +86,20 @@ describe("InformationSection", () => {
 
     render(<InformationSection />);
     expect(screen.getByText("General Information Content")).toBeInTheDocument();
+  });
+
+  it("disables csv visualization by default", () => {
+    render(<InformationSection />);
+    expect(mockGeneralInformation).toHaveBeenCalledWith(
+      expect.objectContaining({ showExcelView: false })
+    );
+  });
+
+  it("enables csv visualization when requested", () => {
+    render(<InformationSection showExcelView />);
+    expect(mockGeneralInformation).toHaveBeenCalledWith(
+      expect.objectContaining({ showExcelView: true })
+    );
   });
 
   it("shows loading state", () => {

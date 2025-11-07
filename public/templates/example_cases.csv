@@ -1,0 +1,4 @@
+disease,gender,age,city,status,severity,location_city,location_province,news_portal,news_title,news_type,news_content,news_url,news_author,news_date_published
+Rabies,L,9,Denpasar,bahaya,insiden,Denpasar,Bali,Kompas,Kasus Gigitan Anjing Dilaporkan,artikel,Dinas kesehatan mencatat peningkatan gigitan anjing terinfeksi,https://kompas.com/rabies1,Reporter Q,2024-05-01T08:00:00Z
+Rabies,P,31,Denpasar,biasa,hospitalisasi,Denpasar,Bali,Tempo,RS Tangani Pasien Rabies,artikel,Pasien dirawat intensif setelah gejala berkembang,https://tempo.co/rabies2,Reporter R,2024-05-03T12:45:00Z
+Rabies,L,22,Kuta,katastropik,mortalitas,Kuta,Bali,CNN,Korban Jiwa Akibat Rabies,artikel,Satu korban meninggal akibat tidak mendapat penanganan tepat waktu,https://cnn.com/rabies3,Reporter S,2024-05-05T16:20:00Z

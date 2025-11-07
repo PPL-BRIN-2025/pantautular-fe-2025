@@ -19,6 +19,7 @@ const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase(
 
 const BLUE = "#0069cf";
 
+import CsvUpload from "../components/CsvUpload";
 export default function CuratorEditDeleteDataPage() {
   const { user } = useAuth();
     const router = useRouter();

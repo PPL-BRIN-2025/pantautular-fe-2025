@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, FormEvent } from "react";
-import Select, { MultiValue } from "react-select";
+import Select, { MultiValue, SingleValue } from "react-select";
 import DatePicker from "react-datepicker";
-import { FilterStateDashboard } from "../../../types";
+import type { FilterStateDashboard, ExpertBatch } from "../../../types";
 import "react-datepicker/dist/react-datepicker.css";
+import { mapApi } from "../../../services/api";
 
 interface SelectOption {
   value: string;
@@ -35,10 +36,20 @@ interface MultiSelectFormProps {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const ALL_UPLOADS_OPTION: SelectOption = { value: "", label: "All uploads" };
 
 const createSelectOptions = (items: any[], allOption = true) => {
   const baseOptions = allOption ? [{ value: "all", label: "Pilih Semua" }] : [];
   return [...baseOptions, ...items];
+};
+
+const createBatchSelectOptions = (batches: ExpertBatch[]): SelectOption[] => {
+  const batchOptions = batches.map((batch) => ({
+    value: batch.id,
+    label: batch.filename || batch.id,
+  }));
+
+  return [ALL_UPLOADS_OPTION, ...batchOptions];
 };
 
 const handleSelectChange = (
@@ -74,6 +85,7 @@ const LoadingForm = () => (
       <LoadingPlaceholder label="Jenis Penyakit" />
       <LoadingPlaceholder label="Lokasi" />
       <LoadingPlaceholder label="Sumber Berita" />
+      <LoadingPlaceholder label="CSV Upload" />
       <LoadingPlaceholder label="Tingkat Kewaspadaan" />
       <LoadingPlaceholder label="Tanggal" />
     </div>
@@ -85,13 +97,15 @@ const SelectField = ({
   options,
   value,
   onChange,
-  instanceId
+  instanceId,
+  isMulti = true,
 }: {
   label: string;
   options: SelectOptionType[];
   value: SelectOption[];
   onChange: (newValue: MultiValue<SelectOption>) => void;
   instanceId: string;
+  isMulti?: boolean;
 }) => {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -108,11 +122,53 @@ const SelectField = ({
       <label className="block text-sm font-medium">{label}</label>
       <Select
         options={options}
-        isMulti
+        isMulti={isMulti}
         value={value}
         onChange={onChange}
         className="mt-1 text-sm"
         instanceId={instanceId}
+        aria-activedescendant={undefined}
+      />
+    </div>
+  );
+};
+
+const SingleSelectField = ({
+  label,
+  options,
+  value,
+  onChange,
+  instanceId,
+  placeholder,
+}: {
+  label: string;
+  options: SelectOption[];
+  value: SelectOption | null;
+  onChange: (newValue: SingleValue<SelectOption>) => void;
+  instanceId: string;
+  placeholder?: string;
+}) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return <LoadingPlaceholder label={label} />;
+  }
+
+  return (
+    <div>
+      <label className="block text-sm font-medium">{label}</label>
+      <Select
+        options={options}
+        isClearable
+        value={value}
+        onChange={onChange}
+        className="mt-1 text-sm"
+        instanceId={instanceId}
+        placeholder={placeholder}
         aria-activedescendant={undefined}
       />
     </div>
@@ -211,6 +267,7 @@ const createFilterState = (
   selectedLevelOfAlertness: number,
   selectedStartDate: Date | null,
   selectedEndDate: Date | null,
+  selectedBatch: SelectOption | null,
   filterOptions: FilterOptions
 ): FilterStateDashboard => {
   // Separate locations into provinces and cities
@@ -237,7 +294,8 @@ const createFilterState = (
     portals: selectedNews.map((news) => news.value),
     level_of_alertness: selectedLevelOfAlertness,
     start_date: selectedStartDate,
-    end_date: selectedEndDate
+    end_date: selectedEndDate,
+    batch: selectedBatch && selectedBatch.value !== "" ? selectedBatch.value : null,
   };
 };
 
@@ -276,7 +334,9 @@ const setInitialFilterValues = (
     setLevelOfAlertness: (value: number) => void;
     setStartDate: (value: Date | null) => void;
     setEndDate: (value: Date | null) => void;
-  }
+    setBatch: (value: SelectOption | null) => void;
+  },
+  batchOptions: SelectOption[]
 ) => {
   const setInitialValues = (
     items: string[],
@@ -319,6 +379,20 @@ const setInitialFilterValues = (
   setters.setLevelOfAlertness(initialFilterState.level_of_alertness || 0);
   setters.setStartDate(initialFilterState.start_date ? new Date(initialFilterState.start_date) : null);
   setters.setEndDate(initialFilterState.end_date ? new Date(initialFilterState.end_date) : null);
+
+  if (initialFilterState.batch) {
+    const batchOption = batchOptions.find(opt => opt.value === initialFilterState.batch);
+    if (batchOption) {
+      setters.setBatch(batchOption);
+    } else {
+      setters.setBatch({
+        value: initialFilterState.batch,
+        label: initialFilterState.batch,
+      });
+    }
+  } else if (initialFilterState.batch === null) {
+    setters.setBatch(null);
+  }
 };
 
 const FilterForm = ({
@@ -343,6 +417,8 @@ const FilterForm = ({
     },
     news: [],
   });
+  const [batchOptions, setBatchOptions] = useState<SelectOption[]>([ALL_UPLOADS_OPTION]);
+  const [selectedBatch, setSelectedBatch] = useState<SelectOption | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -350,30 +426,83 @@ const FilterForm = ({
   }, []);
 
   useEffect(() => {
+    let isActive = true;
+
     async function fetchFilters() {
       setIsLoadingFilters(true);
       try {
         const responseFilters = await fetchFilterOptions(apiFilterOptions);
+        if (!isActive) {
+          return;
+        }
+
         const options = createFilterOptions(responseFilters);
         setFilterOptions(options);
-        
+
+        let batchSelectOptions = [ALL_UPLOADS_OPTION];
+
+        try {
+          const batches = await mapApi.getExpertBatches();
+          if (!isActive) {
+            return;
+          }
+
+          batchSelectOptions = createBatchSelectOptions(batches);
+        } catch (batchError) {
+          console.error("Error fetching expert batches:", batchError);
+          if (isActive) {
+            onError("Failed to load CSV uploads. Please try again.");
+          }
+        }
+
+        if (!isActive) {
+          return;
+        }
+
+        if (
+          initialFilterState?.batch &&
+          !batchSelectOptions.some((option) => option.value === initialFilterState.batch)
+        ) {
+          batchSelectOptions = [
+            ...batchSelectOptions,
+            { value: initialFilterState.batch, label: initialFilterState.batch },
+          ];
+        }
+
+        setBatchOptions(batchSelectOptions);
+
         if (initialFilterState) {
-          setInitialFilterValues(initialFilterState, options, {
-            setDiseases: setSelectedDiseases,
-            setLocations: setSelectedLocations,
-            setNews: setSelectedNews,
-            setLevelOfAlertness: setSelectedLevelOfAlertness,
-            setStartDate: setSelectedStartDate,
-            setEndDate: setSelectedEndDate,
-          });
+          setInitialFilterValues(
+            initialFilterState,
+            options,
+            {
+              setDiseases: setSelectedDiseases,
+              setLocations: setSelectedLocations,
+              setNews: setSelectedNews,
+              setLevelOfAlertness: setSelectedLevelOfAlertness,
+              setStartDate: setSelectedStartDate,
+              setEndDate: setSelectedEndDate,
+              setBatch: setSelectedBatch,
+            },
+            batchSelectOptions
+          );
         }
       } catch (error) {
-        handleError(error, onError);
+        if (isActive) {
+          handleError(error, onError);
+        }
       } finally {
-        setIsLoadingFilters(false);
+        if (isActive) {
+          setIsLoadingFilters(false);
+        }
       }
     }
+
     fetchFilters();
+
+    return () => {
+      isActive = false;
+    };
   }, [apiFilterOptions, initialFilterState, onError]);
 
   const handleDiseaseChange = (newValue: MultiValue<SelectOption>) => {
@@ -392,6 +521,20 @@ const FilterForm = ({
     handleSelectChange(newValue, selectedNews, filterOptions.news, setSelectedNews);
   };
 
+  const handleBatchChange = (newValue: SingleValue<SelectOption>) => {
+    if (!newValue) {
+      setSelectedBatch(null);
+      return;
+    }
+
+    if (newValue.value === "") {
+      setSelectedBatch(newValue);
+      return;
+    }
+
+    setSelectedBatch(newValue);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -404,6 +547,7 @@ const FilterForm = ({
         selectedLevelOfAlertness,
         selectedStartDate,
         selectedEndDate,
+        selectedBatch,
         filterOptions
       );
 
@@ -429,6 +573,7 @@ const FilterForm = ({
     setSelectedLevelOfAlertness(0);
     setSelectedStartDate(null);
     setSelectedEndDate(null);
+    setSelectedBatch(null);
   };
 
   if (!isMounted) {
@@ -477,6 +622,15 @@ const FilterForm = ({
           value={selectedNews}
           onChange={handleNewsChange}
           instanceId="news-select"
+        />
+
+        <SingleSelectField
+          label="CSV Upload"
+          options={batchOptions}
+          value={selectedBatch}
+          onChange={handleBatchChange}
+          instanceId="batch-select"
+          placeholder="All uploads"
         />
 
         <AlertLevelField

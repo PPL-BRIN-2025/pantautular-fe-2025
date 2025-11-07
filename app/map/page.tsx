@@ -20,6 +20,7 @@ const DEFAULT_FILTER_STATE: FilterState = {
   portals: [],
   start_date: null,
   end_date: null,
+  batch: null,
 };
 
 export default function MapPage() {

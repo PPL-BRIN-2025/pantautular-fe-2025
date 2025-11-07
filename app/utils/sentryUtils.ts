@@ -61,8 +61,24 @@ export function captureMessage(message: string, level: Sentry.SeverityLevel = 'i
  * Start a transaction for performance monitoring
  */
 export function startTransaction(name: string, op: string) {
-  return Sentry.startTransaction({
-    name,
-    op,
-  });
-} 
+  const sentryAny = Sentry as unknown as {
+    startTransaction?: (ctx: { name: string; op?: string }) => unknown;
+    startSpanManual?: (ctx: { name: string; attributes?: Record<string, unknown>; op?: string }) => { end: () => void };
+  };
+
+  if (typeof sentryAny.startTransaction === 'function') {
+    return sentryAny.startTransaction({ name, op });
+  }
+
+  if (typeof sentryAny.startSpanManual === 'function') {
+    // `span.op` attribute keeps compatibility with Sentry performance tooling.
+    return sentryAny.startSpanManual({
+      name,
+      attributes: { 'span.op': op },
+      op,
+    });
+  }
+
+  // Fallback if no manual span API is available.
+  return undefined;
+}
