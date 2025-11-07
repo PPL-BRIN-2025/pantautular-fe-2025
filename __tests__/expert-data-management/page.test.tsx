@@ -60,7 +60,10 @@ describe("ExpertDataManagementPage", () => {
     const firstView = await screen.findAllByRole("button", { name: /view/i });
     await user.click(firstView[0]);
 
-    expect(mockPush).toHaveBeenCalledWith("/expert-view?id=ID1");
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    const pushedUrl = mockPush.mock.calls[0][0];
+    expect(pushedUrl).toContain("/expert-data-management/view");
+    expect(pushedUrl).toContain("id=ID1");
   });
 
   test("renders fallback 'No data.' when rows are empty (via prop injection)", async () => {
@@ -79,6 +82,118 @@ describe("ExpertDataManagementPage", () => {
     render(<ExpertDataManagementPage simulateLoadError={true} />);
 
     expect(screen.getByText("Failed to load data.")).toBeInTheDocument();
+  });
+
+  test("clicking DELETE removes the row from the table", async () => {
+    const user = userEvent.setup();
+    const sampleRows = [
+      {
+        data_id: "ID_DEL_1",
+        file_name: "File1.xlsx",
+        last_edited: "2025-01-01 00:00:00",
+        submitted_by: "USERA",
+      },
+      {
+        data_id: "ID_DEL_2",
+        file_name: "File2.xlsx",
+        last_edited: "2025-01-02 00:00:00",
+        submitted_by: "USERB",
+      },
+    ];
+
+    render(<ExpertDataManagementPage initialRows={sampleRows} />);
+
+    expect(await screen.findByText("ID_DEL_1")).toBeInTheDocument();
+
+    const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+    expect(deleteButtons).toHaveLength(2);
+
+    await user.click(deleteButtons[0]);
+
+    expect(screen.queryByText("ID_DEL_1")).not.toBeInTheDocument();
+    expect(screen.getByText("ID_DEL_2")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+
+    expect(screen.queryByText("ID_DEL_2")).not.toBeInTheDocument();
+    expect(screen.getByText(/No data\./i)).toBeInTheDocument();
+  });
+
+  test("filter input narrows rows, shows clear button, and handles no matches", async () => {
+    const user = userEvent.setup();
+    render(<ExpertDataManagementPage />);
+
+    const filterInput = screen.getByRole("textbox", { name: /filter datasets/i });
+    await screen.findByText("Report_Jakarta.xlsx");
+
+    await user.type(filterInput, "id1");
+    expect(await screen.findByText("ID1")).toBeInTheDocument();
+    expect(screen.queryByText("ID2")).not.toBeInTheDocument();
+
+    const clearButton = screen.getByRole("button", { name: /clear/i });
+    expect(clearButton).toBeInTheDocument();
+    await user.click(clearButton);
+    expect(filterInput).toHaveValue("");
+    expect(await screen.findByText("ID2")).toBeInTheDocument();
+
+    await user.type(filterInput, "malaria");
+    expect(await screen.findByText("Malaria_Study.csv")).toBeInTheDocument();
+    await user.clear(filterInput);
+    expect(await screen.findByText("Survey_Bandung.csv")).toBeInTheDocument();
+
+    await user.type(filterInput, "2025-09-23");
+    expect(await screen.findByText("2025-09-23 10:58:03")).toBeInTheDocument();
+    await user.clear(filterInput);
+    expect(await screen.findByText("2025-09-27 15:33:37")).toBeInTheDocument();
+
+    await user.type(filterInput, "experta");
+    const expertaCells = await screen.findAllByText("EXPERTA");
+    expect(expertaCells.length).toBeGreaterThan(0);
+    await user.clear(filterInput);
+    const expertBCells = await screen.findAllByText("EXPERTB");
+    expect(expertBCells.length).toBeGreaterThan(0);
+
+    await user.type(filterInput, "nomatch");
+    expect(await screen.findByText(/No matching data\./i)).toBeInTheDocument();
+  });
+
+  test("filter gracefully handles rows with nullish string fields", async () => {
+    const user = userEvent.setup();
+    const nullishRows = [
+      {
+        data_id: undefined,
+        file_name: "HasFile.csv",
+        last_edited: undefined,
+        submitted_by: undefined,
+      },
+      {
+        data_id: "ID_W_LE",
+        file_name: undefined,
+        last_edited: "2025-12-01 01:00:00",
+        submitted_by: undefined,
+      },
+      {
+        data_id: "ID_W_SUB",
+        file_name: undefined,
+        last_edited: undefined,
+        submitted_by: "NULLSUB",
+      },
+    ] as any;
+
+    render(<ExpertDataManagementPage initialRows={nullishRows} />);
+
+    const filterInput = screen.getByRole("textbox", { name: /filter datasets/i });
+
+    await user.type(filterInput, "hasfile");
+    expect(await screen.findByText("HasFile.csv")).toBeInTheDocument();
+
+    await user.clear(filterInput);
+    await user.type(filterInput, "2025-12-01");
+    expect(await screen.findByText("2025-12-01 01:00:00")).toBeInTheDocument();
+
+    await user.clear(filterInput);
+    await user.type(filterInput, "nullsub");
+    expect(await screen.findByText("NULLSUB")).toBeInTheDocument();
   });
 });
 
@@ -101,8 +216,8 @@ jest.mock("next/navigation", () => ({
 }));
 
 // Mock layout components with stable testids
-jest.mock("../../../app/components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
-jest.mock("../../../app/components/Footer", () => () => <div data-testid="footer">Footer</div>);
+jest.mock("../../app/components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
+jest.mock("../../app/components/Footer", () => () => <div data-testid="footer">Footer</div>);
 
 import ExpertViewPage from "../../app/expert-data-management/view/page";
 
