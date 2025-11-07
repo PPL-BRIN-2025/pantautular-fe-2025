@@ -81,35 +81,3 @@
   border: 1px solid #e5e7eb;
   margin-right: 2rem;
 }
-
-/* Hide native range thumb for inputs that use our custom handle/dot */
-.range-no-thumb::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 0;
-  height: 0;
-  background: transparent;
-  border: none;
-}
-.range-no-thumb::-moz-range-thumb {
-  width: 0;
-  height: 0;
-  background: transparent;
-  border: none;
-}
-.range-no-thumb::-ms-thumb {
-  width: 0;
-  height: 0;
-  background: transparent;
-  border: none;
-}
-
-/* Ensure the native track doesn't draw a visible line */
-.range-no-thumb::-webkit-slider-runnable-track {
-  background: transparent;
-  border: none;
-}
-.range-no-thumb::-moz-range-track {
-  background: transparent;
-  border: none;
-}

@@ -4,6 +4,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+// import AccessDeniedNotice from "../../components/AccessDenied2";
+// note: when connected to backend uncomment
+import { useAuth } from "../../auth/hooks/useAuth";
+
+const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
 type Row = {
   data_id: string;
@@ -24,13 +30,59 @@ type ExpertViewPageProps = {
 function ExpertViewPageContent({ dataset, fileName }: ExpertViewPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
-  // Query params (all optional, but we prefer URL → prop → fallback)
+  // // RBAC guard
+  // temporarily commented out while waiting for backend integration
+  // --- access state ---
+  // const [accessState, setAccessState] = useState<AccessState>("loading");
+  // useEffect(() => {
+  //   let resolved = user;
+  //   if (!resolved && typeof window !== "undefined") {
+  //     try {
+  //       const stored = window.localStorage.getItem("user");
+  //       if (stored) resolved = JSON.parse(stored);
+  //     } catch {}
+  //   }
+  //   if (!resolved) {
+  //     setAccessState("redirect");
+  //     return;
+  //   }
+  //   const allowed = normalizeRole(resolved.role) === "EXP_USER";
+  //   setAccessState(allowed ? "granted" : "forbidden");
+  // }, [user]);
+
+  // useEffect(() => {
+  //   if (accessState !== "redirect") return;
+  //   const nextParam = encodeURIComponent("/expert-data-management");
+  //   router.replace(`/login?next=${nextParam}`);
+  // }, [accessState, router]);
+
+  // if (accessState === "loading" || accessState === "redirect") {
+  //   return (
+  //     <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
+  //       <span className="text-sm text-gray-600">Memeriksa akses…</span>
+  //     </div>
+  //   );
+  // }
+
+  // if (accessState === "forbidden") {
+  //   return (
+  //     <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
+  //       <Navbar />
+  //       <main className="flex-1">
+  //         <AccessDeniedNotice />
+  //       </main>
+  //       <Footer />
+  //     </div>
+  //   );
+  // }
+
+  // Normal page
   const fileId = searchParams.get("id") || "UNKNOWN_ID";
   const qpFileName = searchParams.get("fileName") || undefined;
   const lastEdited = searchParams.get("lastEdited") || "";
   const submittedBy = searchParams.get("submittedBy") || "";
-
   const effectiveFileName = qpFileName || fileName || fileId;
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -42,7 +94,6 @@ function ExpertViewPageContent({ dataset, fileName }: ExpertViewPageProps) {
         setRows(dataset);
         return;
       }
-      // Dummy fallback
       const dummy: Row[] = [
         { data_id: "ID1", gender: "perempuan", age: 14, city: "jakarta", status: "status a", disease_id: "ID A", location_id: "ID B", severity: "severity a" },
         { data_id: "ID2", gender: "laki-laki", age: 14, city: "jakarta", status: "status b", disease_id: "ID A", location_id: "ID B", severity: "severity b" },
@@ -61,9 +112,7 @@ function ExpertViewPageContent({ dataset, fileName }: ExpertViewPageProps) {
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
       <Navbar />
-
       <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
-        {/* Back */}
         <button
           onClick={() => router.back()}
           className="text-[#4A78E0] text-sm font-medium mb-2 hover:underline"
@@ -71,16 +120,12 @@ function ExpertViewPageContent({ dataset, fileName }: ExpertViewPageProps) {
           &lt; back
         </button>
 
-        {/* Title = file name */}
         <h1 className="text-2xl font-semibold text-gray-800 mb-1">
           {effectiveFileName}
         </h1>
 
-        {/* Meta: rows/cols, then last-edited/submitted-by */}
         <div className="text-gray-500 text-sm mb-4 space-y-0.5">
-          <p>
-            {rows.length ? `${rows.length} rows • 8 columns` : "No data available"}
-          </p>
+          <p>{rows.length ? `${rows.length} rows • 8 columns` : "No data available"}</p>
           {(lastEdited || submittedBy) && (
             <p>
               {lastEdited && <>Last edited: <span className="font-medium text-gray-600">{lastEdited}</span></>}
@@ -90,7 +135,6 @@ function ExpertViewPageContent({ dataset, fileName }: ExpertViewPageProps) {
           )}
         </div>
 
-        {/* Table */}
         {rows.length ? (
           <div className="rounded-2xl border shadow-sm bg-white overflow-x-auto">
             <table className="min-w-full text-sm sm:text-base">
@@ -132,7 +176,6 @@ function ExpertViewPageContent({ dataset, fileName }: ExpertViewPageProps) {
           <div className="text-center py-10 text-gray-500 text-sm">No data available</div>
         )}
       </main>
-
       <Footer />
     </div>
   );

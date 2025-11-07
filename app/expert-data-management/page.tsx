@@ -71,6 +71,10 @@ export default function ExpertDataManagementPage({
     router.push(url.pathname + "?" + url.searchParams.toString());
   };
 
+  const handleDelete = (id: string) => {
+    setRows((prev) => prev.filter((row) => row.data_id !== id));
+  };
+
   // FILTERED VIEW (case-insensitive contains across all columns) 
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -136,14 +140,20 @@ export default function ExpertDataManagementPage({
                 <div className="text-center py-6 text-red-500 text-sm">{error}</div>
               ) : filteredRows.length ? (
                 <ul className="divide-y divide-gray-200">
-                  {filteredRows.map((r) => (
-                    <li key={r.data_id} className="hover:bg-gray-50">
+                  {filteredRows.map((r, idx) => (
+                    <li key={r.data_id || `row-${idx}`} className="hover:bg-gray-50">
                       <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
                         <div className="px-4 py-3 break-words">{r.data_id}</div>
                         <div className="px-4 py-3">{r.file_name}</div>
                         <div className="px-4 py-3">{r.last_edited}</div>
                         <div className="px-4 py-3">{r.submitted_by}</div>
-                        <div className="px-4 py-3 flex justify-center">
+                        <div className="px-4 py-3 flex justify-center gap-2">
+                          <button
+                            onClick={() => handleDelete(r.data_id)}
+                            className="rounded-md border border-red-500 text-red-500 px-4 py-1 text-sm font-medium hover:bg-red-50 transition"
+                          >
+                            DELETE
+                          </button>
                           <button
                             onClick={() => goView(r)}
                             className="rounded-md bg-[#2E66D4] text-white px-4 py-1 text-sm font-medium hover:brightness-95 transition"
