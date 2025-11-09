@@ -99,7 +99,7 @@ export default function ExpertDataManagementPage({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by Data ID, File Name, Last Edited, or Submitted by"
+            placeholder="Saring berdasarkan ID Data, Nama Berkas, Terakhir Diedit, atau Dikumpul oleh"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
             aria-label="Filter datasets"
           />
@@ -118,11 +118,11 @@ export default function ExpertDataManagementPage({
           <table className="min-w-[980px] w-full table-fixed border-collapse">
             <thead className="bg-[#4A78E0] text-white">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold w-[12%]">Data ID</th>
-                <th className="px-4 py-3 text-left font-semibold w-[28%]">File Name</th>
-                <th className="px-4 py-3 text-left font-semibold w-[24%]">Last Edited</th>
-                <th className="px-4 py-3 text-left font-semibold w-[20%]">Submitted by</th>
-                <th className="px-4 py-3 text-center font-semibold w-[16%]">Action</th>
+                <th className="px-4 py-3 text-left font-semibold w-[12%]">ID Data</th>
+                <th className="px-4 py-3 text-left font-semibold w-[28%]">Nama Berkas</th>
+                <th className="px-4 py-3 text-left font-semibold w-[24%]">Terakhir Diedit</th>
+                <th className="px-4 py-3 text-left font-semibold w-[20%]">Dikumpul oleh</th>
+                <th className="px-4 py-3 text-center font-semibold w-[16%]">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
