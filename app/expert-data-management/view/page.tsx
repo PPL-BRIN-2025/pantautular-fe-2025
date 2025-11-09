@@ -17,7 +17,6 @@ type Row = {
   location_name?: string;
   location_province?: string;
   severity: string;
-  // NEWS (from BE or payload fallback)
   news_portal?: string;
   news_title?: string;
   news_type?: string;
@@ -68,153 +67,162 @@ function ViewContent() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F3F7FB]">
+    <div className="flex flex-col min-h-screen bg-[#F3F7FB]">
       <Navbar />
-      <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
-        <button
-          onClick={() => router.back()}
-          className="text-[#4A78E0] text-sm font-medium mb-2 hover:underline"
-        >
-          &lt; back
-        </button>
 
-        <h1 className="text-2xl font-semibold text-gray-800 mb-1">{fileName}</h1>
+      <main className="flex-grow w-full py-6 sm:py-8 px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="max-w-screen-xl mx-auto">
+          <button
+            onClick={() => router.back()}
+            className="text-[#4A78E0] text-sm font-medium mb-2 hover:underline"
+          >
+            &lt; back
+          </button>
 
-        <div className="text-gray-500 text-sm mb-4 space-x-2">
-          {lastEdited && (
-            <span>
-              Last edited: <span className="font-medium text-gray-600">{lastEdited}</span>
-            </span>
-          )}
-          {submittedBy && (
-            <span>
-              • Submitted by: <span className="font-medium text-gray-600">{submittedBy}</span>
-            </span>
+          <h1 className="text-2xl font-semibold text-gray-800 mb-1">{fileName}</h1>
+
+          <div className="text-gray-500 text-sm mb-4 space-x-2">
+            {lastEdited && (
+              <span>
+                Last edited: <span className="font-medium text-gray-600">{lastEdited}</span>
+              </span>
+            )}
+            {submittedBy && (
+              <span>
+                • Submitted by: <span className="font-medium text-gray-600">{submittedBy}</span>
+              </span>
+            )}
+          </div>
+
+          {error ? (
+            <div className="text-red-500 text-center py-10">{error}</div>
+          ) : rows.length ? (
+            <div className="w-full bg-[#F3F7FB] overflow-x-auto mb-20">
+              {/* Wrapper ensures background stays consistent */}
+              <div className="inline-block min-w-full">
+                <div className="rounded-2xl border shadow-sm bg-white overflow-hidden">
+                  <table className="min-w-[1200px] w-full text-sm sm:text-base">
+                    <thead className="bg-[#4A78E0] text-white">
+                      <tr>
+                        {[
+                          "ID Data",
+                          "Jenis Kelamin",
+                          "Usia",
+                          "Kota",
+                          "Provinsi",
+                          "Status",
+                          "Penyakit",
+                          "Sumber Berita",
+                          "Judul Berita",
+                          "Jenis Berita",
+                          "Ringkasan",
+                          "URL",
+                          "Penulis",
+                          "Tanggal Terbit",
+                          "Tingkat Keparahan",
+                        ].map(th)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r, i) => {
+                        const disease =
+                          r.disease_name ??
+                          (typeof r.payload?.disease === "string"
+                            ? r.payload?.disease
+                            : r.payload?.disease?.name) ??
+                          r.disease_id;
+
+                        const province =
+                          r.location_province ??
+                          r.payload?.location?.province ??
+                          "";
+
+                        const news_portal =
+                          r.news_portal ??
+                          r.payload?.news?.portal ??
+                          r.payload?.news_portal ??
+                          "-";
+
+                        const news_title =
+                          r.news_title ??
+                          r.payload?.news?.title ??
+                          r.payload?.news_title ??
+                          "-";
+
+                        const news_type =
+                          r.news_type ??
+                          r.payload?.news?.type ??
+                          r.payload?.news_type ??
+                          "-";
+
+                        const news_content =
+                          r.news_content ??
+                          r.payload?.news?.content ??
+                          r.payload?.news_content ??
+                          "-";
+
+                        const news_url =
+                          r.news_url ??
+                          r.payload?.news?.url ??
+                          r.payload?.news_url ??
+                          "-";
+
+                        const news_author =
+                          r.news_author ??
+                          r.payload?.news?.author ??
+                          r.payload?.news_author ??
+                          "-";
+
+                        const news_date =
+                          r.news_date_published ??
+                          r.payload?.news?.date_published ??
+                          r.payload?.news_date_published ??
+                          "-";
+
+                        return (
+                          <tr key={i} className="border-t border-gray-200 align-top">
+                            <td className="px-4 py-3">{r.data_id}</td>
+                            <td className="px-4 py-3">{r.gender}</td>
+                            <td className="px-4 py-3">{r.age}</td>
+                            <td className="px-4 py-3">{r.city}</td>
+                            <td className="px-4 py-3">{province}</td>
+                            <td className="px-4 py-3">{r.status}</td>
+                            <td className="px-4 py-3">{disease}</td>
+                            <td className="px-4 py-3">{news_portal}</td>
+                            <td className="px-4 py-3">{news_title}</td>
+                            <td className="px-4 py-3">{news_type}</td>
+                            <td className="px-4 py-3">{news_content}</td>
+                            <td className="px-4 py-3">
+                              {news_url !== "-" ? (
+                                <a
+                                  href={news_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[#2E66D4] underline"
+                                >
+                                  {news_url}
+                                </a>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td className="px-4 py-3">{news_author}</td>
+                            <td className="px-4 py-3 whitespace-nowrap">{news_date}</td>
+                            <td className="px-4 py-3">{r.severity}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-10 text-gray-500 text-sm">No data available</div>
           )}
         </div>
-
-        {error ? (
-          <div className="text-red-500 text-center py-10">{error}</div>
-        ) : rows.length ? (
-          <div className="rounded-2xl border shadow-sm bg-white overflow-x-auto">
-            <table className="min-w-[1200px] w-full text-sm sm:text-base">
-              <thead className="bg-[#4A78E0] text-white">
-                <tr>
-                  {[
-                    "ID Data",
-                    "Jenis Kelamin",
-                    "Usia",
-                    "Kota",
-                    "Provinsi",
-                    "Status",
-                    "Penyakit",
-                    "Sumber Berita",
-                    "Judul Berita",
-                    "Jenis Berita",
-                    "Ringkasan",
-                    "URL",
-                    "Penulis",
-                    "Tanggal Terbit",
-                    "Tingkat Keparahan",
-                  ].map(th)}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => {
-                  // disease/location fallback ke payload bila perlu
-                  const disease =
-                    r.disease_name ??
-                    (typeof r.payload?.disease === "string"
-                      ? r.payload?.disease
-                      : r.payload?.disease?.name) ??
-                    r.disease_id;
-
-                  const province =
-                    r.location_province ??
-                    r.payload?.location?.province ??
-                    "";
-
-                  // news fallback dari payload kalau BE tidak mengirim
-                  const news_portal =
-                    r.news_portal ??
-                    r.payload?.news?.portal ??
-                    r.payload?.news_portal ??
-                    "-";
-
-                  const news_title =
-                    r.news_title ??
-                    r.payload?.news?.title ??
-                    r.payload?.news_title ??
-                    "-";
-
-                  const news_type =
-                    r.news_type ??
-                    r.payload?.news?.type ??
-                    r.payload?.news_type ??
-                    "-";
-
-                  const news_content =
-                    r.news_content ??
-                    r.payload?.news?.content ??
-                    r.payload?.news_content ??
-                    "-";
-
-                  const news_url =
-                    r.news_url ??
-                    r.payload?.news?.url ??
-                    r.payload?.news_url ??
-                    "-";
-
-                  const news_author =
-                    r.news_author ??
-                    r.payload?.news?.author ??
-                    r.payload?.news_author ??
-                    "-";
-
-                  const news_date =
-                    r.news_date_published ??
-                    r.payload?.news?.date_published ??
-                    r.payload?.news_date_published ??
-                    "-";
-
-                  return (
-                    <tr key={i} className="border-t border-gray-200 align-top">
-                      <td className="px-4 py-3">{r.data_id}</td>
-                      <td className="px-4 py-3">{r.gender}</td>
-                      <td className="px-4 py-3">{r.age}</td>
-                      <td className="px-4 py-3">{r.city}</td>
-                      <td className="px-4 py-3">{province}</td>
-                      <td className="px-4 py-3">{r.status}</td>
-                      <td className="px-4 py-3">{disease}</td>
-                      <td className="px-4 py-3">{news_portal}</td>
-                      <td className="px-4 py-3">{news_title}</td>
-                      <td className="px-4 py-3">{news_type}</td>
-                      <td className="px-4 py-3">{news_content}</td>
-                      <td className="px-4 py-3">
-                        {news_url !== "-" ? (
-                          <a
-                            href={news_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[#2E66D4] underline"
-                          >
-                            {news_url}
-                          </a>
-                        ) : "-"}
-                      </td>
-                      <td className="px-4 py-3">{news_author}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{news_date}</td>
-                      <td className="px-4 py-3">{r.severity}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-10 text-gray-500 text-sm">No data available</div>
-        )}
       </main>
+
       <Footer />
     </div>
   );
