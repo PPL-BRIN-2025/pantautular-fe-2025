@@ -92,12 +92,6 @@ function ViewContent() {
     })();
   }, [API_URL, API_KEY, dataId, accessState]);
 
-  const th = (label: string) => (
-    <th key={label} className="px-4 py-3 font-semibold text-left">
-      {label}
-    </th>
-  );
-
   if (accessState === "loading" || accessState === "redirect") {
     return (
       <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
@@ -150,31 +144,35 @@ function ViewContent() {
             <div className="text-red-500 text-center py-10">{error}</div>
           ) : rows.length ? (
             <div className="w-full bg-[#F3F7FB] overflow-x-auto mb-20">
-              {/* Wrapper ensures background stays consistent */}
               <div className="inline-block min-w-full">
                 <div className="rounded-2xl border shadow-sm bg-white overflow-hidden">
-                  <table className="min-w-[1200px] w-full text-sm sm:text-base">
+                  <table className="min-w-[1400px] w-full text-sm sm:text-base">
                     <thead className="bg-[#4A78E0] text-white">
                       <tr>
-                        {[
-                          "ID Data",
-                          "Jenis Kelamin",
-                          "Usia",
-                          "Kota",
-                          "Provinsi",
-                          "Status",
-                          "Penyakit",
-                          "Sumber Berita",
-                          "Judul Berita",
-                          "Jenis Berita",
-                          "Ringkasan",
-                          "URL",
-                          "Penulis",
-                          "Tanggal Terbit",
-                          "Tingkat Keparahan",
-                        ].map(th)}
+                        <th className="px-4 py-3 font-semibold text-left">ID Data</th>
+                        <th className="px-4 py-3 font-semibold text-left">Jenis Kelamin</th>
+                        <th className="px-4 py-3 font-semibold text-left">Usia</th>
+                        <th className="px-4 py-3 font-semibold text-left">Kota</th>
+                        <th className="px-4 py-3 font-semibold text-left">Provinsi</th>
+                        <th className="px-4 py-3 font-semibold text-left">Status</th>
+                        <th className="px-4 py-3 font-semibold text-left">Penyakit</th>
+                        <th className="px-4 py-3 font-semibold text-left">Sumber Berita</th>
+                        <th className="px-4 py-3 font-semibold text-left min-w-[250px]">
+                          Judul Berita
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-left">Jenis Berita</th>
+                        <th className="px-4 py-3 font-semibold text-left min-w-[400px]">
+                          Ringkasan
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-left">URL</th>
+                        <th className="px-4 py-3 font-semibold text-left min-w-[200px]">Penulis</th>
+                        <th className="px-4 py-3 font-semibold text-left whitespace-nowrap">
+                          Tanggal Terbit
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-left">Tingkat Keparahan</th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {rows.map((r, i) => {
                         const disease =
@@ -241,16 +239,20 @@ function ViewContent() {
                             <td className="px-4 py-3">{r.status}</td>
                             <td className="px-4 py-3">{disease}</td>
                             <td className="px-4 py-3">{news_portal}</td>
-                            <td className="px-4 py-3">{news_title}</td>
+                            <td className="px-4 py-3 min-w-[250px] max-w-[300px] whitespace-normal break-words">
+                              {news_title}
+                            </td>
                             <td className="px-4 py-3">{news_type}</td>
-                            <td className="px-4 py-3">{news_content}</td>
+                            <td className="px-4 py-3 min-w-[400px] max-w-[450px] whitespace-normal break-words">
+                              {news_content}
+                            </td>
                             <td className="px-4 py-3">
                               {news_url !== "-" ? (
                                 <a
                                   href={news_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-[#2E66D4] underline"
+                                  className="text-[#2E66D4] underline break-words"
                                 >
                                   {news_url}
                                 </a>
@@ -258,7 +260,7 @@ function ViewContent() {
                                 "-"
                               )}
                             </td>
-                            <td className="px-4 py-3">{news_author}</td>
+                            <td className="px-4 py-3 min-w-[200px] max-w-[250px] whitespace-normal break-words">{news_author}</td>
                             <td className="px-4 py-3 whitespace-nowrap">{news_date}</td>
                             <td className="px-4 py-3">{r.severity}</td>
                           </tr>
