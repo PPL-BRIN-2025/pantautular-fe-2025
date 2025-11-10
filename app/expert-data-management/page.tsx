@@ -74,31 +74,66 @@ export default function ExpertDataManagementPage() {
     router.push(url.pathname + "?" + url.searchParams.toString());
   };
 
-  const handleDelete = async (batchId: string) => {
-    if (!batchId) return;
-    if (!confirm("Yakin hapus batch ini beserta datanya?")) return;
 
-    setDeletingId(batchId);
-    try {
-      const res = await fetch(`${API_URL}/expert-feature/experts/batches/${batchId}/delete/`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
+  function getTokenForDelete(): string | null {
+  if (typeof window === "undefined") return null;
 
-      if ([200, 202, 204].includes(res.status)) {
-        setRows((prev) => prev.filter((r) => r.data_id !== batchId));
-      } else {
-        const text = await res.text().catch(() => "");
-        console.error("delete failed:", res.status, text);
-        alert(`Failed to delete batch (status ${res.status}).`);
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Delete failed (network).");
-    } finally {
-      setDeletingId(null);
+  // 1) Your original flow:
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.access_token) return String(parsed.access_token);
+      if (parsed?.token) return String(parsed.token);
     }
-  };
+  } catch {}
+
+  // 2) New fallback keys:
+  const keys = ["access_token", "token", "accessToken", "jwt"];
+  for (const k of keys) {
+    const v = localStorage.getItem(k);
+    if (v) return v;
+  }
+
+  // 3) Cookie fallback:
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
+  } catch {}
+
+  return null;
+}
+
+
+  const handleDelete = async (batchId: string) => {
+  if (!batchId) return;
+  if (!confirm("Yakin hapus batch ini beserta datanya?")) return;
+
+  setDeletingId(batchId);
+  try {
+    const res = await fetch(`${API_URL}/expert-feature/experts/batches/${batchId}/delete/`, {
+      method: "DELETE",
+      headers: {
+        "X-API-KEY": API_KEY,
+        "Authorization": `Bearer ${getTokenForDelete()}`,
+      },
+    });
+
+    if ([200, 202, 204].includes(res.status)) {
+      setRows((prev) => prev.filter((r) => r.data_id !== batchId));
+    } else {
+      const text = await res.text().catch(() => "");
+      console.error("delete failed:", res.status, text);
+      alert(`Failed to delete batch (status ${res.status}).`);
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Delete failed (network).");
+  } finally {
+    setDeletingId(null);
+  }
+};
+
 
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
