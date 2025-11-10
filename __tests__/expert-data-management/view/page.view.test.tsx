@@ -61,15 +61,14 @@ describe("ExpertViewPage – API fetching behavior", () => {
 
     render(<ExpertViewPage />);
 
-    // Suspense fallback visible first
     expect(screen.getByText(/Loading data/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText("Dataset A")).toBeInTheDocument();
       expect(screen.getByText("Jakarta")).toBeInTheDocument();
       expect(screen.getByText("Laki-laki")).toBeInTheDocument();
-      expect(screen.getByTestId("navbar")).toBeInTheDocument();
-      expect(screen.getByTestId("footer")).toBeInTheDocument();
+      expect(screen.getByText(/Last edited/)).toBeInTheDocument();
+      expect(screen.getByText(/Submitted by/)).toBeInTheDocument();
     });
   });
 
@@ -88,7 +87,6 @@ describe("ExpertViewPage – API fetching behavior", () => {
     });
 
     render(<ExpertViewPage />);
-
     await waitFor(() =>
       expect(screen.getByText("No data available")).toBeInTheDocument()
     );
@@ -109,7 +107,6 @@ describe("ExpertViewPage – API fetching behavior", () => {
     });
 
     render(<ExpertViewPage />);
-
     await waitFor(() =>
       expect(screen.getByText("Gagal memuat data baris.")).toBeInTheDocument()
     );
@@ -129,14 +126,61 @@ describe("ExpertViewPage – API fetching behavior", () => {
     });
 
     render(<ExpertViewPage />);
-
     await waitFor(() =>
       expect(screen.getByText("Gagal memuat data baris.")).toBeInTheDocument()
     );
   });
 
+  // --- PAYLOAD FALLBACKS ---
+  test("renders fallback data from payload when top-level fields are missing", async () => {
+    mockParams({
+      id: "456",
+      fileName: "Payload Fallbacks",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            data_id: "2",
+            gender: "Perempuan",
+            age: 30,
+            city: "Surabaya",
+            status: "Sembuh",
+            payload: {
+              disease: { name: "Flu" },
+              location: { province: "Jawa Timur" },
+              news: {
+                portal: "Portal Sehat",
+                title: "Kasus Flu Menurun",
+                type: "Kesehatan",
+                content: "Artikel singkat",
+                url: "http://example.com",
+                author: "Reporter X",
+                date_published: "2025-01-01",
+              },
+            },
+            severity: "Sedang",
+          },
+        ],
+      }),
+    });
+
+    render(<ExpertViewPage />);
+    await waitFor(() => {
+      expect(screen.getByText("Flu")).toBeInTheDocument();
+      expect(screen.getByText("Jawa Timur")).toBeInTheDocument();
+      expect(screen.getByText("Portal Sehat")).toBeInTheDocument();
+      expect(screen.getByText("Kasus Flu Menurun")).toBeInTheDocument();
+      expect(screen.getByText("Reporter X")).toBeInTheDocument();
+    });
+  });
+
   // --- MISSING dataId ---
-  test("renders nothing when no dataId is present", async () => {
+  test("renders static layout but skips fetching when no dataId present", async () => {
     mockParams({
       id: "",
       fileName: "Missing ID Dataset",
@@ -145,11 +189,9 @@ describe("ExpertViewPage – API fetching behavior", () => {
     });
 
     render(<ExpertViewPage />);
-
-    // Should render Navbar + Footer but not data rows
     expect(screen.getByTestId("navbar")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();
-    expect(screen.queryByText("No data available")).not.toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   // --- BACK BUTTON ---
@@ -167,7 +209,6 @@ describe("ExpertViewPage – API fetching behavior", () => {
     });
 
     render(<ExpertViewPage />);
-
     await waitFor(() => screen.getByText("< back"));
     fireEvent.click(screen.getByText("< back"));
     expect(mockBack).toHaveBeenCalled();
