@@ -21,7 +21,7 @@ jest.mock('../../services/api', () => ({
   registryApi: {},
 }));
 
-import CuratorAddDataPage from '../../app/curator-add-data/page';
+import CuratorAddDataPage from '../../app/expert-bulk-upload/page';
 
 describe('CSV upload (add page)', () => {
   afterEach(() => {
@@ -37,7 +37,7 @@ describe('CSV upload (add page)', () => {
     mockUseAuth.mockReturnValue({ user: { role: 'CURATOR' } });
     render(<CuratorAddDataPage />);
     // wait for UI to render
-    expect(await screen.findByText(/Unggah CSV \(Diblokir\)/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Akses Kurator Ditolak/i)).toBeInTheDocument();
   });
 
   test('EXP_USER can select and upload CSV (fetch called, filename shown)', async () => {
