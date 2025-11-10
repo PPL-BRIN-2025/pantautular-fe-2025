@@ -213,4 +213,87 @@ describe("ExpertViewPage – API fetching behavior", () => {
     fireEvent.click(screen.getByText("< back"));
     expect(mockBack).toHaveBeenCalled();
   });
+
+  // --- DATA SHAPE FALLBACK ---
+  test("handles API responses that use 'data' instead of 'results'", async () => {
+    mockParams({
+      id: "alt-shape",
+      fileName: "Alt Shape Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            data_id: "ALT1",
+            gender: "Laki-laki",
+            age: 40,
+            city: "Bekasi",
+            status: "Aktif",
+            disease_id: "D999",
+            severity: "Berat",
+          },
+        ],
+      }),
+    });
+
+    render(<ExpertViewPage />);
+    await waitFor(() => {
+      expect(screen.getByText("Bekasi")).toBeInTheDocument();
+      expect(screen.getByText("ALT1")).toBeInTheDocument();
+    });
+  });
+
+  // --- MIXED PAYLOAD FALLBACKS ---
+  test("renders correctly when payload uses flat string keys instead of nested objects", async () => {
+    mockParams({
+      id: "789",
+      fileName: "Flat Payload Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            data_id: "9",
+            gender: "Laki-laki",
+            age: 27,
+            city: "Depok",
+            status: "Aktif",
+            disease_id: "D009",
+            payload: {
+              disease: "Rabies",
+              news_portal: "CNN",
+              news_title: "Rabies Case",
+              news_type: "Health",
+              news_content: "Satu korban akibat rabies",
+              news_url: "https://cnn.com/rabies3",
+              news_author: "Reporter S",
+              news_date_published: "2024-08-02",
+              location: { province: "Jawa Barat" },
+            },
+            severity: "Hospitalisasi",
+          },
+        ],
+      }),
+    });
+
+    render(<ExpertViewPage />);
+    await waitFor(() => {
+      expect(screen.getByText("Rabies")).toBeInTheDocument();
+      expect(screen.getByText("CNN")).toBeInTheDocument();
+      expect(screen.getByText("Rabies Case")).toBeInTheDocument();
+      expect(screen.getByText("Reporter S")).toBeInTheDocument();
+      expect(screen.getByText("Hospitalisasi")).toBeInTheDocument();
+
+      const link = screen.getByRole("link", { name: /https:\/\/cnn.com\/rabies3/i });
+      expect(link).toHaveAttribute("href", "https://cnn.com/rabies3");
+    });
+  });
 });
