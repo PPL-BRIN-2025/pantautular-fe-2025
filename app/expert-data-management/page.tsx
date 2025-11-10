@@ -12,53 +12,59 @@ type Row = {
   submitted_by: string;
 };
 
-export default function ExpertDataManagementPage({
-  initialRows,
-  initialError,
-  simulateLoadError,
-}: {
-  initialRows?: Row[];
-  initialError?: string | null;
-  simulateLoadError?: boolean;
-}) {
-  const router = useRouter();
+function getToken(): string | null {
+  try {
+    // prefer a user blob saved by your auth flow
+    const raw = window.localStorage.getItem("user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.access_token) return String(parsed.access_token);
+      if (parsed?.token) return String(parsed.token);
+    }
+    // fallback to a simple token key if you stored it directly
+    const t = window.localStorage.getItem("access_token") || window.localStorage.getItem("token");
+    return t || null;
+  } catch {
+    return null;
+  }
+}
 
+export default function ExpertDataManagementPage() {
+  const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  // --- FILTER STATE ---
   const [query, setQuery] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
+
+  const authHeaders = () => {
+    const token = getToken();
+    const h: Record<string, string> = { "X-API-KEY": API_KEY };
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+  };
 
   useEffect(() => {
-    try {
-      if (simulateLoadError) throw new Error("simulate load error");
-      if (initialError) {
-        setError(initialError);
-        return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/expert-feature/api/expert/datasets/?sort=last_edited:desc&page=1&pageSize=50`,
+          { headers: authHeaders() }
+        );
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const json = await res.json();
+        // DRF paginator -> {count, results: [...]}
+        setRows(Array.isArray(json.results) ? json.results : []);
+      } catch (err: any) {
+        console.error("fetch error:", err);
+        setError("Failed to load datasets.");
       }
-      if (Array.isArray(initialRows)) {
-        setRows(initialRows);
-        return;
-      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_URL, API_KEY]);
 
-      const data: Row[] = [
-        { data_id: "ID1", file_name: "Report_Jakarta.xlsx", last_edited: "2025-09-01 09:23:45", submitted_by: "EXPERTA" },
-        { data_id: "ID2", file_name: "Survey_Bandung.csv", last_edited: "2025-09-05 11:12:30", submitted_by: "EXPERTB" },
-        { data_id: "ID3", file_name: "Dataset_Sulsel.xls", last_edited: "2025-09-07 14:45:21", submitted_by: "EXPERTC" },
-        { data_id: "ID4", file_name: "Health_Data_Sumatera.xlsx", last_edited: "2025-09-10 16:02:10", submitted_by: "EXPERTD" },
-        { data_id: "ID5", file_name: "Malaria_Study.csv", last_edited: "2025-09-14 08:30:42", submitted_by: "EXPERTE" },
-        { data_id: "ID6", file_name: "Vaccine_Report.xls", last_edited: "2025-09-18 12:17:55", submitted_by: "EXPERTA" },
-        { data_id: "ID7", file_name: "COVID_Tracking.xlsx", last_edited: "2025-09-20 09:40:12", submitted_by: "EXPERTB" },
-        { data_id: "ID8", file_name: "Tuberculosis_Study.csv", last_edited: "2025-09-23 10:58:03", submitted_by: "EXPERTC" },
-        { data_id: "ID9", file_name: "Public_Health_Analysis.xlsx", last_edited: "2025-09-27 15:33:37", submitted_by: "EXPERTD" },
-      ];
-      setRows(data);
-    } catch {
-      setError("Failed to load data.");
-    }
-  }, [initialRows, initialError, simulateLoadError]);
-
-  // Navigate and pass row info in the URL 
   const goView = (row: Row) => {
     const url = new URL(window.location.origin + "/expert-data-management/view");
     url.searchParams.set("id", row.data_id);
@@ -68,21 +74,73 @@ export default function ExpertDataManagementPage({
     router.push(url.pathname + "?" + url.searchParams.toString());
   };
 
-  const handleDelete = (id: string) => {
-    setRows((prev) => prev.filter((row) => row.data_id !== id));
-  };
 
-  // FILTERED VIEW (case-insensitive contains across all columns) 
+  function getTokenForDelete(): string | null {
+  if (typeof window === "undefined") return null;
+
+  // 1) Your original flow:
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.access_token) return String(parsed.access_token);
+      if (parsed?.token) return String(parsed.token);
+    }
+  } catch {}
+
+  // 2) New fallback keys:
+  const keys = ["access_token", "token", "accessToken", "jwt"];
+  for (const k of keys) {
+    const v = localStorage.getItem(k);
+    if (v) return v;
+  }
+
+  // 3) Cookie fallback:
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
+  } catch {}
+
+  return null;
+}
+
+
+  const handleDelete = async (batchId: string) => {
+  if (!batchId) return;
+  if (!confirm("Yakin hapus batch ini beserta datanya?")) return;
+
+  setDeletingId(batchId);
+  try {
+    const res = await fetch(`${API_URL}/expert-feature/experts/batches/${batchId}/delete/`, {
+      method: "DELETE",
+      headers: {
+        "X-API-KEY": API_KEY,
+        "Authorization": `Bearer ${getTokenForDelete()}`,
+      },
+    });
+
+    if ([200, 202, 204].includes(res.status)) {
+      setRows((prev) => prev.filter((r) => r.data_id !== batchId));
+    } else {
+      const text = await res.text().catch(() => "");
+      console.error("delete failed:", res.status, text);
+      alert(`Failed to delete batch (status ${res.status}).`);
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Delete failed (network).");
+  } finally {
+    setDeletingId(null);
+  }
+};
+
+
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
-    return rows.filter((r) => {
-      const id = r.data_id?.toLowerCase() ?? "";
-      const fn = r.file_name?.toLowerCase() ?? "";
-      const le = r.last_edited?.toLowerCase() ?? "";
-      const sb = r.submitted_by?.toLowerCase() ?? "";
-      return id.includes(q) || fn.includes(q) || le.includes(q) || sb.includes(q);
-    });
+    return rows.filter((r) =>
+      [r.data_id, r.file_name, r.last_edited, r.submitted_by].join(" ").toLowerCase().includes(q)
+    );
   }, [rows, query]);
 
   return (
@@ -99,9 +157,8 @@ export default function ExpertDataManagementPage({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Saring berdasarkan ID Data, Nama Berkas, Terakhir Diedit, atau Dikumpul oleh"
+            placeholder="Cari berdasarkan ID Data, Nama Berkas, Terakhir Diedit, atau Pengunggah"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
-            aria-label="Filter datasets"
           />
           {query && (
             <button
@@ -133,30 +190,39 @@ export default function ExpertDataManagementPage({
                   </td>
                 </tr>
               ) : filteredRows.length ? (
-                filteredRows.map((r, idx) => (
-                  <tr key={r.data_id || `row-${idx}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 break-words">{r.data_id}</td>
-                    <td className="px-4 py-3 break-words">{r.file_name}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{r.last_edited}</td>
-                    <td className="px-4 py-3">{r.submitted_by}</td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => handleDelete(r.data_id)}
-                          className="rounded-md border border-red-500 text-red-500 px-4 py-1 text-sm font-medium hover:bg-red-50 transition"
-                        >
-                          DELETE
-                        </button>
-                        <button
-                          onClick={() => goView(r)}
-                          className="rounded-md bg-[#2E66D4] text-white px-4 py-1 text-sm font-medium hover:brightness-95 transition"
-                        >
-                          VIEW
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filteredRows.map((r) => {
+                  const isDel = deletingId === r.data_id;
+                  return (
+                    <tr key={r.data_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">{r.data_id}</td>
+                      <td className="px-4 py-3">{r.file_name}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{r.last_edited}</td>
+                      <td className="px-4 py-3">{r.submitted_by}</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => handleDelete(r.data_id)}
+                            disabled={isDel}
+                            className={`rounded-md border px-4 py-1 text-sm transition ${
+                              isDel
+                                ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                                : "border-red-500 text-red-500 hover:bg-red-50"
+                            }`}
+                            aria-busy={isDel}
+                          >
+                            {isDel ? "DELETING…" : "DELETE"}
+                          </button>
+                          <button
+                            onClick={() => goView(r)}
+                            className="rounded-md bg-[#2E66D4] text-white px-4 py-1 text-sm hover:brightness-95"
+                          >
+                            VIEW
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={5} className="text-center py-6 text-gray-500 text-sm">
@@ -168,10 +234,7 @@ export default function ExpertDataManagementPage({
           </table>
         </div>
       </main>
-
-      <div className="mt-10">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 }
