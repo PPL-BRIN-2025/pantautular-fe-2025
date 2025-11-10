@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import AccessDeniedNotice from "../components/AccessDenied2";
+import { useAuth } from "../auth/hooks/useAuth";
+
+const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
 type Row = {
   data_id: string;
@@ -31,6 +36,33 @@ function getToken(): string | null {
 
 export default function ExpertDataManagementPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
+  useEffect(() => {
+    let resolved = user;
+    if (!resolved && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) resolved = JSON.parse(stored);
+      } catch {
+        // ignore JSON issues
+      }
+    }
+    if (!resolved) {
+      setAccessState("redirect");
+      return;
+    }
+    const allowed = normalizeRole(resolved.role) === "EXP_USER";
+    setAccessState(allowed ? "granted" : "forbidden");
+  }, [user]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+    const nextParam = encodeURIComponent("/expert-data-management");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
+
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -47,6 +79,7 @@ export default function ExpertDataManagementPage() {
   };
 
   useEffect(() => {
+    if (accessState !== "granted") return;
     (async () => {
       try {
         const res = await fetch(
@@ -63,7 +96,7 @@ export default function ExpertDataManagementPage() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [API_URL, API_KEY]);
+  }, [API_URL, API_KEY, accessState]);
 
   const goView = (row: Row) => {
     const url = new URL(window.location.origin + "/expert-data-management/view");
@@ -142,6 +175,26 @@ export default function ExpertDataManagementPage() {
       [r.data_id, r.file_name, r.last_edited, r.submitted_by].join(" ").toLowerCase().includes(q)
     );
   }, [rows, query]);
+
+  if (accessState === "loading" || accessState === "redirect") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
+        <span className="text-sm text-gray-600">Memeriksa akses…</span>
+      </div>
+    );
+  }
+
+  if (accessState === "forbidden") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <AccessDeniedNotice />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">

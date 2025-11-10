@@ -4,6 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import AccessDeniedNotice from "../../components/AccessDenied2";
+import { useAuth } from "../../auth/hooks/useAuth";
+
+const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
 type Row = {
   data_id: string;
@@ -30,6 +35,32 @@ type Row = {
 function ViewContent() {
   const router = useRouter();
   const sp = useSearchParams();
+  const { user } = useAuth();
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
+  useEffect(() => {
+    let resolved = user;
+    if (!resolved && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) resolved = JSON.parse(stored);
+      } catch {
+        // ignore parse errors
+      }
+    }
+    if (!resolved) {
+      setAccessState("redirect");
+      return;
+    }
+    const allowed = normalizeRole(resolved.role) === "EXP_USER";
+    setAccessState(allowed ? "granted" : "forbidden");
+  }, [user]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+    const nextParam = encodeURIComponent("/expert-data-management");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
@@ -43,6 +74,7 @@ function ViewContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (accessState !== "granted") return;
     if (!dataId) return;
     (async () => {
       try {
@@ -58,13 +90,27 @@ function ViewContent() {
         setError("Gagal memuat data baris.");
       }
     })();
-  }, [API_URL, API_KEY, dataId]);
+  }, [API_URL, API_KEY, dataId, accessState]);
 
-  const th = (label: string) => (
-    <th key={label} className="px-4 py-3 font-semibold text-left">
-      {label}
-    </th>
-  );
+  if (accessState === "loading" || accessState === "redirect") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
+        <span className="text-sm text-gray-600">Memeriksa akses…</span>
+      </div>
+    );
+  }
+
+  if (accessState === "forbidden") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <AccessDeniedNotice />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F7FB]">
@@ -98,31 +144,35 @@ function ViewContent() {
             <div className="text-red-500 text-center py-10">{error}</div>
           ) : rows.length ? (
             <div className="w-full bg-[#F3F7FB] overflow-x-auto mb-20">
-              {/* Wrapper ensures background stays consistent */}
               <div className="inline-block min-w-full">
                 <div className="rounded-2xl border shadow-sm bg-white overflow-hidden">
-                  <table className="min-w-[1200px] w-full text-sm sm:text-base">
+                  <table className="min-w-[1400px] w-full text-sm sm:text-base">
                     <thead className="bg-[#4A78E0] text-white">
                       <tr>
-                        {[
-                          "ID Data",
-                          "Jenis Kelamin",
-                          "Usia",
-                          "Kota",
-                          "Provinsi",
-                          "Status",
-                          "Penyakit",
-                          "Sumber Berita",
-                          "Judul Berita",
-                          "Jenis Berita",
-                          "Ringkasan",
-                          "URL",
-                          "Penulis",
-                          "Tanggal Terbit",
-                          "Tingkat Keparahan",
-                        ].map(th)}
+                        <th className="px-4 py-3 font-semibold text-left">ID Data</th>
+                        <th className="px-4 py-3 font-semibold text-left">Jenis Kelamin</th>
+                        <th className="px-4 py-3 font-semibold text-left">Usia</th>
+                        <th className="px-4 py-3 font-semibold text-left">Kota</th>
+                        <th className="px-4 py-3 font-semibold text-left">Provinsi</th>
+                        <th className="px-4 py-3 font-semibold text-left">Status</th>
+                        <th className="px-4 py-3 font-semibold text-left">Penyakit</th>
+                        <th className="px-4 py-3 font-semibold text-left">Sumber Berita</th>
+                        <th className="px-4 py-3 font-semibold text-left min-w-[250px]">
+                          Judul Berita
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-left">Jenis Berita</th>
+                        <th className="px-4 py-3 font-semibold text-left min-w-[400px]">
+                          Ringkasan
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-left">URL</th>
+                        <th className="px-4 py-3 font-semibold text-left min-w-[200px]">Penulis</th>
+                        <th className="px-4 py-3 font-semibold text-left whitespace-nowrap">
+                          Tanggal Terbit
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-left">Tingkat Keparahan</th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {rows.map((r, i) => {
                         const disease =
@@ -189,16 +239,20 @@ function ViewContent() {
                             <td className="px-4 py-3">{r.status}</td>
                             <td className="px-4 py-3">{disease}</td>
                             <td className="px-4 py-3">{news_portal}</td>
-                            <td className="px-4 py-3">{news_title}</td>
+                            <td className="px-4 py-3 min-w-[250px] max-w-[300px] whitespace-normal break-words">
+                              {news_title}
+                            </td>
                             <td className="px-4 py-3">{news_type}</td>
-                            <td className="px-4 py-3">{news_content}</td>
+                            <td className="px-4 py-3 min-w-[400px] max-w-[450px] whitespace-normal break-words">
+                              {news_content}
+                            </td>
                             <td className="px-4 py-3">
                               {news_url !== "-" ? (
                                 <a
                                   href={news_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-[#2E66D4] underline"
+                                  className="text-[#2E66D4] underline break-words"
                                 >
                                   {news_url}
                                 </a>
@@ -206,7 +260,7 @@ function ViewContent() {
                                 "-"
                               )}
                             </td>
-                            <td className="px-4 py-3">{news_author}</td>
+                            <td className="px-4 py-3 min-w-[200px] max-w-[250px] whitespace-normal break-words">{news_author}</td>
                             <td className="px-4 py-3 whitespace-nowrap">{news_date}</td>
                             <td className="px-4 py-3">{r.severity}</td>
                           </tr>
