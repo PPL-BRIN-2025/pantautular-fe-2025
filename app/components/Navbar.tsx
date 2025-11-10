@@ -70,7 +70,7 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   EXP_USER: [
     { label: "Dashboard", href: "/dashboard" },
     { 
-      label: "Data Management", href: "/curator-data-management",
+      label: "Data Management", href: "/expert-data-management",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
         { label: "Tambah Data (CSV)", href: "/expert-bulk-upload" },
