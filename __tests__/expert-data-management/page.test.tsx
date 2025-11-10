@@ -1,14 +1,23 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockPrefetch = jest.fn();
+const mockBack = jest.fn();
+const mockGet = jest.fn();
+
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
-    replace: jest.fn(),
-    prefetch: jest.fn(),
+    replace: mockReplace,
+    prefetch: mockPrefetch,
+    back: mockBack,
+  }),
+  useSearchParams: () => ({
+    get: mockGet,
   }),
 }));
 
@@ -19,11 +28,79 @@ jest.mock("../../app/components/Footer", () => () => (
   <div data-testid="mock-footer">Footer</div>
 ));
 
-import ExpertDataManagementPage from "../../app/expert-data-management/page";
+const mockUseAuth = jest.fn(() => ({ user: { role: "EXP_USER" } }));
+jest.mock("../../app/auth/hooks/useAuth", () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+const resetRouterMocks = () => {
+  mockPush.mockClear();
+  mockReplace.mockClear();
+  mockPrefetch.mockClear();
+  mockBack.mockClear();
+};
+
+const SAMPLE_ROWS = [
+  { data_id: "ID1", file_name: "Report_Jakarta.xlsx", last_edited: "2025-09-01 09:23:45", submitted_by: "EXPERTA" },
+  { data_id: "ID2", file_name: "Survey_Bandung.csv", last_edited: "2025-09-05 11:12:30", submitted_by: "EXPERTB" },
+  { data_id: "ID3", file_name: "Dataset_Sulsel.xls", last_edited: "2025-09-07 14:45:21", submitted_by: "EXPERTC" },
+  { data_id: "ID4", file_name: "Health_Data_Sumatera.xlsx", last_edited: "2025-09-10 16:02:10", submitted_by: "EXPERTD" },
+  { data_id: "ID5", file_name: "Malaria_Study.csv", last_edited: "2025-09-14 08:30:42", submitted_by: "EXPERTE" },
+  { data_id: "ID6", file_name: "Vaccine_Report.xls", last_edited: "2025-09-18 12:17:55", submitted_by: "EXPERTA" },
+  { data_id: "ID7", file_name: "COVID_Tracking.xlsx", last_edited: "2025-09-20 09:40:12", submitted_by: "EXPERTB" },
+  { data_id: "ID8", file_name: "Tuberculosis_Study.csv", last_edited: "2025-09-23 10:58:03", submitted_by: "EXPERTC" },
+  { data_id: "ID9", file_name: "Public_Health_Analysis.xlsx", last_edited: "2025-09-27 15:33:37", submitted_by: "EXPERTD" },
+];
+
+const mockFetch = jest.fn();
+const mockConfirm = jest.fn(() => true);
+const mockAlert = jest.fn();
+
+const makeListResponse = () => ({
+  ok: true,
+  status: 200,
+  json: async () => ({ results: SAMPLE_ROWS }),
+  text: async () => "",
+});
+
+const bindGlobals = () => {
+  const g = globalThis as any;
+  g.fetch = mockFetch;
+  g.confirm = mockConfirm;
+  g.alert = mockAlert;
+  if (g.window) {
+    g.window.fetch = mockFetch;
+    g.window.confirm = mockConfirm;
+    g.window.alert = mockAlert;
+  }
+};
+
+bindGlobals();
+beforeAll(bindGlobals);
+
+beforeEach(() => {
+  mockFetch.mockReset();
+  mockFetch.mockImplementation(() => Promise.resolve(makeListResponse()));
+  mockConfirm.mockClear();
+  mockAlert.mockClear();
+  if (typeof window !== "undefined") {
+    window.localStorage?.clear?.();
+  }
+  if (typeof document !== "undefined") {
+    document.cookie = "";
+  }
+});
+
+import ExpertDataManagementPage, {
+  __test_getToken as getTokenHelper,
+  __test_getTokenForDelete as getTokenForDeleteHelper,
+  __test_filterRows as filterRowsHelper,
+} from "../../app/expert-data-management/page";
 
 describe("ExpertDataManagementPage", () => {
   beforeEach(() => {
     mockPush.mockClear();
+    mockUseAuth.mockImplementation(() => ({ user: { role: "EXP_USER" } }));
   });
 
   test("renders layout chrome and table headers", async () => {
@@ -195,25 +272,130 @@ describe("ExpertDataManagementPage", () => {
     await user.type(filterInput, "nullsub");
     expect(await screen.findByText("NULLSUB")).toBeInTheDocument();
   });
+
+  test("uses stored access token from user blob when fetching datasets", async () => {
+    window.localStorage.setItem("user", JSON.stringify({ access_token: "JSON_TOKEN" }));
+
+    render(<ExpertDataManagementPage />);
+
+    expect(await screen.findByText("ID1")).toBeInTheDocument();
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options?.headers?.Authorization).toBe("Bearer JSON_TOKEN");
+  });
+
+  test("falls back to simple token keys when user blob is invalid JSON", async () => {
+    window.localStorage.setItem("user", "not-json");
+    window.localStorage.setItem("token", "FALLBACK_TOKEN");
+
+    render(<ExpertDataManagementPage />);
+
+    expect(await screen.findByText("ID1")).toBeInTheDocument();
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options?.headers?.Authorization).toBe("Bearer FALLBACK_TOKEN");
+  });
+
+  test("falls back to cookie token when no storage entries exist", async () => {
+    document.cookie = "access_token=Cookie%20Token";
+
+    render(<ExpertDataManagementPage />);
+
+    expect(await screen.findByText("ID1")).toBeInTheDocument();
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options?.headers?.Authorization).toBe("Bearer Cookie Token");
+  });
+
+  test("hydrates user from stored blob when auth hook returns null", async () => {
+    window.localStorage.setItem("user", JSON.stringify({ role: "EXP_USER" }));
+    mockUseAuth.mockImplementation(() => ({ user: null }));
+
+    render(<ExpertDataManagementPage />);
+
+    expect(await screen.findByText(/Expert \/ Dataset/i)).toBeInTheDocument();
+  });
+
+  test("handleDelete ignores rows without batch id", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { data_id: "", file_name: "NoId.csv", last_edited: "2025-01-01", submitted_by: "USER" } as any,
+    ];
+
+    render(<ExpertDataManagementPage initialRows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(screen.getByText("NoId.csv")).toBeInTheDocument();
+  });
+
+  test("handleDelete aborts when confirmation is rejected", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { data_id: "BATCH-1", file_name: "Batch1.csv", last_edited: "2025-01-01", submitted_by: "USER" } as any,
+    ];
+    mockConfirm.mockReturnValueOnce(false);
+
+    render(<ExpertDataManagementPage initialRows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(screen.getByText("BATCH-1")).toBeInTheDocument();
+  });
+
+  test("handleDelete removes row and sends Authorization header on success", async () => {
+    const user = userEvent.setup();
+    const sampleRows = [
+      { data_id: "ID_DEL_1", file_name: "File1.csv", last_edited: "2025-01-01", submitted_by: "USER" },
+      { data_id: "ID_DEL_2", file_name: "File2.csv", last_edited: "2025-01-02", submitted_by: "USER" },
+    ];
+    window.localStorage.setItem("user", JSON.stringify({ access_token: "DELETE_TOKEN" }));
+
+    render(<ExpertDataManagementPage initialRows={sampleRows} />);
+
+    const deleteButton = screen.getAllByRole("button", { name: /delete/i })[0];
+    await user.click(deleteButton);
+
+    await waitFor(() => expect(screen.queryByText("ID_DEL_1")).not.toBeInTheDocument());
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options?.headers?.Authorization).toBe("Bearer DELETE_TOKEN");
+  });
+
+  test("handleDelete surfaces server errors via alert", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { data_id: "ID_DEL_1", file_name: "File1.csv", last_edited: "2025-01-01", submitted_by: "USER" },
+    ];
+    mockFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        status: 500,
+        text: async () => "boom",
+      })
+    );
+
+    render(<ExpertDataManagementPage initialRows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    await waitFor(() => expect(mockAlert).toHaveBeenCalledWith("Failed to delete batch (status 500)."));
+    expect(screen.getByText("ID_DEL_1")).toBeInTheDocument();
+  });
+
+  test("handleDelete reports network failures", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { data_id: "ID_DEL_1", file_name: "File1.csv", last_edited: "2025-01-01", submitted_by: "USER" },
+    ];
+    mockFetch.mockImplementationOnce(() => Promise.reject(new Error("network down")));
+
+    render(<ExpertDataManagementPage initialRows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    await waitFor(() => expect(mockAlert).toHaveBeenCalledWith("Delete failed (network)."));
+    expect(screen.getByText("ID_DEL_1")).toBeInTheDocument();
+  });
 });
 
 // import React from "react";
 // import { screen, fireEvent } from "@testing-library/react";
-
-const mockBack = jest.fn();
-const mockGet = jest.fn();
-
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    back: mockBack,
-    push: jest.fn(),
-    replace: jest.fn(),
-    prefetch: jest.fn(),
-  }),
-  useSearchParams: () => ({
-    get: mockGet,
-  }),
-}));
 
 // Mock layout components with stable testids
 jest.mock("../../app/components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
@@ -332,45 +514,105 @@ describe("ExpertViewPage", () => {
   });
 });
 
-describe("RBAC – ExpertDataManagementPage", () => {
-  const mockReplace = jest.fn();
-  const mockUser = (role: string | null) =>
-    jest.fn().mockReturnValue({ user: role ? { role } : null });
 
+describe("RBAC - ExpertDataManagementPage", () => {
   beforeEach(() => {
-    jest.resetModules();
+    resetRouterMocks();
+    mockUseAuth.mockReset();
   });
 
   test("redirects guest user to login", async () => {
-    jest.doMock("../../app/auth/hooks/useAuth", () => ({
-      useAuth: mockUser(null),
-    }));
-    jest.doMock("next/navigation", () => ({
-      useRouter: () => ({ replace: mockReplace }),
-    }));
+    mockUseAuth.mockImplementation(() => ({ user: null }));
+    render(<ExpertDataManagementPage />);
 
-    const Page = (await import("../../app/expert-data-management/page")).default;
-    render(<Page />);
-    // expectation: show "Memeriksa akses…" temporarily
     expect(screen.getByText(/Memeriksa akses/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith("/login?next=%2Fexpert-data-management")
+    );
   });
 
   test("shows AccessDeniedNotice for non-EXP_USER", async () => {
-    jest.doMock("../../app/auth/hooks/useAuth", () => ({
-      useAuth: mockUser("CURATOR"),
-    }));
-    const Page = (await import("../../app/expert-data-management/page")).default;
-    render(<Page />);
-    expect(await screen.findByText(/akses/i)).toBeInTheDocument();
+    mockUseAuth.mockImplementation(() => ({ user: { role: "CURATOR" } }));
+    render(<ExpertDataManagementPage />);
+    expect(await screen.findByText(/Akses Expert Ditolak/i)).toBeInTheDocument();
   });
 
   test("renders table for EXP_USER", async () => {
-    jest.doMock("../../app/auth/hooks/useAuth", () => ({
-      useAuth: mockUser("EXP_USER"),
-    }));
-    const Page = (await import("../../app/expert-data-management/page")).default;
-    render(<Page />);
+    mockUseAuth.mockImplementation(() => ({ user: { role: "EXP_USER" } }));
+    render(<ExpertDataManagementPage />);
     expect(await screen.findByText(/Expert \/ Dataset/i)).toBeInTheDocument();
     expect(screen.getByText("Report_Jakarta.xlsx")).toBeInTheDocument();
+  });
+});
+
+describe("token helper functions", () => {
+  beforeEach(() => {
+    window.localStorage?.clear?.();
+    document.cookie = "";
+  });
+
+  test("getToken returns null when no storage exists", () => {
+    expect(getTokenHelper()).toBeNull();
+  });
+
+  test("getToken reads access_token from stored user", () => {
+    window.localStorage.setItem("user", JSON.stringify({ access_token: "STORED" }));
+    expect(getTokenHelper()).toBe("STORED");
+  });
+
+  test("getToken reads token field when access_token missing", () => {
+    window.localStorage.setItem("user", JSON.stringify({ token: "SECONDARY" }));
+    expect(getTokenHelper()).toBe("SECONDARY");
+  });
+
+  test("getToken falls back to jwt key", () => {
+    window.localStorage.setItem("jwt", "JWT_TOKEN");
+    expect(getTokenHelper()).toBe("JWT_TOKEN");
+  });
+
+  test("getToken falls back to cookie value", () => {
+    document.cookie = "access_token=Cookie%20Token";
+    expect(getTokenHelper()).toBe("Cookie Token");
+  });
+
+  test("getTokenForDelete returns null when window is undefined", () => {
+    const originalWindow = (globalThis as any).window;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (globalThis as any).window;
+    expect(getTokenForDeleteHelper()).toBeNull();
+    (globalThis as any).window = originalWindow;
+  });
+
+  test("getTokenForDelete checks token key order", () => {
+    window.localStorage.setItem("token", "TOKEN_KEY");
+    expect(getTokenForDeleteHelper()).toBe("TOKEN_KEY");
+  });
+
+  test("getTokenForDelete reads token field from stored user blob", () => {
+    window.localStorage.setItem("user", JSON.stringify({ token: "DEL_TOKEN" }));
+    expect(getTokenForDeleteHelper()).toBe("DEL_TOKEN");
+  });
+
+  test("getTokenForDelete uses cookie fallback", () => {
+    document.cookie = "access_token=CookieDelete";
+    expect(getTokenForDeleteHelper()).toBe("CookieDelete");
+  });
+
+  test("filterRows returns original rows when query blank", () => {
+    const rows = [
+      { data_id: "A", file_name: "alpha", last_edited: "2024", submitted_by: "USER" },
+      { data_id: "B", file_name: "beta", last_edited: "2024", submitted_by: "USER" },
+    ] as any;
+    expect(filterRowsHelper(rows, "   ")).toEqual(rows);
+  });
+
+  test("filterRows matches case-insensitive text across fields", () => {
+    const rows = [
+      { data_id: "ROW_1", file_name: "Alpha.csv", last_edited: "2024", submitted_by: "USERA" },
+      { data_id: "ROW_2", file_name: "Beta.csv", last_edited: "2025", submitted_by: "USERB" },
+    ] as any;
+    const result = filterRowsHelper(rows, "beta");
+    expect(result).toHaveLength(1);
+    expect(result[0].data_id).toBe("ROW_2");
   });
 });

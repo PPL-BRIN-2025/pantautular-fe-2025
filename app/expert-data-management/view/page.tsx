@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
@@ -32,7 +32,12 @@ type Row = {
   payload?: any;
 };
 
-function ViewContent() {
+type ViewPageProps = {
+  dataset?: Row[];
+  fileName?: string;
+};
+
+function ViewContent({ dataset, fileName: injectedFileName }: ViewPageProps) {
   const router = useRouter();
   const sp = useSearchParams();
   const { user } = useAuth();
@@ -66,15 +71,23 @@ function ViewContent() {
   const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
 
   const dataId = sp.get("id") || "";
-  const fileName = sp.get("fileName") || "Dataset Detail";
+  const qpFileName = sp.get("fileName");
   const lastEdited = sp.get("lastEdited") || "";
   const submittedBy = sp.get("submittedBy") || "";
+  const effectiveFileName = injectedFileName || qpFileName || "Dataset Detail";
 
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (accessState !== "granted") return;
+
+    if (typeof dataset !== "undefined") {
+      setRows(dataset);
+      setError(null);
+      return;
+    }
+
     if (!dataId) return;
     (async () => {
       try {
@@ -85,17 +98,18 @@ function ViewContent() {
         if (!res.ok) throw new Error(`status ${res.status}`);
         const json = await res.json();
         setRows(json.results ?? json.data ?? []);
+        setError(null);
       } catch (e) {
         console.error(e);
         setError("Gagal memuat data baris.");
       }
     })();
-  }, [API_URL, API_KEY, dataId, accessState]);
+  }, [API_URL, API_KEY, dataId, accessState, dataset]);
 
   if (accessState === "loading" || accessState === "redirect") {
     return (
       <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
-        <span className="text-sm text-gray-600">Memeriksa akses…</span>
+        <span className="text-sm text-gray-600">Memeriksa aksesâ€¦</span>
       </div>
     );
   }
@@ -125,7 +139,7 @@ function ViewContent() {
             &lt; back
           </button>
 
-          <h1 className="text-2xl font-semibold text-gray-800 mb-1">{fileName}</h1>
+          <h1 className="text-2xl font-semibold text-gray-800 mb-1">{effectiveFileName}</h1>
 
           <div className="text-gray-500 text-sm mb-4 space-x-2">
             {lastEdited && (
@@ -282,10 +296,10 @@ function ViewContent() {
   );
 }
 
-export default function ExpertViewPage() {
+export default function ExpertViewPage(props: ViewPageProps = {}) {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-gray-500">Loading data…</div>}>
-      <ViewContent />
+    <Suspense fallback={<div className="p-6 text-sm text-gray-500">Loading data...</div>}>
+      <ViewContent dataset={props.dataset} fileName={props.fileName} />
     </Suspense>
   );
 }
