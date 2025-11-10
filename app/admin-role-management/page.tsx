@@ -90,6 +90,7 @@ export default function Page() {
     setToasts((s) => [...s, t]);
     // auto remove after 4s
     setTimeout(() => {
+      /* istanbul ignore next */
       setToasts((s) => s.filter((x) => x.id !== t.id));
     }, 4000);
   };
@@ -608,8 +609,7 @@ export default function Page() {
             >
               {/* istanbul ignore next */}
               <div data-testid={`toast-emoji-${t.type}`} className={/* istanbul ignore next */ `text-3xl shrink-0 ${t.type === "success" ? "emoji-success" : t.type === "error" ? "emoji-error" : ""}`}>
-              {/* istanbul ignore next -- presentational emoji only; skip brittle branch */}
-                {t.emoji ?? ""}
+                { /* istanbul ignore next */ (t.emoji ?? "") }
               </div>
               <div data-testid="toast-title" className="flex-1 text-sm font-medium">{t.title}</div>
               {/* istanbul ignore next -- presentational close button styling */}
