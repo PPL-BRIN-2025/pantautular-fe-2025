@@ -4,6 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import AccessDeniedNotice from "../../components/AccessDenied2";
+import { useAuth } from "../../auth/hooks/useAuth";
+
+const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
 type Row = {
   data_id: string;
@@ -30,6 +35,32 @@ type Row = {
 function ViewContent() {
   const router = useRouter();
   const sp = useSearchParams();
+  const { user } = useAuth();
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
+  useEffect(() => {
+    let resolved = user;
+    if (!resolved && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) resolved = JSON.parse(stored);
+      } catch {
+        // ignore parse errors
+      }
+    }
+    if (!resolved) {
+      setAccessState("redirect");
+      return;
+    }
+    const allowed = normalizeRole(resolved.role) === "EXP_USER";
+    setAccessState(allowed ? "granted" : "forbidden");
+  }, [user]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+    const nextParam = encodeURIComponent("/expert-data-management");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
@@ -43,6 +74,7 @@ function ViewContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (accessState !== "granted") return;
     if (!dataId) return;
     (async () => {
       try {
@@ -58,13 +90,33 @@ function ViewContent() {
         setError("Gagal memuat data baris.");
       }
     })();
-  }, [API_URL, API_KEY, dataId]);
+  }, [API_URL, API_KEY, dataId, accessState]);
 
   const th = (label: string) => (
     <th key={label} className="px-4 py-3 font-semibold text-left">
       {label}
     </th>
   );
+
+  if (accessState === "loading" || accessState === "redirect") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
+        <span className="text-sm text-gray-600">Memeriksa akses…</span>
+      </div>
+    );
+  }
+
+  if (accessState === "forbidden") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <AccessDeniedNotice />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F3F7FB]">
