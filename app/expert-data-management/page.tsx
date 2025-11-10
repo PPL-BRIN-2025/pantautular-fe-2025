@@ -85,7 +85,6 @@ export default function ExpertDataManagementPage() {
         headers: authHeaders(),
       });
 
-      // treat 200/202/204 as success
       if ([200, 202, 204].includes(res.status)) {
         setRows((prev) => prev.filter((r) => r.data_id !== batchId));
       } else {
