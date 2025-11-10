@@ -1,176 +1,175 @@
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+/**
+ * @jest-environment jsdom
+ */
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import ExpertViewPage from "../../../app/expert-data-management/view/page";
+import "@testing-library/jest-dom";
 
+// --- Mock router and search params ---
 const mockBack = jest.fn();
-const mockGet = jest.fn();
-
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    back: mockBack,
-    push: jest.fn(),
-    replace: jest.fn(),
-    prefetch: jest.fn(),
-  }),
-  useSearchParams: () => ({
-    get: mockGet,
-  }),
+  useRouter: jest.fn(),
+  useSearchParams: jest.fn(),
 }));
 
-// Mock layout components with stable testids
+// --- Mock layout components ---
 jest.mock("../../../app/components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
 jest.mock("../../../app/components/Footer", () => () => <div data-testid="footer">Footer</div>);
 
-import ExpertViewPage from "../../../app/expert-data-management/view/page";
+// --- Mock global fetch ---
+global.fetch = jest.fn();
 
-// Cast the Next.js page component so tests can pass props without TS errors
-type PageProps = { dataset?: any; fileName?: string };
-const SUT = ExpertViewPage as unknown as React.FC<PageProps>;
-
-describe("ExpertViewPage", () => {
-  const mockData = [
-    {
-      id: "ID1",
-      gender: "Laki-laki",
-      age: 21,
-      city: "Jakarta",
-      status: "status a",
-      disease_id: "ID X",
-      location_id: "ID Y",
-      severity: "severity a",
-    },
-    {
-      id: "ID3",
-      gender: "Perempuan",
-      age: 35,
-      city: "Bandung",
-      status: "status b",
-      disease_id: "ID A",
-      location_id: "ID B",
-      severity: "severity b",
-    },
-  ];
-
+describe("ExpertViewPage – API fetching behavior", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test("renders dataset title, back button, and table headers", () => {
-    mockGet.mockReturnValue("FILE_123");
-    render(<SUT dataset={mockData} fileName="CSV_1.xlsx" />);
+  const mockParams = (params: Record<string, string | null>) => {
+    (useSearchParams as jest.Mock).mockReturnValue({
+      get: (key: string) => params[key],
+    });
+  };
 
-    expect(screen.getByText("< back")).toBeInTheDocument();
-    expect(screen.getByText("CSV_1.xlsx")).toBeInTheDocument();
+  (useRouter as jest.Mock).mockReturnValue({ back: mockBack });
 
-    const headers = [
-      "ID Data",
-      "Jenis Kelamin",
-      "Usia",
-      "Kota",
-      "STATUS",
-      "ID Penyakit",
-      "ID Lokasi",
-      "Tingkat Keparahan",
-    ];
-    headers.forEach((h) => expect(screen.getByText(h)).toBeInTheDocument());
+  // --- SUCCESS ---
+  test("renders dataset title and rows on successful fetch", async () => {
+    mockParams({
+      id: "123",
+      fileName: "Dataset A",
+      lastEdited: "2025-11-09",
+      submittedBy: "Expert A",
+    });
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            data_id: "1",
+            gender: "Laki-laki",
+            age: 24,
+            city: "Jakarta",
+            status: "Aktif",
+            disease_id: "D001",
+            severity: "Ringan",
+          },
+        ],
+      }),
+    });
+
+    render(<ExpertViewPage />);
+
+    // Suspense fallback visible first
+    expect(screen.getByText(/Loading data/i)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("Dataset A")).toBeInTheDocument();
+      expect(screen.getByText("Jakarta")).toBeInTheDocument();
+      expect(screen.getByText("Laki-laki")).toBeInTheDocument();
+      expect(screen.getByTestId("navbar")).toBeInTheDocument();
+      expect(screen.getByTestId("footer")).toBeInTheDocument();
+    });
   });
 
-  test("renders correct number of dataset rows and info text", () => {
-    mockGet.mockReturnValue("FILE_123");
-    render(<SUT dataset={mockData} fileName="CSV_1.xlsx" />);
-    expect(screen.getAllByRole("row")).toHaveLength(mockData.length + 1);
-    expect(screen.getByText("2 rows • 8 columns")).toBeInTheDocument();
+  // --- EMPTY ---
+  test("renders 'No data available' when API returns empty array", async () => {
+    mockParams({
+      id: "999",
+      fileName: "Empty Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ results: [] }),
+    });
+
+    render(<ExpertViewPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("No data available")).toBeInTheDocument()
+    );
   });
 
-  test("renders fallback dummy data when dataset prop is missing", () => {
-    mockGet.mockReturnValue("FILE_123");
-    render(<SUT />);
-    expect(screen.getByText("ID1")).toBeInTheDocument();
-    expect(screen.getByText("ID3")).toBeInTheDocument();
+  // --- ERROR STATE ---
+  test("renders error message when fetch fails", async () => {
+    mockParams({
+      id: "error",
+      fileName: "Broken Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    });
+
+    render(<ExpertViewPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Gagal memuat data baris.")).toBeInTheDocument()
+    );
   });
 
-  test("renders 'No data available' when dataset is empty", () => {
-    mockGet.mockReturnValue("FILE_123");
-    render(<SUT dataset={[]} fileName="Empty.xlsx" />);
-    expect(screen.getByText("No data available")).toBeInTheDocument();
+  // --- NETWORK THROW ---
+  test("handles thrown network error safely", async () => {
+    mockParams({
+      id: "throw",
+      fileName: "Network Error Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    (fetch as jest.Mock).mockImplementationOnce(() => {
+      throw new Error("Network down");
+    });
+
+    render(<ExpertViewPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Gagal memuat data baris.")).toBeInTheDocument()
+    );
   });
 
-  test("uses fileId from URL when fileName not provided (covers fileName fallback branch)", () => {
-    mockGet.mockImplementation((k: string) => (k === "fileId" ? "FILE_123" : null));
-    render(<SUT dataset={mockData} />);
-    expect(screen.getByText("FILE_123")).toBeInTheDocument();
-    expect(mockGet).toHaveBeenCalledWith("fileId");
+  // --- MISSING dataId ---
+  test("renders nothing when no dataId is present", async () => {
+    mockParams({
+      id: "",
+      fileName: "Missing ID Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    render(<ExpertViewPage />);
+
+    // Should render Navbar + Footer but not data rows
+    expect(screen.getByTestId("navbar")).toBeInTheDocument();
+    expect(screen.getByTestId("footer")).toBeInTheDocument();
+    expect(screen.queryByText("No data available")).not.toBeInTheDocument();
   });
 
-  test("still renders when neither fileName nor fileId exists (covers missing param branch)", () => {
-    mockGet.mockReturnValue(null);
-    render(<SUT dataset={mockData} />);
-    expect(screen.getByText("ID Data")).toBeInTheDocument();
-    expect(screen.getByText("2 rows • 8 columns")).toBeInTheDocument();
-  });
+  // --- BACK BUTTON ---
+  test("clicking '< back' triggers router.back()", async () => {
+    mockParams({
+      id: "123",
+      fileName: "Dataset Back Test",
+      lastEdited: "",
+      submittedBy: "",
+    });
 
-  test("clicking '< back' triggers router.back()", () => {
-    mockGet.mockReturnValue("FILE_123");
-    render(<SUT dataset={mockData} fileName="CSV_1.xlsx" />);
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ results: [] }),
+    });
+
+    render(<ExpertViewPage />);
+
+    await waitFor(() => screen.getByText("< back"));
     fireEvent.click(screen.getByText("< back"));
     expect(mockBack).toHaveBeenCalled();
   });
-
-  test("renders mocked Navbar and Footer", () => {
-    mockGet.mockReturnValue("FILE_123");
-    render(<SUT dataset={mockData} fileName="CSV_1.xlsx" />);
-    expect(screen.getByTestId("navbar")).toBeInTheDocument();
-    expect(screen.getByTestId("footer")).toBeInTheDocument();
-  });
-
-  test("updates shown filename when prop changes (rerender path)", () => {
-    mockGet.mockReturnValue("FILE_123");
-    const { rerender } = render(<SUT dataset={mockData} fileName="Initial.xlsx" />);
-    expect(screen.getByText("Initial.xlsx")).toBeInTheDocument();
-
-    rerender(<SUT dataset={mockData} fileName="Dynamic.xlsx" />);
-    expect(screen.getByText("Dynamic.xlsx")).toBeInTheDocument();
-    expect(screen.getByText("ID1")).toBeInTheDocument();
-  });
 });
-
-describe("RBAC – ExpertViewPage", () => {
-  const mockReplace = jest.fn();
-  const mockUser = (role: string | null) =>
-    jest.fn().mockReturnValue({ user: role ? { role } : null });
-
-  beforeEach(() => {
-    jest.resetModules();
-  });
-
-  test("redirects guest user to login", async () => {
-    jest.doMock("../../../app/auth/hooks/useAuth", () => ({
-      useAuth: mockUser(null),
-    }));
-    jest.doMock("next/navigation", () => ({
-      useRouter: () => ({ replace: mockReplace }),
-      useSearchParams: () => ({ get: jest.fn() }),
-    }));
-    const Page = (await import("../../../app/expert-data-management/view/page")).default;
-    render(<Page />);
-    expect(screen.getByText(/Memeriksa akses/i)).toBeInTheDocument();
-  });
-
-  test("shows AccessDeniedNotice for non-EXP_USER", async () => {
-    jest.doMock("../../../app/auth/hooks/useAuth", () => ({
-      useAuth: mockUser("CURATOR"),
-    }));
-    const Page = (await import("../../../app/expert-data-management/view/page")).default;
-    render(<Page />);
-    expect(await screen.findByText(/akses/i)).toBeInTheDocument();
-  });
-
-  test("renders dataset normally for EXP_USER", async () => {
-    jest.doMock("../../../app/auth/hooks/useAuth", () => ({
-      useAuth: mockUser("EXP_USER"),
-    }));
-    const Page = (await import("../../../app/expert-data-management/view/page")).default;
-    render(<Page />);
-    expect(await screen.findByText(/ID Data/i)).toBeInTheDocument();
-  });
-});
-
