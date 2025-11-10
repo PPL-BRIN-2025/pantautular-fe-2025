@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import AccessDeniedNotice from "../components/AccessDenied2";
+import { useAuth } from "../auth/hooks/useAuth";
+
+const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
 type Row = {
   data_id: string;
@@ -12,56 +17,87 @@ type Row = {
   submitted_by: string;
 };
 
-export default function ExpertDataManagementPage({
-  initialRows,
-  initialError,
-  simulateLoadError,
-}: {
-  initialRows?: Row[];
-  initialError?: string | null;
-  simulateLoadError?: boolean;
-}) {
+function getToken(): string | null {
+  try {
+    // prefer a user blob saved by your auth flow
+    const raw = window.localStorage.getItem("user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.access_token) return String(parsed.access_token);
+      if (parsed?.token) return String(parsed.token);
+    }
+    // fallback to a simple token key if you stored it directly
+    const t = window.localStorage.getItem("access_token") || window.localStorage.getItem("token");
+    return t || null;
+  } catch {
+    return null;
+  }
+}
+
+export default function ExpertDataManagementPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
+  useEffect(() => {
+    let resolved = user;
+    if (!resolved && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) resolved = JSON.parse(stored);
+      } catch {
+        // ignore JSON issues
+      }
+    }
+    if (!resolved) {
+      setAccessState("redirect");
+      return;
+    }
+    const allowed = normalizeRole(resolved.role) === "EXP_USER";
+    setAccessState(allowed ? "granted" : "forbidden");
+  }, [user]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+    const nextParam = encodeURIComponent("/expert-data-management");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
 
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  // --- FILTER STATE ---
   const [query, setQuery] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
+
+  const authHeaders = () => {
+    const token = getToken();
+    const h: Record<string, string> = { "X-API-KEY": API_KEY };
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+  };
 
   useEffect(() => {
-    try {
-      if (simulateLoadError) {
-        // exercise catch branch in tests
-        throw new Error("simulate load error");
+    if (accessState !== "granted") return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/expert-feature/api/expert/datasets/?sort=last_edited:desc&page=1&pageSize=50`,
+          { headers: authHeaders() }
+        );
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const json = await res.json();
+        // DRF paginator -> {count, results: [...]}
+        setRows(Array.isArray(json.results) ? json.results : []);
+      } catch (err: any) {
+        console.error("fetch error:", err);
+        setError("Failed to load datasets.");
       }
-      if (typeof initialError !== "undefined" && initialError !== null) {
-        setError(initialError);
-        return;
-      }
-      if (Array.isArray(initialRows)) {
-        setRows(initialRows);
-        return;
-      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_URL, API_KEY, accessState]);
 
-      const data: Row[] = [
-        { data_id: "ID1", file_name: "Report_Jakarta.xlsx",         last_edited: "2025-09-01 09:23:45", submitted_by: "EXPERTA" },
-        { data_id: "ID2", file_name: "Survey_Bandung.csv",          last_edited: "2025-09-05 11:12:30", submitted_by: "EXPERTB" },
-        { data_id: "ID3", file_name: "Dataset_Sulsel.xls",          last_edited: "2025-09-07 14:45:21", submitted_by: "EXPERTC" },
-        { data_id: "ID4", file_name: "Health_Data_Sumatera.xlsx",   last_edited: "2025-09-10 16:02:10", submitted_by: "EXPERTD" },
-        { data_id: "ID5", file_name: "Malaria_Study.csv",           last_edited: "2025-09-14 08:30:42", submitted_by: "EXPERTE" },
-        { data_id: "ID6", file_name: "Vaccine_Report.xls",          last_edited: "2025-09-18 12:17:55", submitted_by: "EXPERTA" },
-        { data_id: "ID7", file_name: "COVID_Tracking.xlsx",         last_edited: "2025-09-20 09:40:12", submitted_by: "EXPERTB" },
-        { data_id: "ID8", file_name: "Tuberculosis_Study.csv",      last_edited: "2025-09-23 10:58:03", submitted_by: "EXPERTC" },
-        { data_id: "ID9", file_name: "Public_Health_Analysis.xlsx", last_edited: "2025-09-27 15:33:37", submitted_by: "EXPERTD" },
-      ];
-      setRows(data);
-    } catch {
-      setError("Failed to load data.");
-    }
-  }, [initialRows, initialError, simulateLoadError]);
-
-  // Navigate and pass row info in the URL 
   const goView = (row: Row) => {
     const url = new URL(window.location.origin + "/expert-data-management/view");
     url.searchParams.set("id", row.data_id);
@@ -71,18 +107,94 @@ export default function ExpertDataManagementPage({
     router.push(url.pathname + "?" + url.searchParams.toString());
   };
 
-  // FILTERED VIEW (case-insensitive contains across all columns) 
+
+  function getTokenForDelete(): string | null {
+  if (typeof window === "undefined") return null;
+
+  // 1) Your original flow:
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.access_token) return String(parsed.access_token);
+      if (parsed?.token) return String(parsed.token);
+    }
+  } catch {}
+
+  // 2) New fallback keys:
+  const keys = ["access_token", "token", "accessToken", "jwt"];
+  for (const k of keys) {
+    const v = localStorage.getItem(k);
+    if (v) return v;
+  }
+
+  // 3) Cookie fallback:
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
+  } catch {}
+
+  return null;
+}
+
+
+  const handleDelete = async (batchId: string) => {
+  if (!batchId) return;
+  if (!confirm("Yakin hapus batch ini beserta datanya?")) return;
+
+  setDeletingId(batchId);
+  try {
+    const res = await fetch(`${API_URL}/expert-feature/experts/batches/${batchId}/delete/`, {
+      method: "DELETE",
+      headers: {
+        "X-API-KEY": API_KEY,
+        "Authorization": `Bearer ${getTokenForDelete()}`,
+      },
+    });
+
+    if ([200, 202, 204].includes(res.status)) {
+      setRows((prev) => prev.filter((r) => r.data_id !== batchId));
+    } else {
+      const text = await res.text().catch(() => "");
+      console.error("delete failed:", res.status, text);
+      alert(`Failed to delete batch (status ${res.status}).`);
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Delete failed (network).");
+  } finally {
+    setDeletingId(null);
+  }
+};
+
+
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
-    return rows.filter((r) => {
-      const id = r.data_id?.toLowerCase() ?? "";
-      const fn = r.file_name?.toLowerCase() ?? "";
-      const le = r.last_edited?.toLowerCase() ?? "";
-      const sb = r.submitted_by?.toLowerCase() ?? "";
-      return id.includes(q) || fn.includes(q) || le.includes(q) || sb.includes(q);
-    });
+    return rows.filter((r) =>
+      [r.data_id, r.file_name, r.last_edited, r.submitted_by].join(" ").toLowerCase().includes(q)
+    );
   }, [rows, query]);
+
+  if (accessState === "loading" || accessState === "redirect") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex items-center justify-center">
+        <span className="text-sm text-gray-600">Memeriksa akses…</span>
+      </div>
+    );
+  }
+
+  if (accessState === "forbidden") {
+    return (
+      <div className="min-h-screen bg-[#F3F7FB] flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <AccessDeniedNotice />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
@@ -98,9 +210,8 @@ export default function ExpertDataManagementPage({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by Data ID, File Name, Last Edited, or Submitted by"
+            placeholder="Cari berdasarkan ID Data, Nama Berkas, Terakhir Diedit, atau Pengunggah"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
-            aria-label="Filter datasets"
           />
           {query && (
             <button
@@ -112,62 +223,71 @@ export default function ExpertDataManagementPage({
           )}
         </div>
 
-        <div className="rounded-2xl border shadow-sm bg-white">
-          <div className="overflow-x-auto">
-            <div className="min-w-[980px] rounded-2xl">
-              {/* Header */}
-              <div className="sticky top-0 z-10 bg-[#4A78E0] text-white rounded-t-2xl">
-                <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr]">
-                  {["Data ID", "File Name", "Last Edited", "Submitted by", "Action"].map((label, idx) => (
-                    <div
-                      key={label}
-                      className={`px-4 py-3 text-sm sm:text-base font-semibold ${
-                        idx !== 0 ? "border-l border-white/40" : ""
-                      }`}
-                    >
-                      {label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Body */}
+        {/* Table */}
+        <div className="rounded-2xl border shadow-sm bg-white overflow-x-auto">
+          <table className="min-w-[980px] w-full table-fixed border-collapse">
+            <thead className="bg-[#4A78E0] text-white">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold w-[12%]">ID Data</th>
+                <th className="px-4 py-3 text-left font-semibold w-[28%]">Nama Berkas</th>
+                <th className="px-4 py-3 text-left font-semibold w-[24%]">Terakhir Diedit</th>
+                <th className="px-4 py-3 text-left font-semibold w-[20%]">Dikumpul oleh</th>
+                <th className="px-4 py-3 text-center font-semibold w-[16%]">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
               {error ? (
-                <div className="text-center py-6 text-red-500 text-sm">{error}</div>
+                <tr>
+                  <td colSpan={5} className="text-center py-6 text-red-500 text-sm">
+                    {error}
+                  </td>
+                </tr>
               ) : filteredRows.length ? (
-                <ul className="divide-y divide-gray-200">
-                  {filteredRows.map((r) => (
-                    <li key={r.data_id} className="hover:bg-gray-50">
-                      <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
-                        <div className="px-4 py-3 break-words">{r.data_id}</div>
-                        <div className="px-4 py-3">{r.file_name}</div>
-                        <div className="px-4 py-3">{r.last_edited}</div>
-                        <div className="px-4 py-3">{r.submitted_by}</div>
-                        <div className="px-4 py-3 flex justify-center">
+                filteredRows.map((r) => {
+                  const isDel = deletingId === r.data_id;
+                  return (
+                    <tr key={r.data_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">{r.data_id}</td>
+                      <td className="px-4 py-3">{r.file_name}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{r.last_edited}</td>
+                      <td className="px-4 py-3">{r.submitted_by}</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => handleDelete(r.data_id)}
+                            disabled={isDel}
+                            className={`rounded-md border px-4 py-1 text-sm transition ${
+                              isDel
+                                ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                                : "border-red-500 text-red-500 hover:bg-red-50"
+                            }`}
+                            aria-busy={isDel}
+                          >
+                            {isDel ? "DELETING…" : "DELETE"}
+                          </button>
                           <button
                             onClick={() => goView(r)}
-                            className="rounded-md bg-[#2E66D4] text-white px-4 py-1 text-sm font-medium hover:brightness-95 transition"
+                            className="rounded-md bg-[#2E66D4] text-white px-4 py-1 text-sm hover:brightness-95"
                           >
                             VIEW
                           </button>
                         </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
-                <div className="text-center py-6 text-gray-500 text-sm">
-                  {query ? "No matching data." : "No data."}
-                </div>
+                <tr>
+                  <td colSpan={5} className="text-center py-6 text-gray-500 text-sm">
+                    {query ? "No matching data." : "No data."}
+                  </td>
+                </tr>
               )}
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
       </main>
-
-      <div className="mt-10">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 }

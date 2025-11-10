@@ -11,9 +11,36 @@ const { exportElementAsPng } = jest.requireMock("@/utils/exportAsImage") as {
   exportElementAsPng: jest.Mock;
 };
 
+const createObjectURLSpy = jest.fn(() => "blob:mock");
+const revokeObjectURLSpy = jest.fn();
+const anchorClickSpy = jest
+  .spyOn(HTMLAnchorElement.prototype, "click")
+  .mockImplementation(function noop() {
+    // Prevent jsdom navigation warnings.
+  });
+
+beforeAll(() => {
+  Object.defineProperty(window.URL, "createObjectURL", {
+    configurable: true,
+    writable: true,
+    value: createObjectURLSpy
+  });
+  Object.defineProperty(window.URL, "revokeObjectURL", {
+    configurable: true,
+    writable: true,
+    value: revokeObjectURLSpy
+  });
+});
+
+afterAll(() => {
+  anchorClickSpy.mockRestore();
+});
+
 describe("DownloadButton", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    createObjectURLSpy.mockClear();
+    revokeObjectURLSpy.mockClear();
   });
 
   it("exports the provided element as PNG", async () => {
@@ -112,5 +139,60 @@ describe("DownloadButton", () => {
 
     const wrapper = screen.getByRole("button", { name: /unduh/i }).parentElement;
     expect(wrapper).toHaveAttribute("data-html2canvas-ignore", "true");
+  });
+
+  it("downloads CSV content when exporter is provided", async () => {
+    const target = document.createElement("div");
+    const csvExporter = jest.fn().mockResolvedValue("col1,col2");
+    const appendSpy = jest.spyOn(document.body, "appendChild");
+
+    render(
+      <DownloadButton
+        filename="dataset"
+        getTarget={() => target}
+        csvExporter={csvExporter}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /download csv/i }));
+
+    await waitFor(() => {
+      expect(csvExporter).toHaveBeenCalled();
+    });
+
+    const appendedAnchor = appendSpy.mock.calls
+      .map(([node]) => node)
+      .find((node) => node instanceof HTMLAnchorElement) as HTMLAnchorElement | undefined;
+
+    expect(appendedAnchor).toBeDefined();
+    expect(appendedAnchor?.download).toBe("dataset.csv");
+    expect(createObjectURLSpy).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Berhasil mengunduh data dalam format CSV.")
+      ).toBeInTheDocument();
+    });
+
+    appendSpy.mockRestore();
+  });
+
+  it("shows csv empty message when canDownloadCsv returns false", () => {
+    const target = document.createElement("div");
+
+    render(
+      <DownloadButton
+        filename="dataset"
+        getTarget={() => target}
+        csvExporter={() => "col"}
+        canDownloadCsv={() => false}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /download csv/i }));
+
+    expect(
+      screen.getByText("Gagal mengunduh data CSV karena data kosong.")
+    ).toBeInTheDocument();
   });
 });

@@ -90,6 +90,7 @@ jest.mock("../../../app/components/filter/MultiSelectForm", () => ({
             portals: ["news-1"],
             start_date: new Date("2023-01-01"),
             end_date: new Date("2023-12-31")
+            batch: "batch-1"
           })}
           data-testid="submit-filter"
         >
