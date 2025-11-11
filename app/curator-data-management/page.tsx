@@ -20,6 +20,7 @@ type CuratorRow = {
 };
 
 const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
+const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR"]);
 
 function useDebouncedValue<T>(value: T, delay = 350) {
   const [v, setV] = useState(value);
@@ -53,7 +54,7 @@ export default function CuratorDataManagementPage() {
       return;
     }
 
-    const allowed = normalizeRole(resolved.role) === "CURATOR";
+    const allowed = ALLOWED_ROLES.has(normalizeRole(resolved.role)); // ✅ updated gate
     setAccessState(allowed ? "granted" : "forbidden");
   }, [user]);
 
@@ -67,8 +68,16 @@ export default function CuratorDataManagementPage() {
   const [data, setData] = useState<CuratorRow[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+
+  // search & filters
   const [rawSearch, setRawSearch] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [filterCurator, setFilterCurator] = useState("");
+
   const search = useDebouncedValue(rawSearch, 350);
+  const curator = useDebouncedValue(filterCurator, 350);
+  const date = useDebouncedValue(filterDate, 350);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,10 +100,13 @@ export default function CuratorDataManagementPage() {
       setLoading(true);
       setError(null);
       try {
+        // append new filters to query
         const params = new URLSearchParams({
           page: String(page),
           pageSize: String(pageSize),
           search: search.trim(),
+          curator: curator.trim(),
+          date: date.trim(),
           sort: "last_edited:desc",
         });
 
@@ -183,7 +195,7 @@ export default function CuratorDataManagementPage() {
 
     fetchLogs();
     return () => ac.abort();
-  }, [accessState, API_BASE, page, pageSize, search, router, getAccessToken]);
+  }, [accessState, API_BASE, page, pageSize, search, curator, date, router, getAccessToken]);
 
   // ---- early returns for access states ----
   if (accessState === "loading" || accessState === "redirect") {
@@ -213,128 +225,145 @@ export default function CuratorDataManagementPage() {
   const goAdd = () => router.push("/curator-add-data");
   const goEdit = (id: string) => router.push(`/curator-edit-delete-data?id=${id}`);
 
+  return (
+    <div className="min-h-screen bg-[#F3F7FB]">
+      <Navbar />
+      <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
+        <div className="text-gray-500 text-base font-medium mb-4">&lt; Daftar Data</div>
 
-return (
-  <div className="min-h-screen bg-[#F3F7FB]">
-    <Navbar />
-    <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
-      <div className="text-gray-500 text-base font-medium mb-4">&lt; Daftar Data</div>
+        {/* Filters + Add */}
+        <div className="flex flex-col sm:flex-row flex-wrap justify-between items-center gap-3 mb-4">
+          <input
+            type="text"
+            placeholder="Cari ID / Judul"
+            value={rawSearch}
+            onChange={(e) => {
+              setRawSearch(e.target.value);
+              setPage(1);
+            }}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
+          />
+          <input
+            type="text"
+            placeholder="Cari berdasarkan nama kurator"
+            value={filterCurator}
+            onChange={(e) => {
+              setFilterCurator(e.target.value);
+              setPage(1);
+            }}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
+          />
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => {
+              setFilterDate(e.target.value);
+              setPage(1);
+            }}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
+          />
+          <button
+            onClick={goAdd}
+            className="bg-[#2E8AF6] text-white px-5 py-2 rounded-lg font-medium hover:bg-[#256fd4] transition"
+          >
+            Tambahkan Data
+          </button>
+        </div>
 
-      {/* Search + Add */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Cari ID / Judul"
-          value={rawSearch}
-          onChange={(e) => {
-            setRawSearch(e.target.value);
-            setPage(1);
-          }}
-          className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
-        />
-        <button
-          onClick={goAdd}
-          className="bg-[#2E8AF6] text-white px-5 py-2 rounded-lg font-medium hover:bg-[#256fd4] transition"
-        >
-          Tambahkan Data
-        </button>
-      </div>
-
-      {/* Table */}
-      <div className="rounded-2xl border shadow-sm bg-white">
-        <div className="overflow-x-auto">
-          <div className="min-w-[980px] max-h-[70vh] overflow-y-auto rounded-2xl">
-            {/* Header */}
-            <div className="sticky top-0 z-20 bg-[#2E8AF6] text-white rounded-t-2xl">
-              <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] border-b border-white/30">
-                {["ID Data", "Judul", "Terakhir Diubah", "Dikumpulkan Oleh", "Aksi"].map(
-                  (label, idx) => (
-                    <div
-                      key={label}
-                      className={`px-4 py-3 text-sm sm:text-base font-semibold ${
-                        idx !== 0 ? "border-l border-white/50" : ""
-                      }`}
-                    >
-                      {label}
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* Body */}
-            {loading ? (
-              <div className="text-center py-6 text-gray-500 text-sm">Memuat data...</div>
-            ) : error ? (
-              <div className="text-center py-6 text-red-500 text-sm">{error}</div>
-            ) : data.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {data.map((r) => {
-                  const when = r.last_edited || r.lastEdited;
-                  const who = r.submitted_by || r.submittedBy || "-";
-                  return (
-                    <li key={r.data_id} className="hover:bg-gray-50">
-                      <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
-                        <div className="px-4 py-3 break-words">{r.data_id}</div>
-                        <div className="px-4 py-3">{r.title}</div>
-                        <div className="px-4 py-3">
-                          {when ? new Date(when).toLocaleString("id-ID") : "-"}
-                        </div>
-                        <div className="px-4 py-3">{who}</div>
-                        <div className="px-4 py-3 flex justify-center">
-                          <button
-                            onClick={() => goEdit(r.data_id)}
-                            className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
-                          >
-                            Lihat Data
-                          </button>
-                        </div>
+        {/* Table */}
+        <div className="rounded-2xl border shadow-sm bg-white">
+          <div className="overflow-x-auto">
+            <div className="min-w-[980px] max-h-[70vh] overflow-y-auto rounded-2xl">
+              {/* Header */}
+              <div className="sticky top-0 z-20 bg-[#2E8AF6] text-white rounded-t-2xl">
+                <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] border-b border-white/30">
+                  {["ID Data", "Judul", "Terakhir Diubah", "Dikumpulkan Oleh", "Aksi"].map(
+                    (label, idx) => (
+                      <div
+                        key={label}
+                        className={`px-4 py-3 text-sm sm:text-base font-semibold ${
+                          idx !== 0 ? "border-l border-white/50" : ""
+                        }`}
+                      >
+                        {label}
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                Tidak ada data yang cocok.
-              </div>
-            )}
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between bg-white p-3 sm:p-4 sticky bottom-0 z-10 border-t border-gray-200">
-              <p className="text-xs text-gray-600">
-                Menampilkan <span className="font-medium">{data.length}</span> dari{" "}
-                <span className="font-medium">{total}</span> data
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Prev
-                </button>
-                <div className="rounded-lg bg-gray-50 px-3 py-1.5 text-sm">
-                  {page} / {pageCount}
+                    )
+                  )}
                 </div>
-                <button
-                  className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
-                  disabled={page >= pageCount}
-                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                >
-                  Next
-                </button>
+              </div>
+
+              {/* Body */}
+              {loading ? (
+                <div className="text-center py-6 text-gray-500 text-sm">Memuat data...</div>
+              ) : error ? (
+                <div className="text-center py-6 text-red-500 text-sm">{error}</div>
+              ) : data.length > 0 ? (
+                <ul className="divide-y divide-gray-200">
+                  {data.map((r) => {
+                    const when = r.last_edited || r.lastEdited;
+                    const who = r.submitted_by || r.submittedBy || "-";
+                    return (
+                      <li key={r.data_id} className="hover:bg-gray-50">
+                        <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
+                          <div className="px-4 py-3 break-words">{r.data_id}</div>
+                          <div className="px-4 py-3">{r.title}</div>
+                          <div className="px-4 py-3">
+                            {when ? new Date(when).toLocaleString("id-ID") : "-"}
+                          </div>
+                          <div className="px-4 py-3">{who}</div>
+                          <div className="px-4 py-3 flex justify-center">
+                            <button
+                              onClick={() => goEdit(r.data_id)}
+                              className="rounded-md bg-[#2E8AF6] text-white px-4 py-1 text-sm font-medium hover:bg-[#256fd4] transition"
+                            >
+                              Lihat Data
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <div className="text-center py-6 text-gray-500 text-sm">
+                  Tidak ada data yang cocok.
+                </div>
+              )}
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between bg-white p-3 sm:p-4 sticky bottom-0 z-10 border-t border-gray-200">
+                <p className="text-xs text-gray-600">
+                  Menampilkan <span className="font-medium">{data.length}</span> dari{" "}
+                  <span className="font-medium">{total}</span> data
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    Prev
+                  </button>
+                  <div className="rounded-lg bg-gray-50 px-3 py-1.5 text-sm">
+                    {page} / {pageCount}
+                  </div>
+                  <button
+                    className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+                    disabled={page >= pageCount}
+                    onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </main>
+
+      <div className="mt-10">
+        <Footer />
       </div>
-
-    </main>
-
-    <div className="mt-10">
-      <Footer />
     </div>
-  </div>
-);
+  );
 }
