@@ -20,12 +20,10 @@ const percentFormatter = new Intl.NumberFormat("id-ID", {
   minimumFractionDigits: 0,
 });
 
-const coerceNumber = (value: unknown): number => {
+export const coerceNumber = (value: unknown): number => {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
-  }
-
-  if (typeof value === "string") {
+  } else if (typeof value === "string") {
     const parsed = Number(value);
     if (Number.isFinite(parsed)) {
       return parsed;
@@ -35,14 +33,18 @@ const coerceNumber = (value: unknown): number => {
   return 0;
 };
 
-const coerceOptionalNumber = (
+export const coerceOptionalNumber = (
   value: unknown
 ): number | null | undefined => {
-  if (value === null || value === undefined) return value;
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
+  if (value === null || value === undefined) {
+    return value;
+  } else if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  } else if (typeof value === "string") {
     const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
   }
   return null;
 };
@@ -52,7 +54,7 @@ export const formatNumber = (value: number): string => {
   return numberFormatter.format(value);
 };
 
-const formatSignedNumber = (value: number): string => {
+export const formatSignedNumber = (value: number): string => {
   const absolute = Math.abs(value);
   const formatted = formatNumber(absolute);
   if (value > 0) return `+${formatted}`;
@@ -65,7 +67,7 @@ export const formatPercent = (value: number): string => {
   return percentFormatter.format(value);
 };
 
-const formatSignedPercent = (value: number): string => {
+export const formatSignedPercent = (value: number): string => {
   const absolute = Math.abs(value);
   const formatted = formatPercent(absolute);
   if (value > 0) return `+${formatted}`;
@@ -137,28 +139,36 @@ export const mapToTooltipDatum = (
   const labelValue = pickFirstKey(raw, LABEL_KEYS);
   const timestampValue = pickFirstKey(raw, TIMESTAMP_KEYS);
 
+  let label: string | undefined;
+  if (typeof labelValue === "string") {
+    label = labelValue;
+  }
+  if (label === undefined && labelValue !== undefined) {
+    label = String(labelValue);
+  }
+
+  let timestamp: string | number | undefined;
+  if (timestampValue !== undefined) {
+    timestamp = timestampValue as string | number;
+  }
+
   return {
     value,
     reference,
-    label:
-      typeof labelValue === "string"
-        ? labelValue
-        : labelValue !== undefined
-        ? String(labelValue)
-        : undefined,
-    timestamp:
-      timestampValue !== undefined
-        ? (timestampValue as string | number)
-        : undefined,
+    label,
+    timestamp,
   };
 };
 
-const formatTimestamp = (timestamp: string | number): string => {
+export const formatTimestamp = (timestamp: string | number): string => {
   if (timestamp instanceof Date) {
     return timestamp.toISOString();
   }
   return String(timestamp);
 };
+
+export const formatPercentSuffix = (pct: number | null): string =>
+  pct === null ? "" : ` (${formatSignedPercent(pct)}%)`;
 
 export const formatTooltipLines = (
   datum: TooltipDatum
@@ -184,13 +194,10 @@ export const formatTooltipLines = (
         datum.value,
         datum.reference
       );
-      if (delta !== null) {
-        let changeLine = `Change: ${formatSignedNumber(delta)}`;
-        if (pct !== null) {
-          changeLine += ` (${formatSignedPercent(pct)}%)`;
-        }
-        lines.push(changeLine);
-      }
+      const changeLine = `Change: ${formatSignedNumber(
+        delta as number
+      )}${formatPercentSuffix(pct)}`;
+      lines.push(changeLine);
     }
   }
 
