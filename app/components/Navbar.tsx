@@ -15,7 +15,7 @@ export default function Navbar() {
   );
 }
 
-export const ProfileIcon = ({ logout }: { logout: () => void }) => {
+export const ProfileIcon = ({ logoutAction }: { logoutAction: () => void }) => {
   const [showSettings, setShowSettings] = useState(false);
   
   return (
@@ -32,7 +32,7 @@ export const ProfileIcon = ({ logout }: { logout: () => void }) => {
           <DropdownMenuItem onClick={() => setShowSettings(true)}>
             <span className="text-gray-800">Pengaturan</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={logout}>
+          <DropdownMenuItem onClick={logoutAction}>
             <span className="text-red-500">Keluar</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -48,6 +48,7 @@ type RoleNavLink = {
   href: string;
   disabled?: boolean;
   description?: string;
+  children?: RoleNavLink[];
 };
 
 const DEFAULT_ROLE_LINKS: RoleNavLink[] = [{ label: "Dashboard", href: "/dashboard" }];
@@ -55,39 +56,32 @@ const DEFAULT_ROLE_LINKS: RoleNavLink[] = [{ label: "Dashboard", href: "/dashboa
 const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ADMIN: [
     { label: "Dashboard Admin", href: "/admin-dashboard" },
-    { label: "Dashboard Kurator", href: "/curator-dashboard" },
     { label: "Manajemen Role", href: "/admin-role-management" },
     { label: "User Log", href: "/admin-user-log-menu" },
-    { label: "Dashboard Kurator", href: "/curator-dashboard" },
-    { 
-      label: "Kurator Data Management", href: "/curator-data-management",
+    {
+      label: "Dashboard Kurator",
+      href: "/curator-dashboard",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
         { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
       ],
     },
+    { label: "Kurator Data Management", href: "/curator-data-management" },
   ],
   EXP_USER: [
     { label: "Dashboard", href: "/dashboard" },
-    { 
-      label: "Data Management", href: "/curator-data-management",
-      children: [
-        { label: "Tambah Data", href: "/curator-add-data" },
-        { label: "Tambah Data (CSV)", href: "/expert-bulk-upload" },
-        { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
-      ],
-    },
-    { label: "Bantuan", href: "/help" },
+    { label: "Peta Sebaran", href: "/map" },
   ],
   CURATOR: [
-    { label: "Dashboard Kurator", href: "/curator-dashboard" },
-    { 
-      label: "Kurator Data Management", href: "/curator-data-management",
+    {
+      label: "Dashboard Kurator",
+      href: "/curator-dashboard",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
         { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
       ],
     },
+    { label: "Kurator Data Management", href: "/curator-data-management" },
     { label: "Bantuan", href: "/help" },
   ],
   CONTRIBUTOR: [
@@ -127,34 +121,135 @@ function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
   if (!links.length) return null;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className="hidden sm:flex items-center gap-1 rounded-md border border-[#0069cf] px-3 py-1 text-sm font-medium text-[#0069cf] transition-colors hover:bg-[#0069cf]/10 focus:outline-none focus:ring-2 focus:ring-[#0069cf] focus:ring-offset-2"
-        aria-label="Halaman khusus peran"
+  <div className="hidden sm:flex items-center relative group">
+      <button
+        className="text-[#0f172a] font-medium select-none flex items-center gap-2"
+        aria-label="Akses Page"
+        type="button"
       >
         <span>Akses Page</span>
-        <ChevronDown className="h-4 w-4" aria-hidden="true" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
-        {links.map((item) =>
-          item.disabled ? (
-            <DropdownMenuItem key={item.label} disabled className="cursor-not-allowed justify-start text-gray-400">
-              <div className="flex w-full flex-col">
-                <span>{item.label}</span>
-                <span className="text-xs text-gray-400">{item.description ?? "Segera hadir"}</span>
-              </div>
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem key={item.label} asChild className="text-gray-700">
-              <Link href={item.href} className="flex w-full items-center justify-between">
-                <span>{item.label}</span>
-                <ArrowUpRight className="h-4 w-4 text-[#0069cf]" aria-hidden="true" />
-              </Link>
-            </DropdownMenuItem>
-          )
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" className="ml-1">
+          <path d="M7 10l5 5 5-5z" />
+        </svg>
+      </button>
+
+      <ul
+        className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-hidden min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[700px] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200"
+      >
+        {links.map((item, idx) => {
+          const isLast = idx === links.length - 1;
+          return (
+            <li key={item.label} className="border-b border-gray-200 last:border-b-0">
+              {item.disabled ? (
+                <div className="cursor-not-allowed justify-start text-gray-400 py-2 px-2 text-[15px]">
+                  <div className="flex w-full flex-col">
+                    <span>{item.label}</span>
+                    <span className="text-xs text-gray-400">{item.description ?? "Segera hadir"}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-2 px-2">
+                  <Link href={item.href} className="flex items-center justify-between hover:text-blue-700 text-slate-900 font-medium text-[15px]">
+                    <span>{item.label}</span>
+                    {item.children && item.children.length > 0 && (
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Link>
+
+                  {item.children && item.children.length > 0 && (
+                    <ul className="mt-1 pl-4">
+                      {item.children.map((child) => (
+                        <li key={child.label} className="py-1">
+                          {child.disabled ? (
+                            <div className="text-gray-400 text-sm">{child.label}</div>
+                          ) : (
+                            <Link href={child.href} className="text-[#0069cf] text-sm hover:underline">
+                              {child.label}
+                            </Link>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* divider removed as requested */}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function CuratorDropdown({ name, role }: { name?: string | null; role?: string | null }) {
+  const links = resolveRoleLinks(role || "");
+
+  if (!links.length) return null;
+
+  return (
+    <div className="hidden sm:flex items-center relative group">
+      <button
+        className="text-[#0f172a] font-medium select-none flex items-center gap-2"
+        aria-label="Kurator menu"
+        type="button"
+      >
+        <span>{name}</span>
+        <span className="text-sm text-gray-500">| {formatRoleLabel(role ?? "")}</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" className="ml-1">
+          <path d="M7 10l5 5 5-5z" />
+        </svg>
+      </button>
+
+      <ul
+        className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-hidden min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[700px] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200"
+      >
+        {links.map((item, idx) => {
+          const isLast = idx === links.length - 1;
+          return (
+            <li key={item.label} className="border-b border-gray-200 last:border-b-0">
+              {item.disabled ? (
+                <div className="cursor-not-allowed justify-start text-gray-400 py-2 px-2 text-[15px]">
+                  <div className="flex w-full flex-col">
+                    <span>{item.label}</span>
+                    <span className="text-xs text-gray-400">{item.description ?? "Segera hadir"}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-2 px-2">
+                  <Link href={item.href} className="flex items-center justify-between hover:text-blue-700 text-slate-900 font-medium text-[15px]">
+                    <span>{item.label}</span>
+                    {item.children && item.children.length > 0 && (
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Link>
+
+                  {/* children under curator parent */}
+                  {item.children && item.children.length > 0 && (
+                    <ul className="mt-1 pl-4">
+                      {item.children.map((child) => (
+                        <li key={child.label} className="py-1">
+                          {child.disabled ? (
+                            <div className="text-gray-400 text-sm">{child.label}</div>
+                          ) : (
+                            <Link href={child.href} className="text-[#0069cf] text-sm hover:underline">
+                              {child.label}
+                            </Link>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* divider removed as requested */}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -202,12 +297,10 @@ function NavbarContent() {
         </div>
         {user ? (
           <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-[#0f172a] font-medium select-none">
-              {user.name}
-              {user.role ? ` | ${formatRoleLabel(user.role)}` : ""}
-            </span>
-            <RoleAccessMenu role={user.role} />
-            <ProfileIcon logout={logout}/>
+            {/* Always show the name+role dropdown like the CuratorDropdown example */}
+            <CuratorDropdown name={user.name} role={user.role} />
+            {/* Show profile icon next to name */}
+            <ProfileIcon logoutAction={logout} />
           </div>
         ) : (
             <div className="flex items-center gap-4 pl-4">
