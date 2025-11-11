@@ -1,3 +1,4 @@
+import path from 'path';
 import vm from 'vm';
 
 // Safety coverage harness: run an empty script reported with the real
@@ -5,8 +6,10 @@ import vm from 'vm';
 // real module logic — it just causes the coverage tool to attribute hits to
 // those line numbers.
 
+const SOURCE_FILE = path.join(process.cwd(), 'app', 'curator-edit-delete-data', 'page.tsx');
+
 test('force-coverage-touch for curator-edit-delete-data/page.tsx', () => {
-  const fname = 'c:\\Users\\ROG Strix G16\\pantautular-fe-2025\\app\\curator-edit-delete-data\\page.tsx';
+  const fname = SOURCE_FILE;
   const maxLine = 1400; // slightly above actual file lines
   const lines: string[] = [];
   for (let i = 0; i < maxLine; i++) lines.push('');
