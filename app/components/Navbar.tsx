@@ -74,8 +74,10 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
       children: [
         { label: "Tambah data manual", href: "/curator-add-data" },
         // 🔄 changed
-        { label: "Lihat List Data", href: "/expert-data-management" },
+        { label: "Lihat List Data (CSV)", href: "/expert-data-management" },
+        { label: "Lihat List Data", href: "/curator-data-management" },
         { label: "Tambah data melalui CSV", href: "/expert-bulk-upload" },
+    
       ],
     },
   ],
@@ -88,7 +90,8 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
       children: [
         { label: "Tambah data manual", href: "/curator-add-data" },
         // 🔄 changed
-        { label: "Lihat List Data", href: "/expert-data-management" },
+        { label: "Lihat List Data (CSV)", href: "/expert-data-management" },
+        { label: "Lihat List Data", href: "/curator-data-management" },
         { label: "Tambah data melalui CSV", href: "/expert-bulk-upload" },
       ],
     },
