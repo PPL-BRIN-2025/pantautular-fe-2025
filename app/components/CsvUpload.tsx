@@ -19,7 +19,7 @@ export default function CsvUpload({
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [filename, setFilename] = useState<string | null>(null);
-  const isExpert = normalizeRole(effectiveUser?.role) === "EXP_USER" || normalizeRole(effectiveUser?.role) === "ADMIN";
+  const isExpert = normalizeRole(effectiveUser?.role) === "EXP_USER";
   const router = useRouter();
 
   // If the user isn't logged in, redirect immediately to login page with a next param.
@@ -78,20 +78,18 @@ export default function CsvUpload({
     // Handle errors first
     if (!res.ok) {
       let errorMessage = `Upload gagal (${res.status})`;
-
+      const text = await res.text(); // read once
       try {
-        // Try to parse JSON structured error first
-        const errorJson = await res.json();
+        const errorJson = JSON.parse(text);
         if (errorJson.message) errorMessage = errorJson.message;
-        if (errorJson.errors) errorMessage = JSON.stringify(errorJson.errors);
+        else if (errorJson.errors) errorMessage = JSON.stringify(errorJson.errors);
+        else errorMessage = text;
       } catch {
-        // fallback to plain text
-        const text = await res.text();
-        if (text) errorMessage = text;
+        errorMessage = text || errorMessage;
       }
-
       return onErrorAction?.(errorMessage);
     }
+
 
     const data = await res.json().catch(() => ({}));
     setFilename(file.name);
