@@ -58,35 +58,53 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     { label: "Dashboard Admin", href: "/admin-dashboard" },
     { label: "Manajemen Role", href: "/admin-role-management" },
     { label: "User Log", href: "/admin-user-log-menu" },
-    {
-      label: "Dashboard Kurator",
-      href: "/curator-dashboard",
+    { label: "Dashboard Kurator", href: "/curator-dashboard" },
+    { label: "Dashboard Ahli", href: "/expert-dashboard" },
+    {label: "Manajemen Data Kurator",
+      href: "/curator-data-management",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
         { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
       ],
     },
-    { label: "Kurator Data Management", href: "/curator-data-management" },
+    { label: "Manajemen Data Ahli", 
+      href: "/expert-data-management",
+      children: [
+        { label: "Tambah data manual", href: "/curator-add-data" },
+        { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+        { label: "Tambah data melalui CSV", href: "/expert-bulk-upload" },
+      ],
+    },
   ],
+
   EXP_USER: [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Peta Sebaran", href: "/map" },
-  ],
-  CURATOR: [
-    {
-      label: "Dashboard Kurator",
-      href: "/curator-dashboard",
+    { label: "Dashboard Ahli", href: "/expert-dashboard" },
+    { label: "Manajemen Data Ahli", 
+      href: "/expert-data-management",
       children: [
-        { label: "Tambah Data", href: "/curator-add-data" },
+        { label: "Tambah data manual", href: "/curator-add-data" },
         { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+        { label: "Tambah data melalui CSV", href: "/expert-bulk-upload" },
       ],
     },
-    { label: "Kurator Data Management", href: "/curator-data-management" },
     { label: "Bantuan", href: "/help" },
   ],
+
+  CURATOR: [
+    {label: "Manajemen Data Kurator",
+      href: "/curator-data-management",
+      children: [
+        { label: "Tambah Data", href: "/curator-add-data" },
+        { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+      ],
+    },
+    { label: "Dashboard Kurator", href: "/curator-dashboard" },
+    { label: "Bantuan", href: "/help" },
+  ],
+
   CONTRIBUTOR: [
-    { label: "Beranda", href: "/" },
-    { label: "Peta Sebaran", href: "/map" },
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Bantuan", href: "/help" },
   ],
 };
 
