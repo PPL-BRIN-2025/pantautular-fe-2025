@@ -24,6 +24,7 @@ export default function CuratorBulkUploadPage() {
         const stored = window.localStorage.getItem('user');
         /* istanbul ignore next */
         if (stored) setEffectiveUser(JSON.parse(stored));
+        else setEffectiveUser(null);
       }
       /* istanbul ignore next */
       catch (e) {
