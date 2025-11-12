@@ -45,7 +45,7 @@ export default function CuratorDataManagementPage() {
     }
 
     const role = normalizeRole(resolved.role);
-    const allowed = role === "CURATOR" || role === "ADMIN";
+    const allowed = role === "CURATOR" || role === "ADMIN"|| role === "EXP_USER";
     setAccessState(allowed ? "granted" : "forbidden");
   }, [user]);
 
