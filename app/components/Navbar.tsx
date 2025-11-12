@@ -3,21 +3,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation"; 
-import { User, ChevronDown, ArrowUpRight } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { User, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui-profile/dropdown-menu";
 import PasswordSettings from "./password-settings";
 import { useAuth } from '../auth/hooks/useAuth';
 
 export default function Navbar() {
-  return (
-    <NavbarContent />
-  );
+  return <NavbarContent />;
 }
 
 export const ProfileIcon = ({ logoutAction }: { logoutAction: () => void }) => {
   const [showSettings, setShowSettings] = useState(false);
-  
+
   return (
     <>
       <DropdownMenu>
@@ -37,7 +35,7 @@ export const ProfileIcon = ({ logoutAction }: { logoutAction: () => void }) => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      
+
       {showSettings && <PasswordSettings onClose={() => setShowSettings(false)} />}
     </>
   );
@@ -60,30 +58,40 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     { label: "User Log", href: "/admin-user-log-menu" },
     { label: "Dashboard Kurator", href: "/curator-dashboard" },
     { label: "Dashboard Ahli", href: "/expert-dashboard" },
-    {label: "Manajemen Data Kurator",
+
+    {
+      label: "Manajemen Data Kurator",
       href: "/curator-data-management",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
-        { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+        // 🔄 changed
+        { label: "Lihat List Data", href: "/curator-data-management" },
       ],
     },
-    { label: "Manajemen Data Ahli", 
+    {
+      label: "Manajemen Data Ahli",
       href: "/expert-data-management",
       children: [
         { label: "Tambah data manual", href: "/curator-add-data" },
-        { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+        // 🔄 changed
+        { label: "Lihat List Data (CSV)", href: "/expert-data-management" },
+        { label: "Lihat List Data", href: "/curator-data-management" },
         { label: "Tambah data melalui CSV", href: "/expert-bulk-upload" },
+    
       ],
     },
   ],
 
   EXP_USER: [
     { label: "Dashboard Ahli", href: "/expert-dashboard" },
-    { label: "Manajemen Data Ahli", 
+    {
+      label: "Manajemen Data Ahli",
       href: "/expert-data-management",
       children: [
         { label: "Tambah data manual", href: "/curator-add-data" },
-        { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+        // 🔄 changed
+        { label: "Lihat List Data (CSV)", href: "/expert-data-management" },
+        { label: "Lihat List Data", href: "/curator-data-management" },
         { label: "Tambah data melalui CSV", href: "/expert-bulk-upload" },
       ],
     },
@@ -91,11 +99,13 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ],
 
   CURATOR: [
-    {label: "Manajemen Data Kurator",
+    {
+      label: "Manajemen Data Kurator",
       href: "/curator-data-management",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
-        { label: "Edit & Hapus Data", href: "/curator-edit-delete-data" },
+        // 🔄 changed
+        { label: "Lihat List Data", href: "/curator-data-management" },
       ],
     },
     { label: "Dashboard Kurator", href: "/curator-dashboard" },
@@ -135,11 +145,10 @@ function formatRoleLabel(role?: string | null): string {
 
 function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
   const links = resolveRoleLinks(role);
-
   if (!links.length) return null;
 
   return (
-  <div className="hidden sm:flex items-center relative group">
+    <div className="hidden sm:flex items-center relative group">
       <button
         className="text-[#0f172a] font-medium select-none flex items-center gap-2"
         aria-label="Akses Page"
@@ -151,51 +160,45 @@ function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
         </svg>
       </button>
 
-      <ul
-        className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-hidden min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[700px] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200"
-      >
-        {links.map((item, idx) => {
-          const isLast = idx === links.length - 1;
-          return (
-            <li key={item.label} className="border-b border-gray-200 last:border-b-0">
-              {item.disabled ? (
-                <div className="cursor-not-allowed justify-start text-gray-400 py-2 px-2 text-[15px]">
-                  <div className="flex w-full flex-col">
-                    <span>{item.label}</span>
-                    <span className="text-xs text-gray-400">{item.description ?? "Segera hadir"}</span>
-                  </div>
+      <ul className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-hidden min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[700px] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200">
+        {links.map((item) => (
+          <li key={item.label} className="border-b border-gray-200 last:border-b-0">
+            {item.disabled ? (
+              <div className="cursor-not-allowed justify-start text-gray-400 py-2 px-2 text-[15px]">
+                <div className="flex w-full flex-col">
+                  <span>{item.label}</span>
+                  <span className="text-xs text-gray-400">{item.description ?? "Segera hadir"}</span>
                 </div>
-              ) : (
-                <div className="py-2 px-2">
-                  <Link href={item.href} className="flex items-center justify-between hover:text-blue-700 text-slate-900 font-medium text-[15px]">
-                    <span>{item.label}</span>
-                    {item.children && item.children.length > 0 && (
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    )}
-                  </Link>
+              </div>
+            ) : (
+              <div className="py-2 px-2">
+                <Link
+                  href={item.href}
+                  className="flex items-center justify-between hover:text-blue-700 text-slate-900 font-medium text-[15px]"
+                >
+                  <span>{item.label}</span>
+                  {item.children && item.children.length > 0 && <ChevronDown className="h-4 w-4 text-gray-400" />}
+                </Link>
 
-                  {item.children && item.children.length > 0 && (
-                    <ul className="mt-1 pl-4">
-                      {item.children.map((child) => (
-                        <li key={child.label} className="py-1">
-                          {child.disabled ? (
-                            <div className="text-gray-400 text-sm">{child.label}</div>
-                          ) : (
-                            <Link href={child.href} className="text-[#0069cf] text-sm hover:underline">
-                              {child.label}
-                            </Link>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              {/* divider removed as requested */}
-            </li>
-          );
-        })}
+                {item.children && item.children.length > 0 && (
+                  <ul className="mt-1 pl-4">
+                    {item.children.map((child) => (
+                      <li key={child.label} className="py-1">
+                        {child.disabled ? (
+                          <div className="text-gray-400 text-sm">{child.label}</div>
+                        ) : (
+                          <Link href={child.href} className="text-[#0069cf] text-sm hover:underline">
+                            {child.label}
+                          </Link>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </li>
+        ))}
       </ul>
     </div>
   );
@@ -203,7 +206,6 @@ function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
 
 function CuratorDropdown({ name, role }: { name?: string | null; role?: string | null }) {
   const links = resolveRoleLinks(role || "");
-
   if (!links.length) return null;
 
   return (
@@ -220,52 +222,45 @@ function CuratorDropdown({ name, role }: { name?: string | null; role?: string |
         </svg>
       </button>
 
-      <ul
-        className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-hidden min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[700px] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200"
-      >
-        {links.map((item, idx) => {
-          const isLast = idx === links.length - 1;
-          return (
-            <li key={item.label} className="border-b border-gray-200 last:border-b-0">
-              {item.disabled ? (
-                <div className="cursor-not-allowed justify-start text-gray-400 py-2 px-2 text-[15px]">
-                  <div className="flex w-full flex-col">
-                    <span>{item.label}</span>
-                    <span className="text-xs text-gray-400">{item.description ?? "Segera hadir"}</span>
-                  </div>
+      <ul className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-hidden min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[700px] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200">
+        {links.map((item) => (
+          <li key={item.label} className="border-b border-gray-200 last:border-b-0">
+            {item.disabled ? (
+              <div className="cursor-not-allowed justify-start text-gray-400 py-2 px-2 text-[15px]">
+                <div className="flex w-full flex-col">
+                  <span>{item.label}</span>
+                  <span className="text-xs text-gray-400">{item.description ?? "Segera hadir"}</span>
                 </div>
-              ) : (
-                <div className="py-2 px-2">
-                  <Link href={item.href} className="flex items-center justify-between hover:text-blue-700 text-slate-900 font-medium text-[15px]">
-                    <span>{item.label}</span>
-                    {item.children && item.children.length > 0 && (
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    )}
-                  </Link>
+              </div>
+            ) : (
+              <div className="py-2 px-2">
+                <Link
+                  href={item.href}
+                  className="flex items-center justify-between hover:text-blue-700 text-slate-900 font-medium text-[15px]"
+                >
+                  <span>{item.label}</span>
+                  {item.children && item.children.length > 0 && <ChevronDown className="h-4 w-4 text-gray-400" />}
+                </Link>
 
-                  {/* children under curator parent */}
-                  {item.children && item.children.length > 0 && (
-                    <ul className="mt-1 pl-4">
-                      {item.children.map((child) => (
-                        <li key={child.label} className="py-1">
-                          {child.disabled ? (
-                            <div className="text-gray-400 text-sm">{child.label}</div>
-                          ) : (
-                            <Link href={child.href} className="text-[#0069cf] text-sm hover:underline">
-                              {child.label}
-                            </Link>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              {/* divider removed as requested */}
-            </li>
-          );
-        })}
+                {item.children && item.children.length > 0 && (
+                  <ul className="mt-1 pl-4">
+                    {item.children.map((child) => (
+                      <li key={child.label} className="py-1">
+                        {child.disabled ? (
+                          <div className="text-gray-400 text-sm">{child.label}</div>
+                        ) : (
+                          <Link href={child.href} className="text-[#0069cf] text-sm hover:underline">
+                            {child.label}
+                          </Link>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </li>
+        ))}
       </ul>
     </div>
   );
@@ -274,12 +269,9 @@ function CuratorDropdown({ name, role }: { name?: string | null; role?: string |
 const NavLink = ({ href, label }: { href: string; label: string }) => {
   const pathname = usePathname();
   const isActive = pathname === href;
-  
+
   return (
-    <Link 
-      href={href} 
-      className={`h-full flex items-center ${isActive ? "font-bold text-[#1e3a8a]" : "text-[#0069cf]"}`}
-    >
+    <Link href={href} className={`h-full flex items-center ${isActive ? "font-bold text-[#1e3a8a]" : "text-[#0069cf]"}`}>
       {label}
     </Link>
   );
@@ -290,12 +282,10 @@ function NavbarContent() {
   const router = useRouter();
 
   const handleLogin = () => {
-    console.log('Login clicked');
     router.push('/login');
   };
 
   const handleRegister = () => {
-    console.log('Register clicked');
     router.push('/register');
   };
 
@@ -315,28 +305,26 @@ function NavbarContent() {
         </div>
         {user ? (
           <div className="flex items-center gap-3">
-            {/* Always show the name+role dropdown like the CuratorDropdown example */}
             <CuratorDropdown name={user.name} role={user.role} />
-            {/* Show profile icon next to name */}
             <ProfileIcon logoutAction={logout} />
           </div>
         ) : (
-            <div className="flex items-center gap-4 pl-4">
-              <button
-                type="button"
-                className="bg-white text-[#0069cf] px-6 py-2 rounded-md border-2 border-[#0069cf] mr-3 hover:bg-[#0069cf] hover:text-white transition-colors"
-                onClick={handleLogin}
-              >
-                Masuk
-              </button>
-              <button
-                type="button"
-                className="bg-[#0069cf] text-white px-6 py-2 rounded-md border-2 border-transparent hover:bg-[#0056b3] transition-colors"
-                onClick={handleRegister}
-              >
-                Register
-              </button>
-            </div>
+          <div className="flex items-center gap-4 pl-4">
+            <button
+              type="button"
+              className="bg-white text-[#0069cf] px-6 py-2 rounded-md border-2 border-[#0069cf] mr-3 hover:bg-[#0069cf] hover:text-white transition-colors"
+              onClick={handleLogin}
+            >
+              Masuk
+            </button>
+            <button
+              type="button"
+              className="bg-[#0069cf] text-white px-6 py-2 rounded-md border-2 border-transparent hover:bg-[#0056b3] transition-colors"
+              onClick={handleRegister}
+            >
+              Register
+            </button>
+          </div>
         )}
       </div>
     </nav>

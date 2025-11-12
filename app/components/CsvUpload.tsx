@@ -19,7 +19,7 @@ export default function CsvUpload({
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [filename, setFilename] = useState<string | null>(null);
-  const isExpert = normalizeRole(effectiveUser?.role) === "EXP_USER";
+  const isExpert = normalizeRole(effectiveUser?.role) === "EXP_USER" || normalizeRole(effectiveUser?.role) === "ADMIN";
   const router = useRouter();
 
   // If the user isn't logged in, redirect immediately to login page with a next param.

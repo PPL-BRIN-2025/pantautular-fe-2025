@@ -17,6 +17,12 @@ type Row = {
   submitted_by: string;
 };
 
+type PageProps = {
+  initialRows?: Row[];
+  initialError?: string | null;
+  simulateLoadError?: boolean;
+};
+
 function getToken(): string | null {
   try {
     // prefer a user blob saved by your auth flow
@@ -34,81 +40,7 @@ function getToken(): string | null {
   }
 }
 
-export default function ExpertDataManagementPage() {
-  const router = useRouter();
-  const { user } = useAuth();
-  const [accessState, setAccessState] = useState<AccessState>("loading");
-
-  useEffect(() => {
-    let resolved = user;
-    if (!resolved && typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem("user");
-        if (stored) resolved = JSON.parse(stored);
-      } catch {
-        // ignore JSON issues
-      }
-    }
-    if (!resolved) {
-      setAccessState("redirect");
-      return;
-    }
-    const allowed = normalizeRole(resolved.role) === "EXP_USER";
-    setAccessState(allowed ? "granted" : "forbidden");
-  }, [user]);
-
-  useEffect(() => {
-    if (accessState !== "redirect") return;
-    const nextParam = encodeURIComponent("/expert-data-management");
-    router.replace(`/login?next=${nextParam}`);
-  }, [accessState, router]);
-
-  const [rows, setRows] = useState<Row[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-  const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
-
-  const authHeaders = () => {
-    const token = getToken();
-    const h: Record<string, string> = { "X-API-KEY": API_KEY };
-    if (token) h["Authorization"] = `Bearer ${token}`;
-    return h;
-  };
-
-  useEffect(() => {
-    if (accessState !== "granted") return;
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API_URL}/expert-feature/api/expert/datasets/?sort=last_edited:desc&page=1&pageSize=50`,
-          { headers: authHeaders() }
-        );
-        if (!res.ok) throw new Error(`status ${res.status}`);
-        const json = await res.json();
-        // DRF paginator -> {count, results: [...]}
-        setRows(Array.isArray(json.results) ? json.results : []);
-      } catch (err: any) {
-        console.error("fetch error:", err);
-        setError("Failed to load datasets.");
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [API_URL, API_KEY, accessState]);
-
-  const goView = (row: Row) => {
-    const url = new URL(window.location.origin + "/expert-data-management/view");
-    url.searchParams.set("id", row.data_id);
-    url.searchParams.set("fileName", row.file_name);
-    url.searchParams.set("lastEdited", row.last_edited);
-    url.searchParams.set("submittedBy", row.submitted_by);
-    router.push(url.pathname + "?" + url.searchParams.toString());
-  };
-
-
-  function getTokenForDelete(): string | null {
+function getTokenForDelete(): string | null {
   if (typeof window === "undefined") return null;
 
   // 1) Your original flow:
@@ -137,44 +69,149 @@ export default function ExpertDataManagementPage() {
   return null;
 }
 
+function filterRows(rows: Row[], query: string): Row[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter((r) =>
+    [r.data_id, r.file_name, r.last_edited, r.submitted_by].join(" ").toLowerCase().includes(q)
+  );
+}
+
+export default function ExpertDataManagementPage({
+  initialRows,
+  initialError,
+  simulateLoadError,
+}: PageProps = {}) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
+  useEffect(() => {
+    let resolved = user;
+    if (!resolved && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) resolved = JSON.parse(stored);
+      } catch {
+        // ignore JSON issues
+      }
+    }
+    if (!resolved) {
+      setAccessState("redirect");
+      return;
+    }
+    const allowed = normalizeRole(resolved.role) === "EXP_USER" || normalizeRole(resolved.role) === "ADMIN";
+    setAccessState(allowed ? "granted" : "forbidden");
+  }, [user]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+    const nextParam = encodeURIComponent("/expert-data-management");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
+
+  const [rows, setRows] = useState<Row[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
+
+  const authHeaders = () => {
+    const token = getToken();
+    const h: Record<string, string> = { "X-API-KEY": API_KEY };
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+  };
+
+  useEffect(() => {
+    if (accessState !== "granted") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (simulateLoadError) throw new Error("simulate load error");
+
+        if (typeof initialError !== "undefined" && initialError !== null) {
+          if (!cancelled) {
+            setError(initialError);
+            setRows([]);
+          }
+          return;
+        }
+
+        if (Array.isArray(initialRows)) {
+          if (!cancelled) {
+            setRows(initialRows);
+            setError(null);
+          }
+          return;
+        }
+
+        const res = await fetch(
+          `${API_URL}/expert-feature/api/expert/datasets/?sort=last_edited:desc&page=1&pageSize=50`,
+          { headers: authHeaders() }
+        );
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const json = await res.json();
+        if (!cancelled) {
+          setRows(Array.isArray(json.results) ? json.results : []);
+          setError(null);
+        }
+      } catch (err: any) {
+        console.error("fetch error:", err);
+        if (!cancelled) {
+          setError("Failed to load data.");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_URL, API_KEY, accessState, initialRows, initialError, simulateLoadError]);
+
+  const goView = (row: Row) => {
+    const url = new URL(window.location.origin + "/expert-data-management/view");
+    url.searchParams.set("id", row.data_id);
+    url.searchParams.set("fileName", row.file_name);
+    url.searchParams.set("lastEdited", row.last_edited);
+    url.searchParams.set("submittedBy", row.submitted_by);
+    router.push(url.pathname + "?" + url.searchParams.toString());
+  };
+
 
   const handleDelete = async (batchId: string) => {
-  if (!batchId) return;
-  if (!confirm("Yakin hapus batch ini beserta datanya?")) return;
+    if (!batchId) return;
+    if (!confirm("Yakin hapus batch ini beserta datanya?")) return;
 
-  setDeletingId(batchId);
-  try {
-    const res = await fetch(`${API_URL}/expert-feature/experts/batches/${batchId}/delete/`, {
-      method: "DELETE",
-      headers: {
-        "X-API-KEY": API_KEY,
-        "Authorization": `Bearer ${getTokenForDelete()}`,
-      },
-    });
+    setDeletingId(batchId);
+    try {
+      const res = await fetch(`${API_URL}/expert-feature/experts/batches/${batchId}/delete/`, {
+        method: "DELETE",
+        headers: {
+          "X-API-KEY": API_KEY,
+          Authorization: `Bearer ${getTokenForDelete()}`,
+        },
+      });
 
-    if ([200, 202, 204].includes(res.status)) {
-      setRows((prev) => prev.filter((r) => r.data_id !== batchId));
-    } else {
-      const text = await res.text().catch(() => "");
-      console.error("delete failed:", res.status, text);
-      alert(`Failed to delete batch (status ${res.status}).`);
+      if ([200, 202, 204].includes(res.status)) {
+        setRows((prev) => prev.filter((r) => r.data_id !== batchId));
+      } else {
+        const text = await res.text().catch(() => "");
+        console.error("delete failed:", res.status, text);
+        alert(`Failed to delete batch (status ${res.status}).`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Delete failed (network).");
+    } finally {
+      setDeletingId(null);
     }
-  } catch (e) {
-    console.error(e);
-    alert("Delete failed (network).");
-  } finally {
-    setDeletingId(null);
-  }
-};
+  };
 
-
-  const filteredRows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [r.data_id, r.file_name, r.last_edited, r.submitted_by].join(" ").toLowerCase().includes(q)
-    );
-  }, [rows, query]);
+  const filteredRows = useMemo(() => filterRows(rows, query), [rows, query]);
 
   if (accessState === "loading" || accessState === "redirect") {
     return (
@@ -291,3 +328,9 @@ export default function ExpertDataManagementPage() {
     </div>
   );
 }
+
+export {
+  getToken as __test_getToken,
+  getTokenForDelete as __test_getTokenForDelete,
+  filterRows as __test_filterRows,
+};
