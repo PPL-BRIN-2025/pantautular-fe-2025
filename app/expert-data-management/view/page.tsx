@@ -57,7 +57,7 @@ function ViewContent({ dataset, fileName: injectedFileName }: ViewPageProps) {
       setAccessState("redirect");
       return;
     }
-    const allowed = normalizeRole(resolved.role) === "EXP_USER";
+    const allowed = normalizeRole(resolved.role) === "EXP_USER" || normalizeRole(resolved.role) === "ADMIN";
     setAccessState(allowed ? "granted" : "forbidden");
   }, [user]);
 
