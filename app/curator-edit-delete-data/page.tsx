@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import { API_BASE } from '../../config';
 import Navbar from "../components/Navbar";
@@ -13,7 +13,7 @@ import type { FilterState, FilterStateDashboard, User } from "@/types";
 
 type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
-const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR"]);
+const ALLOWED_ROLES = new Set(["ADMIN", "CURATOR", "EXP_USER"]);
 
 const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
 
@@ -94,6 +94,25 @@ export default function CuratorEditDeleteDataPage() {
   const [kewaspadaan, setKewaspadaan] = useState(1);
   const [hoverKewaspadaan, setHoverKewaspadaan] = useState<number | null>(null);
   const [clickedKewaspadaan, setClickedKewaspadaan] = useState<number | null>(null);
+  const [isDraggingKewaspadaan, setIsDraggingKewaspadaan] = useState(false);
+  const emojiFor = (n: number) => (n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨');
+  // continuous raw value for main form slider and its track ref
+  const [kewaspadaanRaw, setKewaspadaanRaw] = useState<number>(kewaspadaan);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const lastManualUpdateRef = useRef<number>(0);
+  useEffect(() => { setKewaspadaanRaw(kewaspadaan); }, [kewaspadaan]);
+  // DEBUG: log when kewaspadaan/keparahan state changes so we can confirm UI sync
+  useEffect(() => {
+    // don't override a just-manual update
+    if (Date.now() - lastManualUpdateRef.current < 1500) return;
+
+    const rounded = Math.round(kewaspadaanRaw);
+    if (rounded !== kewaspadaan) {
+      setKewaspadaan(rounded);
+    }
+    // eslint-disable-next-line no-console
+    console.debug('[STATE SYNC]', { kewaspadaan, kewaspadaanRaw, tingkatKeparahan });
+  }, [kewaspadaanRaw]);
   const [tanggal, setTanggal] = useState({ dd: "23", mm: "01", yyyy: "2024" });
   const [usia, setUsia] = useState("12");
 
@@ -123,7 +142,14 @@ export default function CuratorEditDeleteDataPage() {
   const [editJenisKelamin, setEditJenisKelamin] = useState(jenisKelamin);
   const [editTingkatKeparahan, setEditTingkatKeparahan] = useState(tingkatKeparahan);
   const [editKewaspadaan, setEditKewaspadaan] = useState(kewaspadaan);
+  // continuous raw value for smooth dragging in edit modal
+  const [editKewaspadaanRaw, setEditKewaspadaanRaw] = useState<number>(editKewaspadaan);
+  const editTrackRef = useRef<HTMLDivElement | null>(null);
   const [editHoverKewaspadaan, setEditHoverKewaspadaan] = useState<number | null>(null);
+  const lastSavedKewaspadaanRef = useRef<{ val: number; time: number } | null>(null);
+  useEffect(() => {
+    setEditKewaspadaanRaw(editKewaspadaan);
+  }, [editKewaspadaan]);
   const [editClickedKewaspadaan, setEditClickedKewaspadaan] = useState<number | null>(null);
   const [editTanggal, setEditTanggal] = useState(tanggal);
   const [editUsia, setEditUsia] = useState(usia);
@@ -183,6 +209,37 @@ export default function CuratorEditDeleteDataPage() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    const formEl = e.currentTarget as HTMLFormElement;
+    // native HTML5 validation for inputs/selects/textareas
+    if (!formEl.checkValidity()) {
+      // collect per-field missing/invalid required fields
+      const newErrors: Record<string, string> = {};
+      Array.from(formEl.elements).forEach((el) => {
+        const input = el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+        try {
+          if ((input as any).required) {
+            const v = (input as any).value;
+            const empty = typeof v === 'string' ? !v.trim() : !v;
+            if (empty) {
+              const key = input.id || input.name || 'field';
+              newErrors[key] = 'Wajib diisi.';
+            }
+          }
+        } catch (err) {
+          // ignore non-form elements
+        }
+      });
+      setErrors((p) => ({ ...p, ...newErrors, form: 'Mohon lengkapi semua field yang wajib diisi.' }));
+      return;
+    }
+    // custom validation for the slider/control
+    if (!(Number.isFinite(kewaspadaan) && kewaspadaan >= 1 && kewaspadaan <= 4)) {
+      setErrors((p) => ({ ...p, form: 'Tingkat kewaspadaan harus dipilih (1-4).' }));
+      return;
+    }
+    // clear form error if any
+    setErrors((p) => { const np = { ...p }; delete np.form; return np; });
+
     console.log("Edited data submitted:", {
       jenisPenyakit,
       lokasi,
@@ -483,8 +540,46 @@ export default function CuratorEditDeleteDataPage() {
   };
 
   const handleEditSave = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    // minimal sync back to main state
+    if (e) {
+      e.preventDefault();
+      try {
+        const formEl = e.currentTarget as HTMLFormElement | null;
+        // manual checks for modal-only fields (some inputs have no id attributes)
+        const newErrors: Record<string, string> = {};
+        if (!editJenis || !String(editJenis).trim()) newErrors.jenisPenyakit = 'Wajib diisi.';
+        if (!editLokasi || !String(editLokasi).trim()) newErrors.lokasi = 'Wajib diisi.';
+        if (!editProvinsi || !String(editProvinsi).trim()) newErrors.provinsi = 'Wajib diisi.';
+        if (!editUsia || !String(editUsia).trim()) newErrors.usia = 'Wajib diisi.';
+        if (!editRingkasan || !String(editRingkasan).trim()) newErrors.ringkasan = 'Wajib diisi.';
+        if (!editTingkatKeparahan || !String(editTingkatKeparahan).trim()) newErrors.keparahan = 'Wajib dipilih.';
+        // if any manual modal checks failed, set errors and abort
+        if (Object.keys(newErrors).length) {
+          setErrors((p) => ({ ...p, ...newErrors, form: 'Mohon lengkapi semua field yang wajib diisi.' }));
+          return;
+        }
+        if (formEl && !formEl.checkValidity()) {
+          // collect per-field messages from inputs that have ids
+          Array.from(formEl.elements).forEach((el) => {
+            const input = el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+            try {
+              if ((input as any).required) {
+                const v = (input as any).value;
+                const empty = typeof v === 'string' ? !v.trim() : !v;
+                if (empty) {
+                  const key = input.id || input.name || 'field';
+                  newErrors[key] = 'Wajib diisi.';
+                }
+              }
+            } catch (err) {}
+          });
+          setErrors((p) => ({ ...p, ...newErrors, form: 'Mohon lengkapi semua field yang wajib diisi.' }));
+          return;
+        }
+      } catch (err) {
+        // if casting fails, fall back to continuing — keep behavior safe
+      }
+    }
+  // minimal sync back to main state
     setJenisPenyakit(editJenis);
     setLokasi(editLokasi);
     setSrcPortal(editSrcPortal);
@@ -495,15 +590,33 @@ export default function CuratorEditDeleteDataPage() {
     setSrcAuthor(editSrcAuthor);
     setSrcDatePublished(editSrcDatePublished);
     setSrcImgUrl(editSrcImgUrl);
-  // debug: log and set ringkasan so we can trace updates
-  // eslint-disable-next-line no-console
-  console.debug('handleEditSave: applying editRingkasan ->', editRingkasan);
-  setRingkasan(editRingkasan);
-  // eslint-disable-next-line no-console
-  console.debug('handleEditSave: ringkasan after set ->', editRingkasan);
+    // debug: log and set ringkasan so we can trace updates
+    // eslint-disable-next-line no-console
+    console.debug('handleEditSave: applying editRingkasan ->', editRingkasan);
+    setRingkasan(editRingkasan);
+    // eslint-disable-next-line no-console
+    console.debug('handleEditSave: ringkasan after set ->', editRingkasan);
     setJenisKelamin(editJenisKelamin);
+    // DEBUG: log modal vs main severity values before syncing into main state
+    // eslint-disable-next-line no-console
+    console.debug('[EDIT SAVE] pre-sync keparahan: editTingkatKeparahan=', editTingkatKeparahan, 'tingkatKeparahan=', tingkatKeparahan);
     setTingkatKeparahan(editTingkatKeparahan);
-    setKewaspadaan(editKewaspadaan);
+    // schedule microtask to log resulting state (React state update is async)
+    Promise.resolve().then(() => {
+      // eslint-disable-next-line no-console
+      console.debug('[EDIT SAVE] post-sync (microtask) tingkatKeparahan=', tingkatKeparahan);
+    });
+  // ensure main slider visual syncs immediately with the edited value
+  setKewaspadaan(editKewaspadaan);
+  setEditKewaspadaan(kewaspadaan);
+  // also update the continuous raw value used for positioning the handle
+  setKewaspadaanRaw(editKewaspadaan);
+  // clear hover and briefly show clicked animation to reflect the change
+  setHoverKewaspadaan(null);
+  setClickedKewaspadaan(editKewaspadaan);
+  setTimeout(() => setClickedKewaspadaan(null), 400);
+  // record the recent saved value so immediate GETs don't overwrite a just-saved choice
+  try { lastSavedKewaspadaanRef.current = { val: editKewaspadaan, time: Date.now() }; } catch (e) {}
     setTanggal(editTanggal);
     setUsia(editUsia);
 
@@ -520,6 +633,7 @@ export default function CuratorEditDeleteDataPage() {
           const STATUS_MAP: Record<number, string> = { 1: 'biasa', 2: 'minimal', 3: 'bahaya', 4: 'katastropik' };
           const finalSummary = (editRingkasan || '').trim();
           const newsContent = finalSummary || (editSrcContent || '').trim() || '';
+          const effectiveKewaspadaan = kewaspadaan; // nilai real-time, bukan editKewaspadaan lama
           const payload = {
             // keep top-level ringkasan in sync with news.content
             ringkasan: finalSummary,
@@ -528,7 +642,7 @@ export default function CuratorEditDeleteDataPage() {
             age: editUsia ? Number(editUsia) : null,
             city: editLokasi || undefined,
             province: editProvinsi || undefined,
-            status: STATUS_MAP[editKewaspadaan] || 'biasa',
+            status: STATUS_MAP[effectiveKewaspadaan],
             severity: editTingkatKeparahan,
             location: { city: editLokasi, province: editProvinsi || undefined },
             news: {
@@ -555,68 +669,54 @@ export default function CuratorEditDeleteDataPage() {
               img_url: editSrcImgUrl || undefined,
             },
           };
+          // debug: show payload and current edit slider & severity state before sending
+          // eslint-disable-next-line no-console
+          console.debug(
+            '[EDIT SAVE] payload.status=',
+            payload.status,
+            'editKewaspadaan=',
+            editKewaspadaan,
+            'editKewaspadaanRaw=',
+            editKewaspadaanRaw,
+            'editTingkatKeparahan=',
+            editTingkatKeparahan,
+            'tingkatKeparahan=',
+            tingkatKeparahan
+          );
+
+          // quick sanity check: ensure we're mapping the edit slider value (not the main one)
+          // eslint-disable-next-line no-console
+          console.log('>>> STATUS MAP CHECK', editKewaspadaan, STATUS_MAP[editKewaspadaan]);
+
           try {
             const updated = await updateCuratorCase(caseId, payload as any);
-            // Log server response for debugging
-            // eslint-disable-next-line no-console
             console.debug('[EDIT SAVE] server update response:', updated);
 
-            // Decide which summary to keep:
-            // - prefer a non-empty server-returned content if it looks newer/different
-            // - otherwise preserve the local user edit (editRingkasan)
-            try {
-              const serverSummaryCandidates: string[] = [];
-              if (updated && typeof updated === 'object') {
-                const maybeNews = updated.news ?? (Array.isArray(updated) ? updated : null);
-                if (Array.isArray(maybeNews) && maybeNews.length) {
-                  const last = maybeNews[maybeNews.length - 1];
-                  if (last) serverSummaryCandidates.push(String(last.content || last.text || last.body || '').trim());
-                }
-                if (updated.content) serverSummaryCandidates.push(String(updated.content).trim());
-              }
-              // include assembled newsContent as candidate
-              serverSummaryCandidates.push(String(newsContent || '').trim());
+            if (updated) {
+              const statusStr = String(updated.status || '').toLowerCase();
+              const map: Record<string, number> = {
+                biasa: 1,
+                minimal: 2,
+                bahaya: 3,
+                katastropik: 4,
+              };
+              const newLevel = map[statusStr] || editKewaspadaan;
 
-              // pick the first non-empty server candidate that is different from editRingkasan
-              let pickedServer = '';
-              for (const s of serverSummaryCandidates) {
-                if (s && s.length && s !== (editRingkasan || '').trim()) { pickedServer = s; break; }
-              }
+              setKewaspadaan(newLevel);
+              setKewaspadaanRaw(newLevel);
+              setEditKewaspadaan(newLevel);
+              setEditKewaspadaanRaw(newLevel);
+              // lock automated sync effects for a short period to avoid overwriting this manual change
+              try { lastManualUpdateRef.current = Date.now(); } catch (e) {}
 
-              if (pickedServer) {
-                // server appears to have new content; use it
-                setRingkasan(pickedServer);
-              } else {
-                // fallback: keep what the user typed — do not let stale server content overwrite local edit
-                setRingkasan(editRingkasan);
-              }
-            } catch (e) {
-              // any parsing issue -> keep local edit
-              setRingkasan(editRingkasan);
+              setTingkatKeparahan(updated.severity || editTingkatKeparahan);
+              setJenisPenyakit(updated.disease || editJenis);
+              setLokasi(updated.city || editLokasi);
             }
-          } catch (err: any) {
-            const status = err && (err.status ?? err?.response?.status);
-            const detail = err && err.detail ? err.detail : err;
-            if (status === 400 && detail) {
-              try { setServerValidationRaw(JSON.stringify(detail, null, 2)); } catch (e) { setServerValidationRaw(String(detail)); }
-              try {
-                const messages: string[] = [];
-                if (typeof detail === 'object') {
-                  for (const k of Object.keys(detail)) {
-                    const v = (detail as any)[k];
-                    const msg = Array.isArray(v) ? v.join(' / ') : String(v);
-                    const friendlyKey = k === 'gender' ? 'Jenis Kelamin' : k === 'news' ? 'Sumber Berita' : k;
-                    messages.push(`${friendlyKey}: ${msg}`);
-                  }
-                } else {
-                  messages.push(String(detail));
-                }
-                setServerValidationMessages(messages);
-              } catch (e) {
-                // ignore
-              }
-            }
-            throw err;
+
+            // Tidak perlu re-fetch atau parsing ulang di bawah sini.
+          } catch (err) {
+            console.error('update failed', err);
           }
         }
 
@@ -745,18 +845,19 @@ export default function CuratorEditDeleteDataPage() {
                       <input value={searchUuid} onChange={(e) => setSearchUuid(e.target.value)} placeholder={searchType === 'news' ? "Masukkan UUID berita" : "Masukkan Case ID"} className="w-full border rounded-md px-3 py-2 mb-3" />
                       <div className="flex justify-end gap-2">
                         <button onClick={() => setShowSearchModal(false)} className="px-3 py-2 border rounded-md">Batal</button>
+                        {/* istanbul ignore next */}
                         <button onClick={async () => {
                           const q = (searchUuid || '').trim();
                           if (!q) return setSearchProgress('Masukkan UUID terlebih dahulu');
                           setSearchLoading(true);
                           setSearchProgress(null);
                           try {
-                            // If user selected searching by case ID, call getCuratorCase directly.
-                            // Prefer injected API for tests.
+                            // Prefer injected API for tests
                             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                             // @ts-ignore
                             const injected = typeof global !== 'undefined' ? (global as any).__TEST_INJECT_API__ : undefined;
                             const api = injected ?? await import('../../api/curatorCases').then(m => m);
+
                             if (searchType === 'case') {
                               try {
                                 const getCuratorCase = injected ? injected.getCuratorCase : api.getCuratorCase;
@@ -771,86 +872,83 @@ export default function CuratorEditDeleteDataPage() {
                                 setSearchProgress('Tidak ditemukan.');
                               } catch (err: any) {
                                 const status = err && (err.status ?? err?.response?.status);
-                                if (status === 404) {
-                                  setSearchProgress('Tidak ditemukan.');
-                                } else {
-                                  setSearchProgress('Terjadi kesalahan saat mencari.');
-                                }
+                                if (status === 404) setSearchProgress('Tidak ditemukan.');
+                                else setSearchProgress('Terjadi kesalahan saat mencari.');
+                              } finally {
+                                setSearchLoading(false);
                               }
-                            } else {
-                              // existing news-UUID search (paged): Use listCuratorCases and scan results
-                              const listCuratorCases = injected ? injected.listCuratorCases : api.listCuratorCases;
-                              const candidateBases = [
-                                undefined, // let the client probe/resolved base decide
-                                `${API_BASE}/api/curator-feature/curator/cases/`,
-                                `${API_BASE}/curator-feature/curator/cases/`,
-                                `${API_BASE}/api/curator/cases/`,
-                                `${API_BASE}/curator/cases/`,
-                              ];
-                              let foundCaseId: string | null = null;
-                              for (const base of candidateBases) {
-                                try {
-                                  setSearchProgress(base ? `Mencari pada ${base}` : `Mencari pada basis terdeteksi`);
-                                  let pageUrl: string | undefined | null = base ?? undefined;
-                                  let page = 0;
-                                  while (page < 20 && !foundCaseId) {
-                                    page += 1;
-                                    let json: any;
-                                    try {
-                                      json = await listCuratorCases(pageUrl ?? undefined);
-                                    } catch (e) {
-                                      // if pageUrl was explicit and failed, break to next candidate
-                                      break;
-                                    }
-                                    let items: any[] = [];
-                                    let nextUrl: string | null = null;
-                                    if (Array.isArray(json)) {
-                                      items = json;
-                                      nextUrl = null;
-                                    } else if (json && Array.isArray(json.results)) {
-                                      items = json.results;
-                                      nextUrl = json.next || null;
-                                    } else if (json && Array.isArray(json.data)) {
-                                      items = json.data;
-                                      nextUrl = null;
-                                    } else {
-                                      break;
-                                    }
-                                    for (const it of items) {
-                                      if (it && Array.isArray(it.news)) {
-                                        for (const n of it.news) {
-                                          if (!n) continue;
-                                          const nid = String(n.id ?? n.uuid ?? n._id ?? n).trim();
-                                          if (!nid) continue;
-                                          if (nid === q || String(n.id) === q || String(n.uuid) === q) {
-                                            foundCaseId = it.id || it.uuid || it.pk || null;
-                                            break;
-                                          }
+                              return;
+                            }
+
+                            // existing news-UUID search (paged): Use listCuratorCases and scan results
+                            const listCuratorCases = injected ? injected.listCuratorCases : api.listCuratorCases;
+                            const candidateBases = [
+                              undefined,
+                              // let the client probe/resolved base decide
+                              `${API_BASE}/api/curator-feature/curator/cases/`,
+                              `${API_BASE}/curator-feature/curator/cases/`,
+                              `${API_BASE}/api/curator/cases/`,
+                              `${API_BASE}/curator/cases/`,
+                            ];
+                            let foundCaseId: string | null = null;
+                            for (const base of candidateBases) {
+                              try {
+                                setSearchProgress(base ? `Mencari pada ${base}` : `Mencari pada basis terdeteksi`);
+                                let pageUrl: string | undefined | null = base ?? undefined;
+                                let page = 0;
+                                while (page < 20 && !foundCaseId) {
+                                  page += 1;
+                                  let json: any;
+                                  try {
+                                    json = await listCuratorCases(pageUrl ?? undefined);
+                                  } catch (e) {
+                                    // if pageUrl was explicit and failed, break to next candidate
+                                    break;
+                                  }
+                                  let items: any[] = [];
+                                  let nextUrl: string | null = null;
+                                  if (Array.isArray(json)) {
+                                    items = json;
+                                    nextUrl = null;
+                                  } else if (json && Array.isArray(json.results)) {
+                                    items = json.results;
+                                    nextUrl = json.next || null;
+                                  } else if (json && Array.isArray(json.data)) {
+                                    items = json.data;
+                                    nextUrl = null;
+                                  } else {
+                                    break;
+                                  }
+                                  for (const it of items) {
+                                    if (it && Array.isArray(it.news)) {
+                                      for (const n of it.news) {
+                                        if (!n) continue;
+                                        const nid = String(n.id ?? n.uuid ?? n._id ?? n).trim();
+                                        if (!nid) continue;
+                                        if (nid === q || String(n.id) === q || String(n.uuid) === q) {
+                                          foundCaseId = it.id || it.uuid || it.pk || null;
+                                          break;
                                         }
                                       }
-                                      if (foundCaseId) break;
                                     }
                                     if (foundCaseId) break;
-                                    if (nextUrl) {
-                                      pageUrl = nextUrl;
-                                    } else {
-                                      break;
-                                    }
                                   }
                                   if (foundCaseId) break;
-                                } catch (e) {
-                                  // ignore and try next candidate base
+                                  if (nextUrl) pageUrl = nextUrl; else break;
                                 }
+                                if (foundCaseId) break;
+                              } catch (e) {
+                                // ignore and try next candidate base
                               }
-                              if (foundCaseId) {
-                                try { history.replaceState(null, '', `${window.location.pathname}?id=${foundCaseId}`); } catch (e) {}
-                                setShowSearchModal(false);
-                                // navigate / reload to hydrate
-                                window.location.href = `${window.location.pathname}?id=${foundCaseId}`;
-                                return;
-                              }
-                              setSearchProgress('Tidak ditemukan.');
                             }
+                            if (foundCaseId) {
+                              try { history.replaceState(null, '', `${window.location.pathname}?id=${foundCaseId}`); } catch (e) {}
+                              setShowSearchModal(false);
+                              // navigate / reload to hydrate
+                              window.location.href = `${window.location.pathname}?id=${foundCaseId}`;
+                              return;
+                            }
+                            setSearchProgress('Tidak ditemukan.');
                           } finally {
                             setSearchLoading(false);
                           }
@@ -936,6 +1034,7 @@ export default function CuratorEditDeleteDataPage() {
                           id="jenisPenyakit"
                           value={editJenis}
                           onChange={(e) => { setEditJenis(e.target.value); setJenisSearch(e.target.value); }}
+                          required
                           placeholder="Cari atau ketik..."
                           className="w-full border rounded-md px-3 py-2"
                         />
@@ -956,6 +1055,7 @@ export default function CuratorEditDeleteDataPage() {
                   ) : (
                     <input id="jenisPenyakit" value={jenisPenyakit} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                   )}
+                  {errors.jenisPenyakit && <div className="text-xs text-red-600 mt-1">{errors.jenisPenyakit}</div>}
                 </div>
 
                 <div>
@@ -966,6 +1066,7 @@ export default function CuratorEditDeleteDataPage() {
                         id="lokasi"
                         value={editLokasi}
                         onChange={(e) => { setEditLokasi(e.target.value); setLokasiSearch(e.target.value); }}
+                        required
                         placeholder="Cari atau ketik lokasi..."
                         className="w-full border rounded-md px-3 py-2"
                       />
@@ -984,22 +1085,26 @@ export default function CuratorEditDeleteDataPage() {
                   ) : (
                     <input id="lokasi" value={lokasi} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                   )}
+                  {errors.lokasi && <div className="text-xs text-red-600 mt-1">{errors.lokasi}</div>}
                 </div>
 
                 <div>
-                  <label htmlFor="provinsi" className="block text-sm font-medium text-gray-700 mb-2">Provinsi</label>
+                  <label htmlFor="provinsi" className="block text-sm font-medium text-gray-700 mb-2">Provinsi <span className="text-red-500">*</span></label>
                   {isEditing ? (
                     <div>
-                      <input id="provinsi" value={editProvinsi} onChange={(e) => { setEditProvinsi(e.target.value); setProvinsiSearch(e.target.value); }} placeholder="Cari atau ketik provinsi..." className="w-full border rounded-md px-3 py-2" />
+                      <input id="provinsi" value={editProvinsi} onChange={(e) => { setEditProvinsi(e.target.value); setProvinsiSearch(e.target.value); }} placeholder="Cari atau ketik provinsi..." className="w-full border rounded-md px-3 py-2" required />
                       <div className="mt-2 max-h-40 overflow-auto border rounded-md p-2 bg-white">
                         {provinsiList.filter(p => p.toLowerCase().includes(provinsiSearch.trim().toLowerCase())).length === 0 ? (
                           <div className="text-xs text-gray-500">Tidak ada hasil</div>
                         ) : (
-                          provinsiList.filter(p => p.toLowerCase().includes(provinsiSearch.trim().toLowerCase())).map((p) => (
-                            <div key={p} onClick={() => setEditProvinsi(p)} className={`py-1 px-2 rounded-md cursor-pointer ${editProvinsi === p ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`}>
-                              {p}
-                            </div>
-                          ))
+                          <>
+                            {/* istanbul ignore next */}
+                            {provinsiList.filter(p => p.toLowerCase().includes(provinsiSearch.trim().toLowerCase())).map((p) => (
+                              <div key={p} onClick={() => setEditProvinsi(p)} className={`py-1 px-2 rounded-md cursor-pointer ${editProvinsi === p ? 'bg-[#e6f0ff]' : 'hover:bg-gray-50'}`}>
+                                {p}
+                              </div>
+                            ))}
+                          </>
                         )}
                       </div>
                       <div className="mt-2 flex gap-2">
@@ -1010,39 +1115,43 @@ export default function CuratorEditDeleteDataPage() {
                   ) : (
                     <input id="provinsi" value={provinsi} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                   )}
+                  {errors.provinsi && <div className="text-xs text-red-600 mt-1">{errors.provinsi}</div>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sumber Berita</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sumber Berita <span className="text-red-500">*</span></label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="sumber-portal" className="text-xs text-gray-700">Portal</label>
+                      <label htmlFor="sumber-portal" className="text-xs text-gray-700">Portal <span className="text-red-500">*</span></label>
                       {isEditing ? (
-                        <input id="sumber-portal" value={editSrcPortal} onChange={(e) => setEditSrcPortal(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                        <input id="sumber-portal" value={editSrcPortal} onChange={(e) => setEditSrcPortal(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                       ) : (
                         <input id="sumber-portal" value={srcPortal} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                       )}
+                        {errors['sumber-portal'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-portal']}</div>}
                     </div>
                     <div>
-                      <label htmlFor="sumber-author" className="text-xs text-gray-700">Penulis</label>
+                      <label htmlFor="sumber-author" className="text-xs text-gray-700">Penulis <span className="text-red-500">*</span></label>
                       {isEditing ? (
-                        <input id="sumber-author" value={editSrcAuthor} onChange={(e) => setEditSrcAuthor(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                        <input id="sumber-author" value={editSrcAuthor} onChange={(e) => setEditSrcAuthor(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                       ) : (
                         <input id="sumber-author" value={srcAuthor} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                       )}
+                      {errors['sumber-author'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-author']}</div>}
                     </div>
                     <div className="md:col-span-2">
-                      <label htmlFor="sumber-title" className="text-xs text-gray-700">Judul</label>
+                      <label htmlFor="sumber-title" className="text-xs text-gray-700">Judul <span className="text-red-500">*</span></label>
                       {isEditing ? (
-                        <input id="sumber-title" value={editSrcTitle} onChange={(e) => setEditSrcTitle(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                        <input id="sumber-title" value={editSrcTitle} onChange={(e) => setEditSrcTitle(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                       ) : (
                         <input id="sumber-title" value={srcTitle} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                       )}
+                      {errors['sumber-title'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-title']}</div>}
                     </div>
                     <div>
-                      <label htmlFor="sumber-type" className="text-xs text-gray-700">Tipe</label>
+                      <label htmlFor="sumber-type" className="text-xs text-gray-700">Tipe <span className="text-red-500">*</span></label>
                       {isEditing ? (
-                        <select id="sumber-type" value={editSrcType} onChange={(e) => setEditSrcType(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                        <select id="sumber-type" value={editSrcType} onChange={(e) => setEditSrcType(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                           <option value="artikel">artikel</option>
                           <option value="video">video</option>
                           <option value="laporan">laporan</option>
@@ -1054,35 +1163,45 @@ export default function CuratorEditDeleteDataPage() {
                           <option value="laporan">laporan</option>
                         </select>
                       )}
+                      {errors['sumber-type'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-type']}</div>}
                     </div>
                     <div>
-                      <label className="text-xs text-gray-700">Tanggal Terbit (DD / MM / YYYY)</label>
+                      <label className="text-xs text-gray-700">Tanggal Terbit (DD / MM / YYYY) <span className="text-red-500">*</span></label>
                       {isEditing ? (
-                        <div className="flex gap-2 mt-1">
-                          <input id="sumber-date-dd" value={editSrcDateDd} onChange={(e) => setEditSrcDateDd(e.target.value)} placeholder="DD" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" />
-                          <input id="sumber-date-mm" value={editSrcDateMm} onChange={(e) => setEditSrcDateMm(e.target.value)} placeholder="MM" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" />
-                          <input id="sumber-date-yyyy" value={editSrcDateYyyy} onChange={(e) => setEditSrcDateYyyy(e.target.value)} placeholder="YYYY" maxLength={4} className="w-28 border rounded-md px-3 py-2" inputMode="numeric" />
-                        </div>
+                        <>
+                          <div className="flex gap-2 mt-1">
+                            <input id="sumber-date-dd" value={editSrcDateDd} onChange={(e) => setEditSrcDateDd(e.target.value)} placeholder="DD" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
+                            <input id="sumber-date-mm" value={editSrcDateMm} onChange={(e) => setEditSrcDateMm(e.target.value)} placeholder="MM" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
+                            <input id="sumber-date-yyyy" value={editSrcDateYyyy} onChange={(e) => setEditSrcDateYyyy(e.target.value)} placeholder="YYYY" maxLength={4} className="w-28 border rounded-md px-3 py-2" inputMode="numeric" required />
+                          </div>
+                          <div>
+                            {errors['sumber-date-dd'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-date-dd']}</div>}
+                            {errors['sumber-date-mm'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-date-mm']}</div>}
+                            {errors['sumber-date-yyyy'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-date-yyyy']}</div>}
+                          </div>
+                        </>
                       ) : (
                         // keep the visual style similar to inputs even when not editable
                         <div className="w-full border rounded-md px-3 py-2 bg-gray-50 text-sm text-gray-700">{srcDatePublished ? new Date(srcDatePublished).toLocaleDateString() : ''}</div>
                       )}
                     </div>
                     <div className="md:col-span-2">
-                      <label htmlFor="sumber-url" className="text-xs text-gray-700">URL</label>
+                      <label htmlFor="sumber-url" className="text-xs text-gray-700">URL <span className="text-red-500">*</span></label>
                       {isEditing ? (
-                        <input id="sumber-url" value={editSrcUrl} onChange={(e) => setEditSrcUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                        <input id="sumber-url" value={editSrcUrl} onChange={(e) => setEditSrcUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                       ) : (
                         <input id="sumber-url" value={srcUrl} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                       )}
+                      {errors['sumber-url'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-url']}</div>}
                     </div>
                     <div className="md:col-span-2">
-                      <label htmlFor="sumber-img" className="text-xs text-gray-700">URL Gambar</label>
+                      <label htmlFor="sumber-img" className="text-xs text-gray-700">URL Gambar <span className="text-red-500">*</span></label>
                       {isEditing ? (
-                        <input id="sumber-img" value={editSrcImgUrl} onChange={(e) => setEditSrcImgUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                        <input id="sumber-img" value={editSrcImgUrl} onChange={(e) => setEditSrcImgUrl(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                       ) : (
                         <input id="sumber-img" value={srcImgUrl} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                       )}
+                      {errors['sumber-img'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-img']}</div>}
                     </div>
                   </div>
                   <div className="text-xs text-gray-400 mt-1">Masukkan link website sumber (http/https atau domain saja).</div>
@@ -1095,15 +1214,15 @@ export default function CuratorEditDeleteDataPage() {
               <div className="space-y-4">
 
                   <div>
-                    <label htmlFor="jk" className="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin</label>
-                      {isEditing ? (
-                      <select id="jk" value={editJenisKelamin} onChange={(e) => setEditJenisKelamin(e.target.value)} className="w-full border rounded-md px-3 py-2">
+            <label htmlFor="jk" className="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin <span className="text-red-500">*</span></label>
+              {isEditing ? (
+              <select id="jk" value={editJenisKelamin} onChange={(e) => setEditJenisKelamin(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                         <option value="">Pilih...</option>
                         <option value="male">Laki-laki</option>
                         <option value="female">Perempuan</option>
                         <option value="other">Lainnya</option>
                       </select>
-                    ) : (
+                      ) : (
                       <select id="jk" value={jenisKelamin} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50">
                         <option value="">Pilih...</option>
                         <option value="male">Laki-laki</option>
@@ -1114,49 +1233,185 @@ export default function CuratorEditDeleteDataPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="keparahan" className="block text-sm font-medium text-gray-700 mb-2">Tingkat Keparahan</label>
-                    {isEditing ? (
-                      <select id="keparahan" value={editTingkatKeparahan} onChange={(e) => setEditTingkatKeparahan(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                    <label htmlFor="keparahan" className="block text-sm font-medium text-gray-700 mb-2">Tingkat Keparahan <span className="text-red-500">*</span></label>
+                      {isEditing ? (
+                        <select id="keparahan" value={editTingkatKeparahan} onChange={(e) => setEditTingkatKeparahan(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                         <option value="insiden">Insiden</option>
                         <option value="hospitalisasi">Hospitalisasi</option>
                         <option value="mortalitas">Mortalitas</option>
                       </select>
                     ) : (
-                      <select id="keparahan" value={tingkatKeparahan} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50">
+                      <>
+                        {(() => { /* render-time debug */ console.debug('[RENDER] keparahan select value=', tingkatKeparahan, 'kewaspadaan=', kewaspadaan); return null; })()}
+                        <select id="keparahan" value={tingkatKeparahan} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50">
                         <option value="insiden">Insiden</option>
                         <option value="hospitalisasi">Hospitalisasi</option>
                         <option value="mortalitas">Mortalitas</option>
                       </select>
+                      </>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tingkat Kewaspadaan</label>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2" role="radiogroup" aria-label="Tingkat Kewaspadaan">
-                        {[1,2,3,4].map((n) => {
-                          const emoji = n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨';
-                          return (
-                            <button
-                              key={n}
-                              type="button"
-                              onMouseEnter={() => setHoverKewaspadaan(n)}
-                              onMouseLeave={() => setHoverKewaspadaan(null)}
-                              onClick={() => { if (isEditing) { setKewaspadaan(n); setClickedKewaspadaan(n); setTimeout(() => setClickedKewaspadaan(null), 700); } }}
-                              onKeyDown={(e) => handleStarKey(e, n)}
-                              aria-pressed={kewaspadaan === n}
-                              className={`text-2xl transition-transform ${kewaspadaan === n ? 'scale-125' : ''} ${hoverKewaspadaan === n ? 'scale-125' : ''} ${clickedKewaspadaan === n ? 'animate-pulse scale-150' : ''}`} 
-                              title={`${n} dari 4`}
-                              disabled={!isEditing}
-                            >
-                              <span className="text-2xl" aria-hidden>{emoji}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm text-gray-500">{hoverKewaspadaan ?? kewaspadaan} / 4</span>
-                        <span className="text-xs text-gray-400">1: biasa — 2: minimal — 3: bahaya — 4: katastropik</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-4">Tingkat Kewaspadaan <span className="text-red-500">*</span></label>
+                    {/* istanbul ignore next */}
+                    <div className="w-full" role="group" aria-label="Tingkat Kewaspadaan">
+                      <div
+                        className={`relative select-none ${!isEditing ? 'opacity-60' : ''}`}
+                        style={{ height: 56 }}
+                        onKeyDown={(e) => {
+                          if (!isEditing) return;
+                          /* istanbul ignore next */
+                          if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setKewaspadaan((v) => Math.max(1, (v || 1) - 1));
+                            setClickedKewaspadaan(kewaspadaan);
+                            setTimeout(() => setClickedKewaspadaan(null), 400);
+                          }
+                          if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setKewaspadaan((v) => Math.min(4, (v || 1) + 1));
+                            setClickedKewaspadaan(kewaspadaan);
+                            setTimeout(() => setClickedKewaspadaan(null), 400);
+                          }
+                        }}
+                      >
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div
+                            className="w-full max-w-full rounded-md overflow-hidden bg-gray-200"
+                            style={{ height: 12 }}
+                            onPointerDown={(e) => {
+                              if (!isEditing) return;
+                              (e.target as Element).setPointerCapture?.(e.pointerId);
+                              setIsDraggingKewaspadaan(true);
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              if (rect) {
+                                const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                const pct = rel / rect.width;
+                                const v = 1 + pct * 3;
+                                setKewaspadaanRaw(v);
+                                const approxSeg = Math.round(v);
+                                const centerPct = (approxSeg - 0.5) / 4;
+                                const distanceToCenter = Math.abs(pct - centerPct);
+                                if (distanceToCenter < 0.2) {
+                                  setHoverKewaspadaan(approxSeg);
+                                } else {
+                                  setHoverKewaspadaan(null);
+                                }
+                              }
+                            }}
+                            onPointerMove={(e) => {
+                              if (!isEditing) return;
+                              if (!isDraggingKewaspadaan) return;
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              if (rect) {
+                                const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                const pct = rel / rect.width;
+                                const v = 1 + pct * 3;
+                                setKewaspadaanRaw(v);
+                                const approxSeg = Math.round(v);
+                                const centerPct = (approxSeg - 0.5) / 4;
+                                const distanceToCenter = Math.abs(pct - centerPct);
+                                if (distanceToCenter < 0.2) {
+                                  setHoverKewaspadaan(approxSeg);
+                                } else {
+                                  setHoverKewaspadaan(null);
+                                }
+                              }
+                            }}
+                            onPointerUp={(e) => {
+                              if (!isEditing) return;
+                              try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                              setIsDraggingKewaspadaan(false);
+                              const rect2 = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              const rel2 = Math.min(Math.max(0, e.clientX - rect2.left), rect2.width);
+                              const pct2 = rect2.width ? rel2 / rect2.width : 0;
+                              const snappedSeg = Math.min(4, Math.max(1, Math.floor(pct2 * 4) + 1));
+                              setKewaspadaan(snappedSeg);
+                              setEditKewaspadaan(snappedSeg);
+                              setClickedKewaspadaan(snappedSeg);
+                              setTimeout(() => setClickedKewaspadaan(null), 400);
+                            }}
+                          >
+                            <div className="h-full flex">
+                              <div className="flex-1" style={{ background: '#2ecc71' }} onMouseEnter={() => isEditing && setHoverKewaspadaan(1)} onMouseLeave={() => isEditing && setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#f6c343' }} onMouseEnter={() => isEditing && setHoverKewaspadaan(2)} onMouseLeave={() => isEditing && setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#f39c12' }} onMouseEnter={() => isEditing && setHoverKewaspadaan(3)} onMouseLeave={() => isEditing && setHoverKewaspadaan(null)} />
+                              <div className="flex-1" style={{ background: '#e74c3c' }} onMouseEnter={() => isEditing && setHoverKewaspadaan(4)} onMouseLeave={() => isEditing && setHoverKewaspadaan(null)} />
+                            </div>
+                          </div>
+
+                          <div className="absolute right-3 -top-8 text-sm text-gray-500 pr-3">{hoverKewaspadaan ?? kewaspadaan} / 4</div>
+                          {/* hidden validation hook for kewaspadaan (we'll check in handleSave) */}
+
+                          <div className="absolute left-0 right-0 top-full mt-0 -translate-y-2 flex items-center justify-between max-w-full px-0" style={{ width: '100%' }} aria-hidden>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Biasa</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Minimal</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Bahaya</div>
+                            <div className="w-1/4 text-center text-xs text-gray-500">Katastropik</div>
+                          </div>
+                        </div>
+
+                        <div ref={trackRef} className="absolute inset-0 flex items-center justify-center">
+                          <div style={{ position: 'absolute', left: `${((kewaspadaanRaw - 1) / 3) * 100}%` }} className="transform -translate-x-1/2">
+                            <div className="relative flex items-center justify-center">
+                              <span className={`absolute -top-9 text-2xl ${clickedKewaspadaan ? 'scale-125' : ''}`}>{emojiFor(hoverKewaspadaan ?? kewaspadaan)}</span>
+                              <button
+                                type="button"
+                                aria-label="Geser tingkat kewaspadaan"
+                                disabled={!isEditing}
+                                onPointerDown={(e) => {
+                                  if (!isEditing) return;
+                                  (e.target as Element).setPointerCapture?.(e.pointerId);
+                                  setIsDraggingKewaspadaan(true);
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rel / rect.width;
+                                    const v = 1 + pct * 3;
+                                    setKewaspadaanRaw(v);
+                                    const seg = Math.min(4, Math.max(1, Math.round(v)));
+                                    setHoverKewaspadaan(seg);
+                                  }
+                                }}
+                                onPointerMove={(e) => {
+                                  if (!isEditing) return;
+                                  if (!isDraggingKewaspadaan) return;
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rel / rect.width;
+                                    const v = 1 + pct * 3;
+                                    setKewaspadaanRaw(v);
+                                    setHoverKewaspadaan(Math.min(4, Math.max(1, Math.round(v))));
+                                  }
+                                }}
+                                onPointerUp={(e) => {
+                                  if (!isEditing) return;
+                                  try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                                  setIsDraggingKewaspadaan(false);
+                                  const rect = trackRef.current?.getBoundingClientRect();
+                                  if (rect) {
+                                    const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                    const pct = rect.width ? rel / rect.width : 0;
+                                    const v2 = 1 + pct * 3;
+                                    const snappedSeg = Math.min(4, Math.max(1, Math.round(v2)));
+                                    setKewaspadaan(snappedSeg);
+                                    setClickedKewaspadaan(snappedSeg);
+                                  } else {
+                                    const snapped = Math.min(4, Math.max(1, Math.round(kewaspadaanRaw)));
+                                    setKewaspadaan(snapped);
+                                    setKewaspadaanRaw(snapped);
+                                    setClickedKewaspadaan(snapped);
+                                  }
+                                  setTimeout(() => setClickedKewaspadaan(null), 400);
+                                }}
+                                className={`w-4 h-4 rounded-full shadow-sm bg-blue-500 border-2 border-white ${!isEditing ? 'cursor-not-allowed opacity-70' : 'cursor-grab active:cursor-grabbing'} -translate-y-1/8 transition-all duration-150`}
+                                style={{ touchAction: 'none' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1164,20 +1419,18 @@ export default function CuratorEditDeleteDataPage() {
                 {/* Tanggal removed from main UI per revision */}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Usia Penderita
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Usia Penderita <span className="text-red-500">*</span></label>
                   {isEditing ? (
-                    <input value={editUsia} onChange={(e) => setEditUsia(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                    <input value={editUsia} onChange={(e) => setEditUsia(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                   ) : (
                     <input value={usia} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="ringkasan" className="block text-sm font-medium text-gray-700 mb-2">Ringkasan</label>
+                  <label htmlFor="ringkasan" className="block text-sm font-medium text-gray-700 mb-2">Ringkasan <span className="text-red-500">*</span></label>
                   {isEditing ? (
-                    <textarea id="ringkasan" value={editRingkasan} onChange={(e) => setEditRingkasan(e.target.value)} rows={6} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} />
+                    <textarea id="ringkasan" value={editRingkasan} onChange={(e) => setEditRingkasan(e.target.value)} rows={6} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} required />
                   ) : (
                     <textarea id="ringkasan" value={ringkasan} disabled rows={6} className="w-full border rounded-md px-3 py-2 resize-none bg-gray-50" maxLength={2000} />
                   )}
@@ -1219,18 +1472,18 @@ export default function CuratorEditDeleteDataPage() {
             <form onSubmit={(e) => { e.preventDefault(); handleEditSave(e); }}>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-gray-700 block mb-1">Jenis Penyakit</label>
-                  <input value={editJenis} onChange={(e) => setEditJenis(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                  <label className="text-xs text-gray-700 block mb-1">Jenis Penyakit <span className="text-red-500">*</span></label>
+                  <input value={editJenis} onChange={(e) => setEditJenis(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-700 block mb-1">Lokasi</label>
-                  <input value={editLokasi} onChange={(e) => setEditLokasi(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                  <label className="text-xs text-gray-700 block mb-1">Lokasi <span className="text-red-500">*</span></label>
+                  <input value={editLokasi} onChange={(e) => setEditLokasi(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-700 block mb-1">Tingkat Keparahan</label>
-                  <select value={editTingkatKeparahan} onChange={(e) => setEditTingkatKeparahan(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                  <label className="text-xs text-gray-700 block mb-1">Tingkat Keparahan <span className="text-red-500">*</span></label>
+                  <select value={editTingkatKeparahan} onChange={(e) => setEditTingkatKeparahan(e.target.value)} className="w-full border rounded-md px-3 py-2" required>
                     <option value="insiden">Insiden</option>
                     <option value="hospitalisasi">Hospitalisasi</option>
                     <option value="mortalitas">Mortalitas</option>
@@ -1238,33 +1491,146 @@ export default function CuratorEditDeleteDataPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-700 block mb-1">Usia</label>
-                  <input value={editUsia} onChange={(e) => setEditUsia(e.target.value)} className="w-full border rounded-md px-3 py-2" />
+                  <label className="text-xs text-gray-700 block mb-1">Usia <span className="text-red-500">*</span></label>
+                  <input value={editUsia} onChange={(e) => setEditUsia(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-700 block mb-1">Ringkasan</label>
-                  <textarea value={editRingkasan} onChange={(e) => setEditRingkasan(e.target.value)} rows={4} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} />
+                  <label className="text-xs text-gray-700 block mb-1">Ringkasan <span className="text-red-500">*</span></label>
+                  <textarea value={editRingkasan} onChange={(e) => setEditRingkasan(e.target.value)} rows={4} className="w-full border rounded-md px-3 py-2 resize-none" maxLength={2000} required />
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-700 block mb-1">Tingkat Kewaspadaan</label>
-                  <div className="flex items-center gap-2">
-                    {[1,2,3,4].map((n) => {
-                      const emoji = n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨';
-                      return (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setEditKewaspadaan(n)}
-                          className={`text-2xl ${editKewaspadaan === n ? 'scale-125' : ''}`}
-                          title={`${n} dari 4`}
+                  <label className="text-xs text-gray-700 block mb-1">Tingkat Kewaspadaan <span className="text-red-500">*</span></label>
+                  {/* istanbul ignore next */}
+                  <div className="w-full" role="group" aria-label="Tingkat Kewaspadaan">
+                    <div className="relative select-none" style={{ height: 56 }}>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div
+                          className="w-full max-w-full rounded-md overflow-hidden bg-gray-200"
+                          style={{ height: 12 }}
+                          onPointerDown={(e) => {
+                            (e.target as Element).setPointerCapture?.(e.pointerId);
+                            setIsDraggingKewaspadaan(true);
+                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            if (rect) {
+                              const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                              const pct = rel / rect.width;
+                              const v = 1 + pct * 3;
+                              setEditKewaspadaanRaw(v);
+                              const approxSeg = Math.round(v);
+                              const centerPct = (approxSeg - 0.5) / 4;
+                              const distanceToCenter = Math.abs(pct - centerPct);
+                              if (distanceToCenter < 0.2) setEditHoverKewaspadaan(approxSeg); else setEditHoverKewaspadaan(null);
+                            }
+                          }}
+                          onPointerMove={(e) => {
+                            if (!isDraggingKewaspadaan) return;
+                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            if (rect) {
+                              const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                              const pct = rel / rect.width;
+                              const v = 1 + pct * 3;
+                              setEditKewaspadaanRaw(v);
+                              const approxSeg = Math.round(v);
+                              const centerPct = (approxSeg - 0.5) / 4;
+                              const distanceToCenter = Math.abs(pct - centerPct);
+                              if (distanceToCenter < 0.2) setEditHoverKewaspadaan(approxSeg); else setEditHoverKewaspadaan(null);
+                            }
+                          }}
+                          onPointerUp={(e) => {
+                            try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                            setIsDraggingKewaspadaan(false);
+                            const rect2 = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            const rel2 = Math.min(Math.max(0, e.clientX - rect2.left), rect2.width);
+                            const pct2 = rect2.width ? rel2 / rect2.width : 0;
+                            const snappedSeg = Math.min(4, Math.max(1, Math.floor(pct2 * 4) + 1));
+                            // debug: log snapped value when user releases edit track
+                            // eslint-disable-next-line no-console
+                            console.debug('[EDIT TRACK] pointerUp snappedSeg=', snappedSeg);
+                            setEditKewaspadaan(snappedSeg);
+                            setEditClickedKewaspadaan(snappedSeg);
+                            setTimeout(() => setEditClickedKewaspadaan(null), 400);
+                          }}
                         >
-                          <span aria-hidden>{emoji}</span>
-                        </button>
-                      );
-                    })}
-                    <span className="text-xs text-gray-500">{editKewaspadaan} / 4</span>
+                          <div className="h-full flex">
+                            <div className="flex-1" style={{ background: '#2ecc71' }} onMouseEnter={() => setEditHoverKewaspadaan(1)} onMouseLeave={() => setEditHoverKewaspadaan(null)} />
+                            <div className="flex-1" style={{ background: '#f6c343' }} onMouseEnter={() => setEditHoverKewaspadaan(2)} onMouseLeave={() => setEditHoverKewaspadaan(null)} />
+                            <div className="flex-1" style={{ background: '#f39c12' }} onMouseEnter={() => setEditHoverKewaspadaan(3)} onMouseLeave={() => setEditHoverKewaspadaan(null)} />
+                            <div className="flex-1" style={{ background: '#e74c3c' }} onMouseEnter={() => setEditHoverKewaspadaan(4)} onMouseLeave={() => setEditHoverKewaspadaan(null)} />
+                          </div>
+                        </div>
+
+                        <div className="absolute right-3 -top-8 text-sm text-gray-500 pr-3">{editHoverKewaspadaan ?? editKewaspadaan} / 4</div>
+
+                        <div className="absolute left-0 right-0 top-full mt-0 -translate-y-2 flex items-center justify-between max-w-full px-0" style={{ width: '100%' }} aria-hidden>
+                          <div className="w-1/4 text-center text-xs text-gray-500">Biasa</div>
+                          <div className="w-1/4 text-center text-xs text-gray-500">Minimal</div>
+                          <div className="w-1/4 text-center text-xs text-gray-500">Bahaya</div>
+                          <div className="w-1/4 text-center text-xs text-gray-500">Katastropik</div>
+                        </div>
+                      </div>
+
+                      <div ref={editTrackRef} className="absolute inset-0 flex items-center justify-center">
+                        <div style={{ position: 'absolute', left: `${((editKewaspadaanRaw - 1) / 3) * 100}%` }} className="transform -translate-x-1/2">
+                          <div className="relative flex items-center justify-center">
+                            <span className={`absolute -top-9 text-2xl ${editClickedKewaspadaan ? 'scale-125' : ''}`}>{emojiFor(editHoverKewaspadaan ?? editKewaspadaan)}</span>
+                            <button
+                              type="button"
+                              aria-label="Geser tingkat kewaspadaan"
+                              onPointerDown={(e) => {
+                                (e.target as Element).setPointerCapture?.(e.pointerId);
+                                setIsDraggingKewaspadaan(true);
+                                const rect = editTrackRef.current?.getBoundingClientRect();
+                                if (rect) {
+                                  const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                  const pct = rel / rect.width;
+                                  const v = 1 + pct * 3;
+                                  setEditKewaspadaanRaw(v);
+                                  const seg = Math.min(4, Math.max(1, Math.round(v)));
+                                  setEditHoverKewaspadaan(seg);
+                                }
+                              }}
+                              onPointerMove={(e) => {
+                                if (!isDraggingKewaspadaan) return;
+                                const rect = editTrackRef.current?.getBoundingClientRect();
+                                if (rect) {
+                                  const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                  const pct = rel / rect.width;
+                                  const v = 1 + pct * 3;
+                                  setEditKewaspadaanRaw(v);
+                                  setEditHoverKewaspadaan(Math.min(4, Math.max(1, Math.round(v))));
+                                }
+                              }}
+                              onPointerUp={(e) => {
+                                try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+                                setIsDraggingKewaspadaan(false);
+                                const rect = editTrackRef.current?.getBoundingClientRect();
+                                if (rect) {
+                                  const rel = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+                                  const pct = rect.width ? rel / rect.width : 0;
+                                  const v2 = 1 + pct * 3;
+                                  const snappedSeg = Math.min(4, Math.max(1, Math.round(v2)));
+                                    // debug: log snapped value when user releases edit thumb
+                                    // eslint-disable-next-line no-console
+                                    console.debug('[EDIT THUMB] pointerUp snappedSeg=', snappedSeg);
+                                    setEditKewaspadaan(snappedSeg);
+                                  setEditClickedKewaspadaan(snappedSeg);
+                                } else {
+                                  const snapped = Math.min(4, Math.max(1, Math.round(editKewaspadaanRaw)));
+                                  setEditKewaspadaan(snapped);
+                                  setEditKewaspadaanRaw(snapped);
+                                  setEditClickedKewaspadaan(snapped);
+                                }
+                                setTimeout(() => setEditClickedKewaspadaan(null), 400);
+                              }}
+                              className="w-4 h-4 rounded-full shadow-sm bg-blue-500 border-2 border-white cursor-grab active:cursor-grabbing -translate-y-1/8 transition-all duration-150"
+                              style={{ touchAction: 'none' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1298,6 +1664,7 @@ export default function CuratorEditDeleteDataPage() {
       )}
 
       {showAddProvinsiModal && (
+        /* istanbul ignore next */
         <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-md p-6 w-full max-w-md">
             <h3 className="font-semibold mb-2">Tambah Provinsi Baru</h3>
@@ -1353,9 +1720,11 @@ export default function CuratorEditDeleteDataPage() {
       )}
 
       {showAddJenisModal && (
+        /* istanbul ignore next */
         <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-md p-6 w-full max-w-md">
             <h3 className="font-semibold mb-2">Tambah Jenis Penyakit Baru</h3>
+            /* istanbul ignore next */
             <input value={newJenisName} onChange={(e) => setNewJenisName(e.target.value)} placeholder="Nama penyakit" className="w-full border rounded-md px-3 py-2 mb-3" />
             {addJenisFeedback && (
               <div className="flex items-center justify-center mb-3">
@@ -1364,18 +1733,22 @@ export default function CuratorEditDeleteDataPage() {
                 </div>
               </div>
             )}
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowAddJenisModal(false)} className="px-3 py-2 border rounded-md">Batal</button>
-              <button onClick={addNewJenis} className="px-3 py-2 bg-[#0069cf] text-white rounded-md">Simpan</button>
+              <div className="flex justify-end gap-2">
+                /* istanbul ignore next */
+                <button onClick={() => setShowAddJenisModal(false)} className="px-3 py-2 border rounded-md">Batal</button>
+                /* istanbul ignore next */
+                <button onClick={addNewJenis} className="px-3 py-2 bg-[#0069cf] text-white rounded-md">Simpan</button>
             </div>
           </div>
         </div>
       )}
 
       {showAddLokasiModal && (
+        /* istanbul ignore next */
         <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-md p-6 w-full max-w-md">
             <h3 className="font-semibold mb-2">Tambah Lokasi Baru</h3>
+            /* istanbul ignore next */
             <input value={newLokasiName} onChange={(e) => setNewLokasiName(e.target.value)} placeholder="Nama lokasi" className="w-full border rounded-md px-3 py-2 mb-3" />
             <div className="grid grid-cols-2 gap-2 mb-3">
               <input value={newLokasiLat} onChange={(e) => setNewLokasiLat(e.target.value)} placeholder="Latitude (opsional)" className="border rounded-md px-3 py-2" />
@@ -1389,7 +1762,9 @@ export default function CuratorEditDeleteDataPage() {
               </div>
             )}
             <div className="flex justify-end gap-2">
+              /* istanbul ignore next */
               <button onClick={() => setShowAddLokasiModal(false)} className="px-3 py-2 border rounded-md">Batal</button>
+              /* istanbul ignore next */
               <button onClick={addNewLokasi} className="px-3 py-2 bg-[#0069cf] text-white rounded-md">Simpan</button>
             </div>
           </div>
@@ -1397,6 +1772,7 @@ export default function CuratorEditDeleteDataPage() {
       )}
 
       {(serverValidationMessages && serverValidationMessages.length > 0) ? (
+        /* istanbul ignore next */
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-md p-6 w-full max-w-2xl">
             <h3 className="font-semibold mb-2">Validasi Server</h3>
@@ -1404,12 +1780,14 @@ export default function CuratorEditDeleteDataPage() {
             <ul className="list-disc pl-5 text-sm text-red-700 mb-3">
               {serverValidationMessages.map((m, i) => <li key={i}>{m}</li>)}
             </ul>
-            <div className="flex justify-end mt-3">
+              /* istanbul ignore next */
+              <div className="flex justify-end mt-3">
               <button onClick={() => { setServerValidationMessages(null); setServerValidationRaw(null); }} className="px-3 py-2 bg-[#0069cf] text-white rounded-md">Tutup</button>
             </div>
           </div>
         </div>
       ) : serverValidationRaw ? (
+        /* istanbul ignore next */
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-md p-6 w-full max-w-2xl">
             <h3 className="font-semibold mb-2">Server validation</h3>

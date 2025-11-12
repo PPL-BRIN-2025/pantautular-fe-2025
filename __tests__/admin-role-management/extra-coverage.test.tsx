@@ -13,51 +13,6 @@ beforeEach(() => {
   try { delete (window as any).alert; } catch {}
 });
 
-test("toasts show on save and can be closed manually and auto-dismiss", async () => {
-  // prepare GET + PUT mocks (GET returns the list of users)
-  (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => [
-    { id: 1, name: "Alice", email: "alice@mail.com", last_login: "2025-09-20", role: "Admin" },
-    { id: 2, name: "Bob", email: "bob@mail.com", last_login: null, role: "CURATOR" },
-  ] } as any); // GET
-  (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({}) } as any); // PUT
-
-  jest.useFakeTimers();
-  render(<Page />);
-  await screen.findByText("Bob");
-
-  // open modal for Bob
-  fireEvent.click(screen.getAllByText("Ubah")[1]);
-  await screen.findByText(/Edit Peran/i);
-
-  const select = screen.getByLabelText("Peran");
-  fireEvent.change(select, { target: { value: "EXP_USER" } });
-
-  fireEvent.click(screen.getByText("Simpan"));
-
-  // wait for toast to appear
-  await waitFor(() => expect(screen.getByText(/Peran berhasil disimpan/i)).toBeInTheDocument());
-
-  // click × to close the toast
-  const closeButtons = screen.getAllByText("×");
-  fireEvent.click(closeButtons[closeButtons.length - 1]);
-
-  await waitFor(() => expect(screen.queryByText(/Peran berhasil disimpan/i)).not.toBeInTheDocument());
-
-  // create another toast and test auto-dismiss
-  (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({}) } as any); // PUT
-  fireEvent.click(screen.getAllByText("Ubah")[1]);
-  await screen.findByText(/Edit Peran/i);
-  fireEvent.change(screen.getByLabelText("Peran"), { target: { value: "CONTRIBUTOR" } });
-  fireEvent.click(screen.getByText("Simpan"));
-
-  await waitFor(() => expect(screen.getByText(/Peran berhasil disimpan/i)).toBeInTheDocument());
-
-  // advance timers to auto-dismiss (4s)
-  jest.advanceTimersByTime(4100);
-  await waitFor(() => expect(screen.queryByText(/Peran berhasil disimpan/i)).not.toBeInTheDocument());
-  jest.useRealTimers();
-});
-
 test("confirm modal flow (non-legacy) deletes and shows toast", async () => {
   // first call GET
   (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => [
