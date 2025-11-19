@@ -366,6 +366,126 @@ describe("ExpertDataManagementPage", () => {
 
     global.confirm = originalConfirm;
   });
+
+  test("uses stored access token from user blob when fetching datasets", async () => {
+    window.localStorage.setItem("user", JSON.stringify({ access_token: "JSON_TOKEN" }));
+
+    render(<ExpertDataManagementPage />);
+
+    expect(await screen.findByText("ID1")).toBeInTheDocument();
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options?.headers?.Authorization).toBe("Bearer JSON_TOKEN");
+  });
+
+  test("falls back to simple token keys when user blob is invalid JSON", async () => {
+    window.localStorage.setItem("user", "not-json");
+    window.localStorage.setItem("token", "FALLBACK_TOKEN");
+
+    render(<ExpertDataManagementPage />);
+
+    expect(await screen.findByText("ID1")).toBeInTheDocument();
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options?.headers?.Authorization).toBe("Bearer FALLBACK_TOKEN");
+  });
+
+  test("falls back to cookie token when no storage entries exist", async () => {
+    document.cookie = "access_token=Cookie%20Token";
+
+    render(<ExpertDataManagementPage />);
+
+    expect(await screen.findByText("ID1")).toBeInTheDocument();
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options?.headers?.Authorization).toBe("Bearer Cookie Token");
+  });
+
+  test("hydrates user from stored blob when auth hook returns null", async () => {
+    window.localStorage.setItem("user", JSON.stringify({ role: "EXP_USER" }));
+    mockUseAuth.mockImplementation(() => ({ user: null }));
+
+    render(<ExpertDataManagementPage />);
+
+    expect(await screen.findByText(/Expert \/ Dataset/i)).toBeInTheDocument();
+  });
+
+  test("handleDelete ignores rows without batch id", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { data_id: "", file_name: "NoId.csv", last_edited: "2025-01-01", submitted_by: "USER" } as any,
+    ];
+
+    render(<ExpertDataManagementPage initialRows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(screen.getByText("NoId.csv")).toBeInTheDocument();
+  });
+
+  test("handleDelete aborts when confirmation is rejected", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { data_id: "BATCH-1", file_name: "Batch1.csv", last_edited: "2025-01-01", submitted_by: "USER" } as any,
+    ];
+    mockConfirm.mockReturnValueOnce(false);
+
+    render(<ExpertDataManagementPage initialRows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(screen.getByText("BATCH-1")).toBeInTheDocument();
+  });
+
+  test("handleDelete removes row and sends Authorization header on success", async () => {
+    const user = userEvent.setup();
+    const sampleRows = [
+      { data_id: "ID_DEL_1", file_name: "File1.csv", last_edited: "2025-01-01", submitted_by: "USER" },
+      { data_id: "ID_DEL_2", file_name: "File2.csv", last_edited: "2025-01-02", submitted_by: "USER" },
+    ];
+    window.localStorage.setItem("user", JSON.stringify({ access_token: "DELETE_TOKEN" }));
+
+    render(<ExpertDataManagementPage initialRows={sampleRows} />);
+
+    const deleteButton = screen.getAllByRole("button", { name: /delete/i })[0];
+    await user.click(deleteButton);
+
+    await waitFor(() => expect(screen.queryByText("ID_DEL_1")).not.toBeInTheDocument());
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options?.headers?.Authorization).toBe("Bearer DELETE_TOKEN");
+  });
+
+  test("handleDelete surfaces server errors via alert", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { data_id: "ID_DEL_1", file_name: "File1.csv", last_edited: "2025-01-01", submitted_by: "USER" },
+    ];
+    mockFetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        status: 500,
+        text: async () => "boom",
+      })
+    );
+
+    render(<ExpertDataManagementPage initialRows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    await waitFor(() => expect(mockAlert).toHaveBeenCalledWith("Failed to delete batch (status 500)."));
+    expect(screen.getByText("ID_DEL_1")).toBeInTheDocument();
+  });
+
+  test("handleDelete reports network failures", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { data_id: "ID_DEL_1", file_name: "File1.csv", last_edited: "2025-01-01", submitted_by: "USER" },
+    ];
+    mockFetch.mockImplementationOnce(() => Promise.reject(new Error("network down")));
+
+    render(<ExpertDataManagementPage initialRows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    await waitFor(() => expect(mockAlert).toHaveBeenCalledWith("Delete failed (network)."));
+    expect(screen.getByText("ID_DEL_1")).toBeInTheDocument();
+  });
 });
 
 describe("token helpers", () => {
@@ -513,5 +633,77 @@ describe("token helpers", () => {
     expect(href).toBe(
       "/expert-data-management/view?id=X1&fileName=Example.xlsx&lastEdited=2025-09-07&submittedBy=FOO"
     );
+  });
+});
+
+describe("token helper functions", () => {
+  beforeEach(() => {
+    window.localStorage?.clear?.();
+    document.cookie = "";
+  });
+
+  test("getToken returns null when no storage exists", () => {
+    expect(getTokenHelper()).toBeNull();
+  });
+
+  test("getToken reads access_token from stored user", () => {
+    window.localStorage.setItem("user", JSON.stringify({ access_token: "STORED" }));
+    expect(getTokenHelper()).toBe("STORED");
+  });
+
+  test("getToken reads token field when access_token missing", () => {
+    window.localStorage.setItem("user", JSON.stringify({ token: "SECONDARY" }));
+    expect(getTokenHelper()).toBe("SECONDARY");
+  });
+
+  test("getToken falls back to jwt key", () => {
+    window.localStorage.setItem("jwt", "JWT_TOKEN");
+    expect(getTokenHelper()).toBe("JWT_TOKEN");
+  });
+
+  test("getToken falls back to cookie value", () => {
+    document.cookie = "access_token=Cookie%20Token";
+    expect(getTokenHelper()).toBe("Cookie Token");
+  });
+
+  test("getTokenForDelete returns null when window is undefined", () => {
+    const originalWindow = (globalThis as any).window;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (globalThis as any).window;
+    expect(getTokenForDeleteHelper()).toBeNull();
+    (globalThis as any).window = originalWindow;
+  });
+
+  test("getTokenForDelete checks token key order", () => {
+    window.localStorage.setItem("token", "TOKEN_KEY");
+    expect(getTokenForDeleteHelper()).toBe("TOKEN_KEY");
+  });
+
+  test("getTokenForDelete reads token field from stored user blob", () => {
+    window.localStorage.setItem("user", JSON.stringify({ token: "DEL_TOKEN" }));
+    expect(getTokenForDeleteHelper()).toBe("DEL_TOKEN");
+  });
+
+  test("getTokenForDelete uses cookie fallback", () => {
+    document.cookie = "access_token=CookieDelete";
+    expect(getTokenForDeleteHelper()).toBe("CookieDelete");
+  });
+
+  test("filterRows returns original rows when query blank", () => {
+    const rows = [
+      { data_id: "A", file_name: "alpha", last_edited: "2024", submitted_by: "USER" },
+      { data_id: "B", file_name: "beta", last_edited: "2024", submitted_by: "USER" },
+    ] as any;
+    expect(filterRowsHelper(rows, "   ")).toEqual(rows);
+  });
+
+  test("filterRows matches case-insensitive text across fields", () => {
+    const rows = [
+      { data_id: "ROW_1", file_name: "Alpha.csv", last_edited: "2024", submitted_by: "USERA" },
+      { data_id: "ROW_2", file_name: "Beta.csv", last_edited: "2025", submitted_by: "USERB" },
+    ] as any;
+    const result = filterRowsHelper(rows, "beta");
+    expect(result).toHaveLength(1);
+    expect(result[0].data_id).toBe("ROW_2");
   });
 });

@@ -24,6 +24,7 @@ export default function CuratorBulkUploadPage() {
         const stored = window.localStorage.getItem('user');
         /* istanbul ignore next */
         if (stored) setEffectiveUser(JSON.parse(stored));
+        else setEffectiveUser(null);
       }
       /* istanbul ignore next */
       catch (e) {
@@ -37,7 +38,7 @@ export default function CuratorBulkUploadPage() {
   }, [user]);
 
   const role = normalizeRole(effectiveUser?.role);
-  const isExpert = role === 'EXP_USER';
+  const isExpert = role === 'EXP_USER' || role === 'ADMIN';
   /* istanbul ignore next */
   const goToAdd = () => router.push('/curator-add-data');
   /* istanbul ignore next */

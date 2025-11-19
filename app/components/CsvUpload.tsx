@@ -78,20 +78,18 @@ export default function CsvUpload({
     // Handle errors first
     if (!res.ok) {
       let errorMessage = `Upload gagal (${res.status})`;
-
+      const text = await res.text(); // read once
       try {
-        // Try to parse JSON structured error first
-        const errorJson = await res.json();
+        const errorJson = JSON.parse(text);
         if (errorJson.message) errorMessage = errorJson.message;
-        if (errorJson.errors) errorMessage = JSON.stringify(errorJson.errors);
+        else if (errorJson.errors) errorMessage = JSON.stringify(errorJson.errors);
+        else errorMessage = text;
       } catch {
-        // fallback to plain text
-        const text = await res.text();
-        if (text) errorMessage = text;
+        errorMessage = text || errorMessage;
       }
-
       return onErrorAction?.(errorMessage);
     }
+
 
     const data = await res.json().catch(() => ({}));
     setFilename(file.name);
