@@ -13,7 +13,8 @@ type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
 const ALLOWED_ROLES = new Set(["ADMIN", "EXP_USER"]);
 
-const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
+export const normalizeRole = (role?: string | null) =>
+  role ? role.trim().toUpperCase() : "";
 
 export default function ExpertDashboardPage() {
   const { user } = useAuth();

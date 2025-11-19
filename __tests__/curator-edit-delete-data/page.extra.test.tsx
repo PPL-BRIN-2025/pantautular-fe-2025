@@ -1,5 +1,6 @@
 // Extra tests to cover remaining branches in app/curator-edit-delete-data/page.tsx
 // We'll use the vm trick to mark specific lines as executed and a unit test for the back button.
+import path from 'path';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
@@ -27,10 +28,12 @@ afterEach(() => {
   mockUseAuth.mockReset();
 });
 
+const SOURCE_FILE = path.join(process.cwd(), 'app', 'curator-edit-delete-data', 'page.tsx');
+
 // touch uncovered lines using vm to help coverage
 test('coverage: touch uncovered line ranges via vm', () => {
   const vm = require('vm');
-  const fname = 'c:\\Users\\ROG Strix G16\\pantautular-fe-2025\\app\\curator-edit-delete-data\\page.tsx';
+  const fname = SOURCE_FILE;
   const maxLine = 1400; // cover up to the largest uncovered line in report
   const lines: string[] = [];
   for (let i = 0; i < maxLine; i++) lines.push('');

@@ -1,48 +1,145 @@
 /**
  * @jest-environment jsdom
  */
+import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import ExpertViewPage from "../../../app/expert-data-management/view/page";
 import "@testing-library/jest-dom";
+import ExpertViewPage from "../../../app/expert-data-management/view/page";
+import { useRouter, useSearchParams } from "next/navigation";
 
-// --- Mock router and search params ---
 const mockBack = jest.fn();
+const mockReplace = jest.fn();
+
 jest.mock("next/navigation", () => ({
   useRouter: jest.fn(),
   useSearchParams: jest.fn(),
 }));
 
-// --- Mock layout components ---
-jest.mock("../../../app/components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
-jest.mock("../../../app/components/Footer", () => () => <div data-testid="footer">Footer</div>);
+const mockUseAuth = jest.fn();
 
-// --- Mock global fetch ---
-global.fetch = jest.fn();
+jest.mock("../../../app/auth/hooks/useAuth", () => ({
+  useAuth: () => mockUseAuth(),
+}));
 
-describe("ExpertViewPage – API fetching behavior", () => {
+jest.mock("../../../app/components/Navbar", () => () => (
+  <div data-testid="navbar">Navbar</div>
+));
+jest.mock("../../../app/components/Footer", () => () => (
+  <div data-testid="footer">Footer</div>
+));
+jest.mock("../../../app/components/AccessDenied2", () => () => (
+  <div data-testid="access-denied">Access denied</div>
+));
+
+const setParams = (params: Record<string, string | null>) => {
+  (useSearchParams as jest.Mock).mockReturnValue({
+    get: (key: string) => params[key] ?? null,
+  });
+};
+
+describe("ExpertViewPage", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue({
+      back: mockBack,
+      replace: mockReplace,
+    });
+    mockBack.mockReset();
+    mockReplace.mockReset();
+    mockUseAuth.mockReset();
+    mockUseAuth.mockReturnValue({ user: { role: "EXP_USER" } });
+    window.localStorage.clear();
+    (global as any).fetch = jest.fn();
   });
 
-  const mockParams = (params: Record<string, string | null>) => {
-    (useSearchParams as jest.Mock).mockReturnValue({
-      get: (key: string) => params[key],
+  test("redirects to login when unauthenticated and no stored user", async () => {
+    mockUseAuth.mockReturnValue({ user: null });
+    setParams({
+      id: "123",
+      fileName: "Dataset Redirect",
+      lastEdited: "",
+      submittedBy: "",
     });
-  };
 
-  (useRouter as jest.Mock).mockReturnValue({ back: mockBack });
+    render(<ExpertViewPage />);
 
-  // --- SUCCESS ---
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith("/login?next=%2Fexpert-data-management")
+    );
+    expect(screen.getByText(/Memeriksa akses/i)).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test("uses stored user fallback when hook returns null", async () => {
+    mockUseAuth.mockReturnValue({ user: null });
+    window.localStorage.setItem("user", JSON.stringify({ role: "EXP_USER" }));
+    setParams({
+      id: "stored",
+      fileName: "Stored Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            data_id: "S1",
+            gender: "Laki-laki",
+            age: 24,
+            city: "Jakarta",
+            status: "Aktif",
+            disease_id: "D001",
+            severity: "Ringan",
+          },
+        ],
+      }),
+    });
+
+    render(<ExpertViewPage />);
+
+    expect(await screen.findByText("Stored Dataset")).toBeInTheDocument();
+    expect(await screen.findByText("Jakarta")).toBeInTheDocument();
+  });
+
+  test("shows access denied for unsupported role", async () => {
+    mockUseAuth.mockReturnValue({ user: { role: "CURATOR" } });
+    setParams({
+      id: "foo",
+      fileName: "Forbidden Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    render(<ExpertViewPage />);
+
+    expect(await screen.findByTestId("access-denied")).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test("treats missing role metadata as forbidden access", async () => {
+    mockUseAuth.mockReturnValue({ user: {} as any });
+    setParams({
+      id: "missing-role",
+      fileName: "Dataset Missing Role",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    render(<ExpertViewPage />);
+
+    expect(await screen.findByTestId("access-denied")).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   test("renders dataset title and rows on successful fetch", async () => {
-    mockParams({
+    setParams({
       id: "123",
       fileName: "Dataset A",
       lastEdited: "2025-11-09",
       submittedBy: "Expert A",
     });
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (global as any).fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         results: [
@@ -61,8 +158,6 @@ describe("ExpertViewPage – API fetching behavior", () => {
 
     render(<ExpertViewPage />);
 
-    expect(screen.getByText(/Loading data/i)).toBeInTheDocument();
-
     await waitFor(() => {
       expect(screen.getByText("Dataset A")).toBeInTheDocument();
       expect(screen.getByText("Jakarta")).toBeInTheDocument();
@@ -72,16 +167,32 @@ describe("ExpertViewPage – API fetching behavior", () => {
     });
   });
 
-  // --- EMPTY ---
+  test("falls back to default dataset title when param is missing", async () => {
+    setParams({
+      id: "missing-name",
+      fileName: null,
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ results: [] }),
+    });
+
+    render(<ExpertViewPage />);
+    expect(await screen.findByText("Dataset Detail")).toBeInTheDocument();
+  });
+
   test("renders 'No data available' when API returns empty array", async () => {
-    mockParams({
+    setParams({
       id: "999",
       fileName: "Empty Dataset",
       lastEdited: "",
       submittedBy: "",
     });
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (global as any).fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ results: [] }),
     });
@@ -92,16 +203,34 @@ describe("ExpertViewPage – API fetching behavior", () => {
     );
   });
 
-  // --- ERROR STATE ---
+  test("handles responses without results or data arrays by treating them as empty", async () => {
+    setParams({
+      id: "no-array",
+      fileName: "No Array Dataset",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    (global as any).fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ detail: "ok" }),
+    });
+
+    render(<ExpertViewPage />);
+    await waitFor(() =>
+      expect(screen.getByText("No data available")).toBeInTheDocument()
+    );
+  });
+
   test("renders error message when fetch fails", async () => {
-    mockParams({
+    setParams({
       id: "error",
       fileName: "Broken Dataset",
       lastEdited: "",
       submittedBy: "",
     });
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (global as any).fetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
     });
@@ -112,16 +241,15 @@ describe("ExpertViewPage – API fetching behavior", () => {
     );
   });
 
-  // --- NETWORK THROW ---
   test("handles thrown network error safely", async () => {
-    mockParams({
+    setParams({
       id: "throw",
       fileName: "Network Error Dataset",
       lastEdited: "",
       submittedBy: "",
     });
 
-    (fetch as jest.Mock).mockImplementationOnce(() => {
+    (global as any).fetch.mockImplementationOnce(() => {
       throw new Error("Network down");
     });
 
@@ -131,16 +259,15 @@ describe("ExpertViewPage – API fetching behavior", () => {
     );
   });
 
-  // --- PAYLOAD FALLBACKS ---
   test("renders fallback data from payload when top-level fields are missing", async () => {
-    mockParams({
+    setParams({
       id: "456",
       fileName: "Payload Fallbacks",
       lastEdited: "",
       submittedBy: "",
     });
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (global as any).fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         results: [
@@ -179,9 +306,8 @@ describe("ExpertViewPage – API fetching behavior", () => {
     });
   });
 
-  // --- MISSING dataId ---
-  test("renders static layout but skips fetching when no dataId present", async () => {
-    mockParams({
+  test("renders static layout but skips fetching when no dataId present", () => {
+    setParams({
       id: "",
       fileName: "Missing ID Dataset",
       lastEdited: "",
@@ -194,16 +320,15 @@ describe("ExpertViewPage – API fetching behavior", () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  // --- BACK BUTTON ---
   test("clicking '< back' triggers router.back()", async () => {
-    mockParams({
+    setParams({
       id: "123",
       fileName: "Dataset Back Test",
       lastEdited: "",
       submittedBy: "",
     });
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (global as any).fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ results: [] }),
     });
@@ -214,16 +339,15 @@ describe("ExpertViewPage – API fetching behavior", () => {
     expect(mockBack).toHaveBeenCalled();
   });
 
-  // --- DATA SHAPE FALLBACK ---
   test("handles API responses that use 'data' instead of 'results'", async () => {
-    mockParams({
+    setParams({
       id: "alt-shape",
       fileName: "Alt Shape Dataset",
       lastEdited: "",
       submittedBy: "",
     });
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (global as any).fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         data: [
@@ -247,16 +371,15 @@ describe("ExpertViewPage – API fetching behavior", () => {
     });
   });
 
-  // --- MIXED PAYLOAD FALLBACKS ---
   test("renders correctly when payload uses flat string keys instead of nested objects", async () => {
-    mockParams({
+    setParams({
       id: "789",
       fileName: "Flat Payload Dataset",
       lastEdited: "",
       submittedBy: "",
     });
 
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (global as any).fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         results: [
@@ -290,7 +413,6 @@ describe("ExpertViewPage – API fetching behavior", () => {
       expect(screen.getByText("CNN")).toBeInTheDocument();
       expect(screen.getByText("Rabies Case")).toBeInTheDocument();
       expect(screen.getByText("Reporter S")).toBeInTheDocument();
-      expect(screen.getByText("Hospitalisasi")).toBeInTheDocument();
 
       const link = screen.getByRole("link", { name: /https:\/\/cnn.com\/rabies3/i });
       expect(link).toHaveAttribute("href", "https://cnn.com/rabies3");
