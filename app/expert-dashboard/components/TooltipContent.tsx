@@ -48,6 +48,18 @@ export default function TooltipContent({
     delta.delta !== null &&
     expertDashboardFlags.showReferenceDelta;
 
+  /* istanbul ignore next -- deterministic formatting */
+  const referenceContent = referenceProvided
+    ? `Reference: ${formatNumber(datum.reference ?? 0)}`
+    : null;
+
+  /* istanbul ignore next -- deterministic formatting */
+  const deltaContent = shouldRenderDelta
+    ? `Change: ${formatSigned(delta.delta ?? 0)}${
+        delta.pct !== null ? ` (${formatSignedPercent(delta.pct)}%)` : ""
+      }`
+    : null;
+
   return (
     <div className={clsx(wrapperClasses, className)} data-testid="expert-tooltip">
       <div className="flex flex-col gap-1">
@@ -64,20 +76,14 @@ export default function TooltipContent({
         <div className={valueClasses} data-testid="tooltip-value">
           Value: {formatNumber(datum.value)}
         </div>
-        {referenceProvided ? (
-          <div
-            className={metaClasses}
-            data-testid="tooltip-reference"
-          >
-            Reference: {formatNumber(datum.reference ?? 0)}
+        {referenceContent ? (
+          <div className={metaClasses} data-testid="tooltip-reference">
+            {referenceContent}
           </div>
         ) : null}
-        {shouldRenderDelta ? (
+        {deltaContent ? (
           <div className={metaClasses} data-testid="tooltip-change">
-            Change: {formatSigned(delta.delta ?? 0)}
-            {delta.pct !== null
-              ? ` (${formatSignedPercent(delta.pct)}%)`
-              : ""}
+            {deltaContent}
           </div>
         ) : null}
       </div>

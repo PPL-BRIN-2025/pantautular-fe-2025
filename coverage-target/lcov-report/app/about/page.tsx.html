@@ -1,0 +1,340 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for app/about/page.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">app/about</a> page.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import BackgroundCircle from "../components/BackgroundCircle";
+import SectionContainer from "../components/about/SectionContainer";
+import Navbar from "../components/Navbar";
+import Image from "next/image";
+&nbsp;
+export default function <span class="fstat-no" title="function not covered" >About(</span>) {
+<span class="cstat-no" title="statement not covered" >  return (</span>
+    &lt;&gt;
+    &lt;div className="relative z-50"&gt;
+      &lt;Navbar /&gt;
+    &lt;/div&gt;
+    &lt;section className="flex flex-col items-center justify-center min-h-screen px-6 bg-white z-10"&gt;
+      &lt;h1 className="text-4xl font-bold text-blue-900 text-center mt-36 mb-10"&gt;
+        Tentang PantauTular
+      &lt;/h1&gt;
+&nbsp;
+      &lt;SectionContainer className="text-center mt-10 mb-10 z-0"&gt;
+        &lt;p className="text-[525252]"&gt;
+          &lt;strong className="italic"&gt;PantauTular&lt;/strong&gt; adalah platform inovatif penyedia informasi sebaran penyakit menular di seluruh wilayah Indonesia. Bekerja sama dengan Badan Riset dan Inovasi Nasional (BRIN), PantauTular berkomitmen untuk menyajikan data yang akurat dan terkini tentang kondisi kesehatan masyarakat sehingga memungkinkan pengguna untuk memantau dan mengantisipasi penyebaran penyakit menular dengan lebih efektif.
+        &lt;/p&gt;
+      &lt;/SectionContainer&gt;
+&nbsp;
+      &lt;div className="max-w-5xl mx-auto w-full flex flex-col md:flex-row items-center gap-8 mt-10 mb-16"&gt;
+        &lt;div className="flex-1 flex justify-center"&gt;
+          &lt;Image 
+            src="/tentang_kami.jpeg" 
+            alt="PantauTular_tentang_kami"
+            width={500}
+            height={300}
+            className="w-full max-w-md h-auto"/&gt;
+        &lt;/div&gt;
+&nbsp;
+        &lt;div className="flex-1 text-center md:text-left"&gt;
+          &lt;h2 className="heading-primary"&gt;
+            Melalui &lt;em&gt;PantauTular&lt;/em&gt;,
+          &lt;/h2&gt;
+          &lt;p className="paragraph-primary"&gt;
+            Pengguna dapat dengan mudah mengakses peta interaktif yang menampilkan titik-titik lokasi di mana penyakit menular telah terdeteksi. Informasi ini disajikan secara real-time, membantu individu, komunitas, serta pihak berwenang untuk mengambil tindakan pencegahan yang tepat, seperti isolasi diri, vaksinasi, atau langkah-langkah lain yang diperlukan untuk melindungi diri dan orang-orang terdekat.
+          &lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+&nbsp;
+      &lt;SectionContainer className="flex flex-col text-center mt-10 mb-10 relative z-0"&gt;
+        &lt;BackgroundCircle size={{ width: "720px", height: "200px" }} position="left-1/2"/&gt;        
+        &lt;h2 className="text-2xl font-bold mb-4 z-10"&gt;Kami memahami pentingnya&lt;/h2&gt;
+        &lt;p className="relative text-[525252] z-10"&gt;
+          &lt;strong className="italic"&gt;akses cepat dan mudah&lt;/strong&gt; terhadap informasi kesehatan, terutama dalam situasi krisis. Oleh karena itu, PantauTular dirancang dengan &lt;strong className="italic"&gt;antarmuka yang ramah pengguna&lt;/strong&gt; dan &lt;strong className="italic"&gt;dapat diakses melalui berbagai platform&lt;/strong&gt;, termasuk web dan mobile, sehingga memungkinkan siapa pun untuk memanfaatkannya tanpa hambatan.
+        &lt;/p&gt;
+      &lt;/SectionContainer&gt;
+&nbsp;
+      &lt;div className="max-w-5xl mx-auto w-full flex flex-col md:flex-row items-center gap-8 mb-20 mt-20"&gt;
+        &lt;div className="flex-1 text-center md:text-right"&gt;
+          &lt;h2 className="heading-primary"&gt;
+            Latar Belakang &lt;em&gt;PantauTular&lt;/em&gt;
+          &lt;/h2&gt;
+          &lt;p className="paragraph-primary"&gt;
+            Pembuatan &lt;strong className="italic"&gt; PantauTular&lt;/strong&gt; dipicu oleh kebutuhan akan sumber informasi yang handal dan terpercaya mengenai penyebaran penyakit menular di Indonesia. Kami menyadari bahwa dalam menghadapi ancaman kesehatan seperti pandemi atau wabah penyakit, informasi yang tepat waktu dan akurat dapat menjadi kunci untuk mengurangi risiko penularan dan meminimalkan dampak yang ditimbulkan.
+          &lt;/p&gt;
+        &lt;/div&gt;
+&nbsp;
+        &lt;div className="flex-1 flex justify-center"&gt;
+          &lt;Image 
+            src="/latar_belakang.jpeg" 
+            alt="PantauTular_latar_belakang" 
+            width={500}
+            height={300}
+            className="w-full max-w-md h-auto" /&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+&nbsp;
+      &lt;SectionContainer className="flex flex-col text-center mt-10 mb-20 z-0"&gt;
+        &lt;h2 className="text-2xl font-bold mb-4 z-10"&gt;Dengan demikian,&lt;/h2&gt;
+        &lt;BackgroundCircle size={{ width: "400px", height: "200px" }} position="left-1/10"/&gt;
+        &lt;BackgroundCircle size={{ width: "400px", height: "100px" }} position="left-3/4"/&gt;
+        &lt;p className="text-[525252] z-10"&gt;
+          kami mengumpulkan &lt;strong className="italic"&gt;tim ahli dalam bidang kesehatan dan teknologi informasi&lt;/strong&gt; untuk mengembangkan platform yang dapat memberikan solusi konkret bagi masyarakat Indonesia. Kami berkomitmen untuk menyediakan sumber informasi yang dapat diandalkan, mudah diakses, dan dapat dipahami oleh semua lapisan masyarakat, sehingga setiap individu dapat berperan aktif dalam menjaga kesehatan diri dan komunitasnya.
+        &lt;/p&gt;
+        &lt;p className="text-[525252] mt-3 z-10"&gt;
+        &lt;strong className="italic"&gt;PantauTular menjadi wujud kolaborasi&lt;/strong&gt; antara inovasi teknologi dan kepedulian terhadap kesehatan masyarakat, oleh karena itu diharapkan &lt;strong className="italic"&gt;PantauTular dapat terus berkembang dan memberikan manfaat&lt;/strong&gt; yang nyata bagi Indonesia.
+        &lt;/p&gt;
+      &lt;/SectionContainer&gt;
+&nbsp;
+    &lt;/section&gt;
+    &lt;/&gt;
+  );
+}</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2025-11-11T14:09:02.682Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

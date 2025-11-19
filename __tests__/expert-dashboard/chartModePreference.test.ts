@@ -78,4 +78,20 @@ describe("chartModePreference helpers", () => {
 
     expect(() => saveChartModePreference("raw_chart")).not.toThrow();
   });
+
+  it("returns null when window is undefined", () => {
+    const originalWindow = global.window;
+    // @ts-ignore
+    delete (global as any).window;
+    expect(loadChartModePreference()).toBeNull();
+    (global as any).window = originalWindow;
+  });
+
+  it("skips saving preference when window is undefined", () => {
+    const originalWindow = global.window;
+    // @ts-ignore
+    delete (global as any).window;
+    expect(() => saveChartModePreference("trend")).not.toThrow();
+    (global as any).window = originalWindow;
+  });
 });
