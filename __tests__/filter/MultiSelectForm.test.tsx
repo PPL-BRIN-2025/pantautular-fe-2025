@@ -532,7 +532,7 @@ describe("MultiSelectForm Component", () => {
           portals: [],
           level_of_alertness: 0,
           start_date: null,
-          end_date: null
+          end_date: null,
           batch: null
         })
       );
