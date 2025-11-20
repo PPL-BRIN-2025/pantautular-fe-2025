@@ -92,7 +92,7 @@ describe("Dashboard Page", () => {
       level_of_alertness: 3,
       portals: ["news-portal-1", "news-portal-2"],
       start_date: new Date(),
-      end_date: new Date() 
+      end_date: new Date(), 
       batch: "batch-1"
     };
     

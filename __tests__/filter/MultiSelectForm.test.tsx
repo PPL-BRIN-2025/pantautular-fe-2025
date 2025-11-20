@@ -503,7 +503,8 @@ describe("MultiSelectForm Component", () => {
           portals: [],
           level_of_alertness: 0,
           start_date: new Date("2023-01-01"),
-          end_date: new Date("2023-01-31")
+          end_date: new Date("2023-01-31"),
+          batch: "batch-1",
         });
       };
       
@@ -532,7 +533,7 @@ describe("MultiSelectForm Component", () => {
           portals: [],
           level_of_alertness: 0,
           start_date: null,
-          end_date: null
+          end_date: null,
           batch: null
         })
       );
@@ -667,7 +668,7 @@ describe("MultiSelectForm Component", () => {
       expect(selectElements[0]).toHaveValue(["malaria"]);
       expect(selectElements[1]).toHaveValue(["surabaya"]);
       expect(selectElements[2]).toHaveValue(["reuters"]);
-      expect(selectElements[3]).toHaveValue("custom-batch");
+      expect(selectElements[3]).toHaveValue("batch-1");
       
       // Check level of alertness
       const starButtons = screen.getAllByRole("button").filter(btn => 

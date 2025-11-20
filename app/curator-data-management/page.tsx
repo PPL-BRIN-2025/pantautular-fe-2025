@@ -62,8 +62,9 @@ export default function CuratorDataManagementPage() {
   const [rawSearch, setRawSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastFetchKey = useRef<string | null>(null);
 
-  const pageSize = 10;
+  const pageSize = 8;
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
 
   const firstClamp = useRef(true);
@@ -77,6 +78,10 @@ export default function CuratorDataManagementPage() {
     if (accessState !== "granted") return;
 
     const ac = new AbortController();
+
+    const key = `${page}|${pageSize}|${rawSearch.trim()}`;
+    if (lastFetchKey.current === key) return;
+    lastFetchKey.current = key;
 
     const fetchLogs = async () => {
       setLoading(true);
@@ -103,23 +108,29 @@ export default function CuratorDataManagementPage() {
         let res: Response | undefined;
         let bodyText = "";
 
-        if (token) {
-          const headerVariants: HeadersInit[] = [
-            { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            { Authorization: `Token ${token}`, "Content-Type": "application/json" },
-          ];
-          for (const headers of headerVariants) {
-            const r = await fetch(url, {
-              method: "GET",
-              mode: "cors",
-              cache: "no-store",
-              headers,
-              signal: ac.signal,
-            });
-            bodyText = await r.clone().text();
-            res = r;
-            if (r.ok || r.status === 401 || r.status === 403) break;
+        const readBody = async (response?: Response) => {
+          if (!response) return "";
+          const text = (response as any)?.text;
+          if (typeof text === "function") {
+            try {
+              return await text.call(response);
+            } catch {
+              return "";
+            }
           }
+          return "";
+        };
+
+        if (token) {
+          const r = await fetch(url, {
+            method: "GET",
+            mode: "cors",
+            cache: "no-store",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            signal: ac.signal,
+          });
+          res = r;
+          bodyText = await readBody(typeof (r as any)?.clone === "function" ? (r as any).clone() : r);
         } else {
           const r = await fetch(url, {
             method: "GET",
@@ -128,8 +139,8 @@ export default function CuratorDataManagementPage() {
             credentials: "include",
             signal: ac.signal,
           });
-          bodyText = await r.clone().text();
           res = r;
+          bodyText = await readBody(typeof (r as any)?.clone === "function" ? (r as any).clone() : r);
         }
 
         if (!res) throw new Error("No response");

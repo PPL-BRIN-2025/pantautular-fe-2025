@@ -54,7 +54,9 @@ interface SeverityChartProps {
     color: string;
   }[];
   filter?: FilterState;
-  type: 'disease' | 'province' | 'city';
+  type: "disease" | "province" | "city";
+  showDownloadButton?: boolean;
+  downloadLabel?: string;
 }
 
 interface SeriesConfig {
@@ -270,13 +272,15 @@ const createSeries = (config: SeriesConfig) => {
   return series;
 };
 
-const SeverityChart = ({ 
-  title, 
-  categoryField, 
-  fetchData, 
+const SeverityChart = ({
+  title,
+  categoryField,
+  fetchData,
   seriesConfig,
   filter,
-  type
+  type,
+  showDownloadButton = true,
+  downloadLabel = "Unduh gambar"
 }: SeverityChartProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -431,13 +435,16 @@ const SeverityChart = ({
 
   return (
     <div className="relative w-full pt-8">
-      <div className="absolute right-0 top-0 flex gap-2">
-        <DownloadButton
-          filename={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
-          getTarget={() => containerRef.current}
-          canDownload={() => hasData}
-        />
-      </div>
+      {showDownloadButton && (
+        <div className="absolute right-0 top-0 flex gap-2">
+          <DownloadButton
+            filename={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+            getTarget={() => containerRef.current}
+            canDownload={() => hasData}
+            imgLabel={downloadLabel}
+          />
+        </div>
+      )}
       <div ref={containerRef} className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex flex-wrap justify-between items-center gap-3">
           <h3 className="chart-title">{title}</h3>
@@ -454,7 +461,17 @@ const SeverityChart = ({
 };
 
 // Disease severity chart
-export const DiseaseSeverityChart = ({ filter }: { filter?: FilterState }) => {
+type SeverityChartWrapperProps = {
+  filter?: FilterState;
+  showDownloadButton?: boolean;
+  downloadLabel?: string;
+};
+
+export const DiseaseSeverityChart = ({
+  filter,
+  showDownloadButton,
+  downloadLabel,
+}: SeverityChartWrapperProps) => {
   return (
     <SeverityChart
       title="Kasus Jenis Penyakit"
@@ -463,12 +480,18 @@ export const DiseaseSeverityChart = ({ filter }: { filter?: FilterState }) => {
       seriesConfig={SEVERITY_SERIES.map((series) => ({ ...series }))}
       filter={filter}
       type="disease"
+      showDownloadButton={showDownloadButton}
+      downloadLabel={downloadLabel}
     />
   );
 };
 
 // Province severity chart
-export const ProvinceSeverityChart = ({ filter }: { filter?: FilterState }) => {
+export const ProvinceSeverityChart = ({
+  filter,
+  showDownloadButton,
+  downloadLabel,
+}: SeverityChartWrapperProps) => {
   return (
     <SeverityChart
       title="Kasus Jangkauan Provinsi"
@@ -477,12 +500,18 @@ export const ProvinceSeverityChart = ({ filter }: { filter?: FilterState }) => {
       seriesConfig={SEVERITY_SERIES.map((series) => ({ ...series }))}
       filter={filter}
       type="province"
+      showDownloadButton={showDownloadButton}
+      downloadLabel={downloadLabel}
     />
   );
 };
 
 // City severity chart
-export const CitySeverityChart = ({ filter }: { filter?: FilterState }) => {
+export const CitySeverityChart = ({
+  filter,
+  showDownloadButton,
+  downloadLabel,
+}: SeverityChartWrapperProps) => {
   return (
     <SeverityChart
       title="Kasus Jangkauan Kota"
@@ -491,6 +520,8 @@ export const CitySeverityChart = ({ filter }: { filter?: FilterState }) => {
       seriesConfig={SEVERITY_SERIES.map((series) => ({ ...series }))}
       filter={filter}
       type="city"
+      showDownloadButton={showDownloadButton}
+      downloadLabel={downloadLabel}
     />
   );
 };
