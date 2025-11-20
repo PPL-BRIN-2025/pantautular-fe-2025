@@ -95,7 +95,8 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
     const slug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .replace(/^-+/, "")
+      .replace(/-+$/, "");
     return slug || "portal-bar-chart";
   }, [title]);
 
