@@ -258,7 +258,8 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
           stroke: null
         });
 
-        series.columns.template.adapters.add("tooltipText", (text: string | undefined, target: any) => {
+        const tooltipAdapter = series.columns?.template?.adapters;
+        tooltipAdapter?.add?.("tooltipText", (text: string | undefined, target: any) => {
           const custom = target?.dataItem?.dataContext?.tooltipText;
           if (typeof custom === "string" && custom.trim().length > 0) {
             return custom;

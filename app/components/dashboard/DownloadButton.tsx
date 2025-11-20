@@ -73,7 +73,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   >(null);
   const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const imageLabel = imgLabel ?? label ?? "Download IMG";
+  const imageLabel = imgLabel ?? label ?? "Unduh gambar";
   const showCsvButton = Boolean(csvExporter);
   const effectiveCsvFilename = ensureCsvExtension(csvFilename ?? filename);
 

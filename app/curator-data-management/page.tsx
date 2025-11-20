@@ -63,7 +63,7 @@ export default function CuratorDataManagementPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pageSize = 10;
+  const pageSize = 8;
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
 
   const firstClamp = useRef(true);
@@ -103,6 +103,19 @@ export default function CuratorDataManagementPage() {
         let res: Response | undefined;
         let bodyText = "";
 
+        const readBody = async (response?: Response) => {
+          if (!response) return "";
+          const text = (response as any)?.text;
+          if (typeof text === "function") {
+            try {
+              return await text.call(response);
+            } catch {
+              return "";
+            }
+          }
+          return "";
+        };
+
         if (token) {
           const headerVariants: HeadersInit[] = [
             { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -116,9 +129,9 @@ export default function CuratorDataManagementPage() {
               headers,
               signal: ac.signal,
             });
-            bodyText = await r.clone().text();
             res = r;
-            if (r.ok || r.status === 401 || r.status === 403) break;
+            bodyText = await readBody(typeof (r as any)?.clone === "function" ? (r as any).clone() : r);
+            if (r?.ok || r?.status === 401 || r?.status === 403) break;
           }
         } else {
           const r = await fetch(url, {
@@ -128,8 +141,8 @@ export default function CuratorDataManagementPage() {
             credentials: "include",
             signal: ac.signal,
           });
-          bodyText = await r.clone().text();
           res = r;
+          bodyText = await readBody(typeof (r as any)?.clone === "function" ? (r as any).clone() : r);
         }
 
         if (!res) throw new Error("No response");

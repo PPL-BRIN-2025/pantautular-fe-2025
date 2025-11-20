@@ -14,6 +14,19 @@ const nextConfig: NextConfig = {
     // !! WARNING !!
     ignoreBuildErrors: true,
   },
+  images: {
+    // News thumbnails come from many different partners, so allow any remote host.
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "**",
+      },
+    ],
+  },
 };
 
 export default withSentryConfig(nextConfig, {
