@@ -46,6 +46,10 @@ const responseWithRows = (rows: any[]) =>
     json: async () => ({ results: rows }),
   });
 
+let mockFetch: jest.Mock;
+let mockConfirm: jest.Mock;
+let mockAlert: jest.Mock;
+
 describe("ExpertDataManagementPage", () => {
   beforeEach(() => {
     mockPush.mockReset();
@@ -54,9 +58,16 @@ describe("ExpertDataManagementPage", () => {
     mockUseAuth.mockReturnValue({ user: { role: "EXP_USER" } });
     window.localStorage.clear();
     document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-    (global as any).fetch = jest.fn(() => responseWithRows([]));
-    (global as any).confirm = jest.fn(() => true);
-    (global as any).alert = jest.fn();
+    mockFetch = jest.fn(() =>
+      responseWithRows([
+        { data_id: "ID1", file_name: "file1.csv", last_edited: "2025-01-01", submitted_by: "USER1" },
+      ])
+    );
+    (global as any).fetch = mockFetch;
+    mockConfirm = jest.fn(() => true);
+    (global as any).confirm = mockConfirm;
+    mockAlert = jest.fn();
+    (global as any).alert = mockAlert;
   });
 
   test("redirects to login when no user and nothing stored", async () => {

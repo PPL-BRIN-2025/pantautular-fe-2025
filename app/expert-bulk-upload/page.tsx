@@ -38,7 +38,7 @@ export default function CuratorBulkUploadPage() {
   }, [user]);
 
   const role = normalizeRole(effectiveUser?.role);
-  const isExpert = role === 'EXP_USER' || role === 'ADMIN';
+  const isExpert = role === 'EXP_USER';
   /* istanbul ignore next */
   const goToAdd = () => router.push('/curator-add-data');
   /* istanbul ignore next */

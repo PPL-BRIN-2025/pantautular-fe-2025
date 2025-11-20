@@ -62,6 +62,7 @@ export default function CuratorDataManagementPage() {
   const [rawSearch, setRawSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastFetchKey = useRef<string | null>(null);
 
   const pageSize = 8;
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
@@ -77,6 +78,10 @@ export default function CuratorDataManagementPage() {
     if (accessState !== "granted") return;
 
     const ac = new AbortController();
+
+    const key = `${page}|${pageSize}|${rawSearch.trim()}`;
+    if (lastFetchKey.current === key) return;
+    lastFetchKey.current = key;
 
     const fetchLogs = async () => {
       setLoading(true);
@@ -117,22 +122,15 @@ export default function CuratorDataManagementPage() {
         };
 
         if (token) {
-          const headerVariants: HeadersInit[] = [
-            { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            { Authorization: `Token ${token}`, "Content-Type": "application/json" },
-          ];
-          for (const headers of headerVariants) {
-            const r = await fetch(url, {
-              method: "GET",
-              mode: "cors",
-              cache: "no-store",
-              headers,
-              signal: ac.signal,
-            });
-            res = r;
-            bodyText = await readBody(typeof (r as any)?.clone === "function" ? (r as any).clone() : r);
-            if (r?.ok || r?.status === 401 || r?.status === 403) break;
-          }
+          const r = await fetch(url, {
+            method: "GET",
+            mode: "cors",
+            cache: "no-store",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            signal: ac.signal,
+          });
+          res = r;
+          bodyText = await readBody(typeof (r as any)?.clone === "function" ? (r as any).clone() : r);
         } else {
           const r = await fetch(url, {
             method: "GET",

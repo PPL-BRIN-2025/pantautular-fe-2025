@@ -1,0 +1,564 @@
+
+> pantautular-fe@0.1.0 test
+> jest --coverage __tests__/expert-data-management/page.test.tsx --runInBand --coverage=false
+
+  console.warn
+    Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+    [0m [90m 74 |[39m     mockUseAuth[33m.[39mmockReturnValue({ user[33m:[39m [36mnull[39m })[33m;[39m
+     [90m 75 |[39m
+    [31m[1m>[22m[39m[90m 76 |[39m     render([33m<[39m[33mExpertDataManagementPage[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m    |[39m            [31m[1m^[22m[39m
+     [90m 77 |[39m
+     [90m 78 |[39m     [36mawait[39m waitFor(() [33m=>[39m {
+     [90m 79 |[39m       expect(mockReplace)[33m.[39mtoHaveBeenCalledWith([0m
+
+      at Object.<anonymous>.process.env.NODE_ENV.exports.createElement (node_modules/react/cjs/react.development.js:992:19)
+      at Object.__jsx (__tests__/expert-data-management/page.test.tsx:76:12)
+
+  console.error
+    delete failed: 500
+
+    [0m [90m 231 |[39m         [36mconst[39m textFn [33m=[39m (res [36mas[39m any)[33m?[39m[33m.[39mtext[33m;[39m
+     [90m 232 |[39m         [36mconst[39m text [33m=[39m [36mtypeof[39m textFn [33m===[39m [32m"function"[39m [33m?[39m [36mawait[39m textFn[33m.[39mcall(res)[33m.[39m[36mcatch[39m(() [33m=>[39m [32m""[39m) [33m:[39m [32m""[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 233 |[39m         console[33m.[39merror([32m"delete failed:"[39m[33m,[39m res[33m.[39mstatus[33m,[39m text)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 234 |[39m         alert([32m`Failed to delete batch (status ${res.status}).`[39m)[33m;[39m
+     [90m 235 |[39m       }
+     [90m 236 |[39m     } [36mcatch[39m (e) {[0m
+
+      at error (app/expert-data-management/ExpertDataManagementPage.tsx:233:17)
+
+  console.error
+    Error: network down
+        at Object.<anonymous> (C:\Kuliah\PPL FE\__tests__\expert-data-management\page.test.tsx:318:30)
+        at Promise.then.completed (C:\Kuliah\PPL FE\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Kuliah\PPL FE\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusTest (C:\Kuliah\PPL FE\node_modules\jest-circus\build\run.js:316:40)
+        at _runTest (C:\Kuliah\PPL FE\node_modules\jest-circus\build\run.js:252:3)
+        at _runTestsForDescribeBlock (C:\Kuliah\PPL FE\node_modules\jest-circus\build\run.js:126:9)
+        at _runTestsForDescribeBlock (C:\Kuliah\PPL FE\node_modules\jest-circus\build\run.js:121:9)
+        at run (C:\Kuliah\PPL FE\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\Kuliah\PPL FE\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\Kuliah\PPL FE\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\Kuliah\PPL FE\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\Kuliah\PPL FE\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 235 |[39m       }
+     [90m 236 |[39m     } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 237 |[39m       console[33m.[39merror(e)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 238 |[39m       alert([32m"Delete failed (network)."[39m)[33m;[39m
+     [90m 239 |[39m     } [36mfinally[39m {
+     [90m 240 |[39m       setDeletingId([36mnull[39m)[33m;[39m[0m
+
+      at error (app/expert-data-management/ExpertDataManagementPage.tsx:237:15)
+
+  console.error
+    delete failed: undefined
+
+    [0m [90m 231 |[39m         [36mconst[39m textFn [33m=[39m (res [36mas[39m any)[33m?[39m[33m.[39mtext[33m;[39m
+     [90m 232 |[39m         [36mconst[39m text [33m=[39m [36mtypeof[39m textFn [33m===[39m [32m"function"[39m [33m?[39m [36mawait[39m textFn[33m.[39mcall(res)[33m.[39m[36mcatch[39m(() [33m=>[39m [32m""[39m) [33m:[39m [32m""[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 233 |[39m         console[33m.[39merror([32m"delete failed:"[39m[33m,[39m res[33m.[39mstatus[33m,[39m text)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 234 |[39m         alert([32m`Failed to delete batch (status ${res.status}).`[39m)[33m;[39m
+     [90m 235 |[39m       }
+     [90m 236 |[39m     } [36mcatch[39m (e) {[0m
+
+      at error (app/expert-data-management/ExpertDataManagementPage.tsx:233:17)
+
+  console.error
+    delete failed: 500 boom
+
+    [0m [90m 231 |[39m         [36mconst[39m textFn [33m=[39m (res [36mas[39m any)[33m?[39m[33m.[39mtext[33m;[39m
+     [90m 232 |[39m         [36mconst[39m text [33m=[39m [36mtypeof[39m textFn [33m===[39m [32m"function"[39m [33m?[39m [36mawait[39m textFn[33m.[39mcall(res)[33m.[39m[36mcatch[39m(() [33m=>[39m [32m""[39m) [33m:[39m [32m""[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 233 |[39m         console[33m.[39merror([32m"delete failed:"[39m[33m,[39m res[33m.[39mstatus[33m,[39m text)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 234 |[39m         alert([32m`Failed to delete batch (status ${res.status}).`[39m)[33m;[39m
+     [90m 235 |[39m       }
+     [90m 236 |[39m     } [36mcatch[39m (e) {[0m
+
+      at error (app/expert-data-management/ExpertDataManagementPage.tsx:233:17)
+
+  console.error
+    Error: network down
+        at C:\Kuliah\PPL FE\__tests__\expert-data-management\page.test.tsx:492:59
+        at C:\Kuliah\PPL FE\node_modules\jest-mock\build\index.js:397:39
+        at C:\Kuliah\PPL FE\node_modules\jest-mock\build\index.js:404:13
+        at mockConstructor (C:\Kuliah\PPL FE\node_modules\jest-mock\build\index.js:148:19)
+        at fetch (C:\Kuliah\PPL FE\app\expert-data-management\ExpertDataManagementPage.tsx:220:25)
+        at handleDelete (C:\Kuliah\PPL FE\app\expert-data-management\ExpertDataManagementPage.tsx:328:44)
+        at executeDispatch (C:\Kuliah\PPL FE\node_modules\react-dom\cjs\react-dom-client.development.js:16368:9)
+        at runWithFiberInDEV (C:\Kuliah\PPL FE\node_modules\react-dom\cjs\react-dom-client.development.js:1522:13)
+        at processDispatchQueue (C:\Kuliah\PPL FE\node_modules\react-dom\cjs\react-dom-client.development.js:16418:19)
+        at C:\Kuliah\PPL FE\node_modules\react-dom\cjs\react-dom-client.development.js:17016:9
+        at batchedUpdates$1 (C:\Kuliah\PPL FE\node_modules\react-dom\cjs\react-dom-client.development.js:3262:40)
+        at dispatchEventForPluginEventSystem (C:\Kuliah\PPL FE\node_modules\react-dom\cjs\react-dom-client.development.js:16572:7)
+        at dispatchEvent (C:\Kuliah\PPL FE\node_modules\react-dom\cjs\react-dom-client.development.js:20658:11)
+        at dispatchDiscreteEvent (C:\Kuliah\PPL FE\node_modules\react-dom\cjs\react-dom-client.development.js:20626:11)
+        at HTMLDivElement.callTheUserObjectsOperation (C:\Kuliah\PPL FE\node_modules\jsdom\lib\jsdom\living\generated\EventListener.js:26:30)
+        at innerInvokeEventListeners (C:\Kuliah\PPL FE\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:350:25)
+        at invokeEventListeners (C:\Kuliah\PPL FE\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:286:3)
+        at HTMLButtonElementImpl._dispatch (C:\Kuliah\PPL FE\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:233:9)
+        at HTMLButtonElementImpl.dispatchEvent (C:\Kuliah\PPL FE\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:104:17)
+        at HTMLButtonElement.dispatchEvent (C:\Kuliah\PPL FE\node_modules\jsdom\lib\jsdom\living\generated\EventTarget.js:241:34)
+        at C:\Kuliah\PPL FE\node_modules\@testing-library\user-event\dist\cjs\event\dispatchEvent.js:45:43
+        at C:\Kuliah\PPL FE\node_modules\@testing-library\react\dist\pure.js:108:16
+        at C:\Kuliah\PPL FE\node_modules\@testing-library\react\dist\act-compat.js:48:24
+        at Object.<anonymous>.process.env.NODE_ENV.exports.act (C:\Kuliah\PPL FE\node_modules\react\cjs\react.development.js:790:22)
+        at C:\Kuliah\PPL FE\node_modules\@testing-library\react\dist\act-compat.js:47:25
+        at Object.eventWrapper (C:\Kuliah\PPL FE\node_modules\@testing-library\react\dist\pure.js:107:28)
+        at Object.wrapEvent (C:\Kuliah\PPL FE\node_modules\@testing-library\user-event\dist\cjs\event\wrapEvent.js:6:28)
+        at Object.dispatchEvent (C:\Kuliah\PPL FE\node_modules\@testing-library\user-event\dist\cjs\event\dispatchEvent.js:45:22)
+        at Object.dispatchUIEvent (C:\Kuliah\PPL FE\node_modules\@testing-library\user-event\dist\cjs\event\dispatchEvent.js:22:26)
+        at Mouse.up (C:\Kuliah\PPL FE\node_modules\@testing-library\user-event\dist\cjs\system\pointer\mouse.js:100:30)
+        at PointerHost.release (C:\Kuliah\PPL FE\node_modules\@testing-library\user-event\dist\cjs\system\pointer\index.js:87:24)
+        at pointerAction (C:\Kuliah\PPL FE\node_modules\@testing-library\user-event\dist\cjs\pointer\index.js:54:47)
+        at Object.pointer (C:\Kuliah\PPL FE\node_modules\@testing-library\user-event\dist\cjs\pointer\index.js:27:9)
+        at Object.asyncWrapper (C:\Kuliah\PPL FE\node_modules\@testing-library\react\dist\pure.js:88:22)
+        at Object.<anonymous> (C:\Kuliah\PPL FE\__tests__\expert-data-management\page.test.tsx:496:5)
+
+    [0m [90m 235 |[39m       }
+     [90m 236 |[39m     } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 237 |[39m       console[33m.[39merror(e)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 238 |[39m       alert([32m"Delete failed (network)."[39m)[33m;[39m
+     [90m 239 |[39m     } [36mfinally[39m {
+     [90m 240 |[39m       setDeletingId([36mnull[39m)[33m;[39m[0m
+
+      at error (app/expert-data-management/ExpertDataManagementPage.tsx:237:15)
+
+FAIL __tests__/expert-data-management/page.test.tsx (5.215 s)
+  ΓùÅ ExpertDataManagementPage ΓÇ║ falls back to simple token keys when user blob is invalid JSON
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Bearer FALLBACK_TOKEN"
+    Received: undefined
+
+      397 |     expect(await screen.findByText("ID1")).toBeInTheDocument();
+      398 |     const [, options] = mockFetch.mock.calls[0];
+    > 399 |     expect(options?.headers?.Authorization).toBe("Bearer FALLBACK_TOKEN");
+          |                                             ^
+      400 |   });
+      401 |
+      402 |   test("falls back to cookie token when no storage entries exist", async () => {
+
+      at Object.toBe (__tests__/expert-data-management/page.test.tsx:399:45)
+
+  ΓùÅ ExpertDataManagementPage ΓÇ║ handleDelete removes row and sends Authorization header on success
+
+    expect(element).not.toBeInTheDocument()
+
+    expected document not to contain element, found <td class="px-4 py-3">ID_DEL_1</td> instead
+
+    Ignored nodes: comments, script, style
+    <html>
+      <head />
+      <body>
+        <div>
+          <div
+            class="min-h-screen bg-[#F3F7FB]"
+          >
+            <div
+              data-testid="navbar"
+            >
+              Navbar
+            </div>
+            <main
+              class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36"
+            >
+              <div
+                class="text-gray-500 text-base font-medium mb-4"
+              >
+                &lt; Expert / Dataset
+              </div>
+              <div
+                class="mb-4 flex items-center gap-2"
+              >
+                <input
+                  class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2E8AF6]"
+                  placeholder="Cari berdasarkan ID Data, Nama Berkas, Terakhir Diedit, atau Pengunggah"
+                  type="text"
+                  value=""
+                />
+              </div>
+              <div
+                class="rounded-2xl border shadow-sm bg-white overflow-x-auto"
+              >
+                <table
+                  class="min-w-[980px] w-full table-fixed border-collapse"
+                >
+                  <thead
+                    class="bg-[#4A78E0] text-white"
+                  >
+                    <tr>
+                      <th
+                        class="px-4 py-3 text-left font-semibold w-[12%]"
+                      >
+                        ID Data
+                      </th>
+                      <th
+                        class="px-4 py-3 text-left font-semibold w-[28%]"
+                      >
+                        Nama Berkas
+                      </th>
+                      <th
+                        class="px-4 py-3 text-left font-semibold w-[24%]"
+                      >
+                        Terakhir Diedit
+                      </th>
+                      <th
+                        class="px-4 py-3 text-left font-semibold w-[20%]"
+                      >
+                        Dikumpul oleh
+                      </th>
+                      <th
+                        class="px-4 py-3 text-center font-semibold w-[16%]"
+                      >
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    class="divide-y divide-gray-200"
+                  >
+                    <tr
+                      class="hover:bg-gray-50"
+                    >
+                      <td
+                        class="px-4 py-3"
+                      >
+                        ID_DEL_1
+                      </td>
+                      <td
+                        class="px-4 py-3"
+                      >
+                        File1.csv
+                      </td>
+                      <td
+                        class="px-4 py-3 whitespace-nowrap"
+                      >
+                        2025-01-01
+                      </td>
+                      <td
+                        class="px-4 py-3"
+                      >
+                        USER
+                      </td>
+                      <td
+                        class="px-4 py-3 text-center"
+                      >
+                        <div
+                          class="flex justify-center gap-2"
+                        >
+                          <button
+                            aria-busy="false"
+                            class="rounded-md border px-4 py-1 text-sm transition border-red-500 text-red-500 hover:bg-red-50"
+                          >
+                            DELETE
+                          </button>
+                          <button
+                            class="rounded-md bg-[#2E66D4] text-white px-4 py-1 text-sm hover:brightness-95"
+                          >
+                            VIEW
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr
+                      class="hover:bg-gray-50"
+                    >
+                      <td
+                        class="px-4 py-3"
+                      >
+                        ID_DEL_2
+                      </td>
+                      <td
+                        class="px-4 py-3"
+                      >
+                        File2.csv
+                      </td>
+                      <td
+                        class="px-4 py-3 whitespace-nowrap"
+                      >
+                        2025-01-02
+                      </td>
+                      <td
+                        class="px-4 py-3"
+                      >
+                        USER
+                      </td>
+                      <td
+                        class="px-4 py-3 text-center"
+                      >
+                        <div
+                          class="flex justify-center gap-2"
+                        >
+                          <button
+                            aria-busy="false"
+                            class="rounded-md border px-4 py-1 text-sm transition border-red-500 text-red-500 hover:bg-red-50"
+                          >
+                            DELETE
+                          </button>
+                          <button
+                            class="rounded-md bg-[#2E66D4] text-white px-4 py-1 text-sm hover:brightness-95"
+                          >
+                            VIEW
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </main>
+            <div
+              data-testid="footer"
+            >
+              Footer
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+
+      460 |     await user.click(deleteButton);
+      461 |
+    > 462 |     await waitFor(() => expect(screen.queryByText("ID_DEL_1")).not.toBeInTheDocument());
+          |                                                                    ^
+      463 |     expect(mockFetch).toHaveBeenCalledTimes(1);
+      464 |     const [, options] = mockFetch.mock.calls[0];
+      465 |     expect(options?.headers?.Authorization).toBe("Bearer DELETE_TOKEN");
+
+      at toBeInTheDocument (__tests__/expert-data-management/page.test.tsx:462:68)
+      at runWithExpensiveErrorDiagnosticsDisabled (node_modules/@testing-library/dom/dist/config.js:47:12)
+      at checkCallback (node_modules/@testing-library/dom/dist/wait-for.js:124:77)
+      at checkRealTimersCallback (node_modules/@testing-library/dom/dist/wait-for.js:118:16)
+      at Timeout.task [as _onTimeout] (node_modules/jsdom/lib/jsdom/browser/Window.js:520:19)
+
+  ΓùÅ token helper functions ΓÇ║ getToken returns null when no storage exists
+
+    ReferenceError: getTokenHelper is not defined
+
+      655 |
+      656 |   test("getToken returns null when no storage exists", () => {
+    > 657 |     expect(getTokenHelper()).toBeNull();
+          |     ^
+      658 |   });
+      659 |
+      660 |   test("getToken reads access_token from stored user", () => {
+
+      at Object.expect (__tests__/expert-data-management/page.test.tsx:657:5)
+
+  ΓùÅ token helper functions ΓÇ║ getToken reads access_token from stored user
+
+    ReferenceError: getTokenHelper is not defined
+
+      660 |   test("getToken reads access_token from stored user", () => {
+      661 |     window.localStorage.setItem("user", JSON.stringify({ access_token: "STORED" }));
+    > 662 |     expect(getTokenHelper()).toBe("STORED");
+          |     ^
+      663 |   });
+      664 |
+      665 |   test("getToken reads token field when access_token missing", () => {
+
+      at Object.expect (__tests__/expert-data-management/page.test.tsx:662:5)
+
+  ΓùÅ token helper functions ΓÇ║ getToken reads token field when access_token missing
+
+    ReferenceError: getTokenHelper is not defined
+
+      665 |   test("getToken reads token field when access_token missing", () => {
+      666 |     window.localStorage.setItem("user", JSON.stringify({ token: "SECONDARY" }));
+    > 667 |     expect(getTokenHelper()).toBe("SECONDARY");
+          |     ^
+      668 |   });
+      669 |
+      670 |   test("getToken falls back to jwt key", () => {
+
+      at Object.expect (__tests__/expert-data-management/page.test.tsx:667:5)
+
+  ΓùÅ token helper functions ΓÇ║ getToken falls back to jwt key
+
+    ReferenceError: getTokenHelper is not defined
+
+      670 |   test("getToken falls back to jwt key", () => {
+      671 |     window.localStorage.setItem("jwt", "JWT_TOKEN");
+    > 672 |     expect(getTokenHelper()).toBe("JWT_TOKEN");
+          |     ^
+      673 |   });
+      674 |
+      675 |   test("getToken falls back to cookie value", () => {
+
+      at Object.expect (__tests__/expert-data-management/page.test.tsx:672:5)
+
+  ΓùÅ token helper functions ΓÇ║ getToken falls back to cookie value
+
+    ReferenceError: getTokenHelper is not defined
+
+      675 |   test("getToken falls back to cookie value", () => {
+      676 |     document.cookie = "access_token=Cookie%20Token";
+    > 677 |     expect(getTokenHelper()).toBe("Cookie Token");
+          |     ^
+      678 |   });
+      679 |
+      680 |   test("getTokenForDelete returns null when window is undefined", () => {
+
+      at Object.expect (__tests__/expert-data-management/page.test.tsx:677:5)
+
+  ΓùÅ token helper functions ΓÇ║ getTokenForDelete returns null when window is undefined
+
+    ReferenceError: getTokenForDeleteHelper is not defined
+
+      682 |     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      683 |     delete (globalThis as any).window;
+    > 684 |     expect(getTokenForDeleteHelper()).toBeNull();
+          |     ^
+      685 |     (globalThis as any).window = originalWindow;
+      686 |   });
+      687 |
+
+      at Object.expect (__tests__/expert-data-management/page.test.tsx:684:5)
+
+  ΓùÅ token helper functions ΓÇ║ getTokenForDelete returns null when window is undefined
+
+    TypeError: Cannot read properties of undefined (reading 'navigator')
+
+      at resetClipboardStubOnView (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:117:32)
+      at Object.<anonymous> (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:158:21)
+
+  ΓùÅ token helper functions ΓÇ║ getTokenForDelete checks token key order
+
+    The error below may be caused by using the wrong test environment, see https://jestjs.io/docs/configuration#testenvironment-string.
+    Consider using the "jsdom" test environment.
+
+    ReferenceError: window is not defined
+
+      650 | describe("token helper functions", () => {
+      651 |   beforeEach(() => {
+    > 652 |     window.localStorage?.clear?.();
+          |     ^
+      653 |     document.cookie = "";
+      654 |   });
+      655 |
+
+      at Object.window (__tests__/expert-data-management/page.test.tsx:652:5)
+
+  ΓùÅ token helper functions ΓÇ║ getTokenForDelete checks token key order
+
+    TypeError: Cannot read properties of undefined (reading 'navigator')
+
+      at resetClipboardStubOnView (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:117:32)
+      at Object.<anonymous> (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:158:21)
+
+  ΓùÅ token helper functions ΓÇ║ getTokenForDelete reads token field from stored user blob
+
+    The error below may be caused by using the wrong test environment, see https://jestjs.io/docs/configuration#testenvironment-string.
+    Consider using the "jsdom" test environment.
+
+    ReferenceError: window is not defined
+
+      650 | describe("token helper functions", () => {
+      651 |   beforeEach(() => {
+    > 652 |     window.localStorage?.clear?.();
+          |     ^
+      653 |     document.cookie = "";
+      654 |   });
+      655 |
+
+      at Object.window (__tests__/expert-data-management/page.test.tsx:652:5)
+
+  ΓùÅ token helper functions ΓÇ║ getTokenForDelete reads token field from stored user blob
+
+    TypeError: Cannot read properties of undefined (reading 'navigator')
+
+      at resetClipboardStubOnView (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:117:32)
+      at Object.<anonymous> (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:158:21)
+
+  ΓùÅ token helper functions ΓÇ║ getTokenForDelete uses cookie fallback
+
+    The error below may be caused by using the wrong test environment, see https://jestjs.io/docs/configuration#testenvironment-string.
+    Consider using the "jsdom" test environment.
+
+    ReferenceError: window is not defined
+
+      650 | describe("token helper functions", () => {
+      651 |   beforeEach(() => {
+    > 652 |     window.localStorage?.clear?.();
+          |     ^
+      653 |     document.cookie = "";
+      654 |   });
+      655 |
+
+      at Object.window (__tests__/expert-data-management/page.test.tsx:652:5)
+
+  ΓùÅ token helper functions ΓÇ║ getTokenForDelete uses cookie fallback
+
+    TypeError: Cannot read properties of undefined (reading 'navigator')
+
+      at resetClipboardStubOnView (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:117:32)
+      at Object.<anonymous> (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:158:21)
+
+  ΓùÅ token helper functions ΓÇ║ filterRows returns original rows when query blank
+
+    The error below may be caused by using the wrong test environment, see https://jestjs.io/docs/configuration#testenvironment-string.
+    Consider using the "jsdom" test environment.
+
+    ReferenceError: window is not defined
+
+      650 | describe("token helper functions", () => {
+      651 |   beforeEach(() => {
+    > 652 |     window.localStorage?.clear?.();
+          |     ^
+      653 |     document.cookie = "";
+      654 |   });
+      655 |
+
+      at Object.window (__tests__/expert-data-management/page.test.tsx:652:5)
+
+  ΓùÅ token helper functions ΓÇ║ filterRows returns original rows when query blank
+
+    TypeError: Cannot read properties of undefined (reading 'navigator')
+
+      at resetClipboardStubOnView (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:117:32)
+      at Object.<anonymous> (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:158:21)
+
+  ΓùÅ token helper functions ΓÇ║ filterRows matches case-insensitive text across fields
+
+    The error below may be caused by using the wrong test environment, see https://jestjs.io/docs/configuration#testenvironment-string.
+    Consider using the "jsdom" test environment.
+
+    ReferenceError: window is not defined
+
+      650 | describe("token helper functions", () => {
+      651 |   beforeEach(() => {
+    > 652 |     window.localStorage?.clear?.();
+          |     ^
+      653 |     document.cookie = "";
+      654 |   });
+      655 |
+
+      at Object.window (__tests__/expert-data-management/page.test.tsx:652:5)
+
+  ΓùÅ token helper functions ΓÇ║ filterRows matches case-insensitive text across fields
+
+    TypeError: Cannot read properties of undefined (reading 'navigator')
+
+      at resetClipboardStubOnView (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:117:32)
+      at Object.<anonymous> (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:158:21)
+
+
+  ΓùÅ Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'navigator')
+
+      at detachClipboardStubFromView (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:122:32)
+      at Object.<anonymous> (node_modules/@testing-library/user-event/dist/cjs/utils/dataTransfer/Clipboard.js:161:20)
+
+Test Suites: 1 failed, 1 total
+Tests:       13 failed, 34 passed, 47 total
+Snapshots:   0 total
+Time:        6.355 s
+Ran all test suites matching /__tests__\\expert-data-management\\page.test.tsx/i.

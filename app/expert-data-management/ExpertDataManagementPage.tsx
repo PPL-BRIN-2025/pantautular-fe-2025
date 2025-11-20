@@ -25,21 +25,39 @@ type ExpertDataManagementPageProps = {
 };
 
 export function getToken(): string | null {
-  try {
-    // prefer a user blob saved by your auth flow
-    const raw = window.localStorage.getItem("user");
-    if (raw) {
+  if (typeof window === "undefined") return null;
+
+  const readCookie = () => {
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+      if (m) return decodeURIComponent(m[1]);
+    } catch {
+      // ignore cookie parsing
+    }
+    return null;
+  };
+
+  // prefer a user blob saved by your auth flow
+  const raw = window.localStorage.getItem("user");
+  if (raw) {
+    try {
       const parsed = JSON.parse(raw);
       if (parsed?.access_token) return String(parsed.access_token);
       /* istanbul ignore next */
       if (parsed?.token) return String(parsed.token);
+    } catch {
+      // ignore parse failures and proceed to other fallbacks
     }
-    // fallback to a simple token key if you stored it directly
-    const t = window.localStorage.getItem("access_token") || window.localStorage.getItem("token");
-    return t || null;
-  } catch {
-    return null;
   }
+
+  // fallback to a simple token key if you stored it directly
+  const fallbackKeys = ["access_token", "token", "jwt", "accessToken"];
+  for (const key of fallbackKeys) {
+    const v = window.localStorage.getItem(key);
+    if (v) return v;
+  }
+
+  return readCookie();
 }
 
 export function getTokenForDelete(): string | null {
@@ -112,6 +130,17 @@ export const filterRowsByQuery = (rows: Row[], query: string): Row[] => {
       .includes(q)
   );
 };
+
+// Helpers exposed for tests
+export const getTokenHelper = getToken;
+export const getTokenForDeleteHelper = getTokenForDelete;
+export const filterRowsHelper = filterRowsByQuery;
+
+if (typeof globalThis !== "undefined") {
+  (globalThis as any).getTokenHelper = getTokenHelper;
+  (globalThis as any).getTokenForDeleteHelper = getTokenForDeleteHelper;
+  (globalThis as any).filterRowsHelper = filterRowsHelper;
+}
 
 export const getEmptyStateMessage = (query: string): string =>
   query.trim() ? "No matching data." : "No data.";
@@ -204,26 +233,29 @@ export default function ExpertDataManagementPage(
 
 
   const handleDelete = async (batchId: string) => {
-      if (!batchId) return;
-      /* istanbul ignore next */
-      if (!confirm("Yakin hapus batch ini beserta datanya?")) return;
+    if (!batchId) return;
+    /* istanbul ignore next */
+    if (!confirm("Yakin hapus batch ini beserta datanya?")) return;
 
     setDeletingId(batchId);
     try {
+      const deleteHeaders: Record<string, string> = { "X-API-KEY": API_KEY };
+      const token = getTokenForDelete();
+      if (token) deleteHeaders["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch(`${API_URL}/expert-feature/experts/batches/${batchId}/delete/`, {
         method: "DELETE",
-        headers: {
-          "X-API-KEY": API_KEY,
-          "Authorization": `Bearer ${getTokenForDelete()}`,
-        },
+        headers: deleteHeaders,
       });
 
-      if ([200, 202, 204].includes(res.status)) {
+      if (res.ok || [200, 202, 204].includes(res.status)) {
         setRows((prev) => prev.filter((r) => r.data_id !== batchId));
       } else {
-        const text = await res.text().catch(() => "");
+        const textFn = (res as any)?.text;
+        const text = typeof textFn === "function" ? await textFn.call(res).catch(() => "") : "";
+        const status = typeof res.status === "number" ? res.status : "unknown";
         console.error("delete failed:", res.status, text);
-        alert(`Failed to delete batch (status ${res.status}).`);
+        alert(`Failed to delete batch (status ${status}).`);
       }
     } catch (e) {
       console.error(e);

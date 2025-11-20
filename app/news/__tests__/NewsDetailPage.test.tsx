@@ -26,6 +26,13 @@ jest.mock("next/link", () => {
   return MockLink;
 });
 
+jest.mock("../../components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
+jest.mock("../../components/Footer", () => () => <div data-testid="footer">Footer</div>);
+jest.mock("../components/DefaultThumbnail", () => () => <div data-testid="thumb">Thumb</div>);
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), prefetch: jest.fn() }),
+}));
+
 const article: NewsArticle = {
   id: "1",
   title: "Detail title",
