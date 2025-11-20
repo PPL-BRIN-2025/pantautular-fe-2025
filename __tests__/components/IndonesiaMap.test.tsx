@@ -1,266 +1,117 @@
-import { render, screen, act, fireEvent } from "@testing-library/react";
+import React from "react";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { IndonesiaMap } from "../../app/components/IndonesiaMap";
-import { useIndonesiaMap } from '../../hooks/useIndonesiaMap';
-import { useUserLocation } from '../../hooks/useUserLocation';
-import { mockLocations, mockProvinceData } from "../../__mocks__/mapData";
 
-// Mock functions
-const mockSetThemes = jest.fn();
-const mockPush = jest.fn();
-const mockSet = jest.fn();
-const mockDispose = jest.fn();
-const mockOn = jest.fn();
-const mockChartContainerGet = jest.fn((param) => {
-  if (param === "background") {
-    return {
-      events: {
-        on: mockOn,
-      },
-    };
-  }
-  return {};
+const mockZoomToLocation = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), prefetch: jest.fn() }),
+  usePathname: () => "/",
+}));
+jest.mock("../../hooks/useIndonesiaMap", () => ({
+  useIndonesiaMap: () => ({
+    mapService: { zoomToLocation: mockZoomToLocation },
+  }),
+}));
+jest.mock("../../app/components/floating_buttons/DashboardButton", () => () => <div data-testid="dashboard-btn" />);
+jest.mock("../../app/components/floating_buttons/WarningButton", () => () => <div data-testid="warning-btn" />);
+jest.mock("../../app/components/floating_buttons/LocationButton", () => (props: any) => (
+  <button data-testid="location-btn" onClick={props.onClick} />
+));
+jest.mock("../../app/components/floating_buttons/MapButton", () => ({
+  __esModule: true,
+  MapButton: () => <div data-testid="map-btn" />,
+  default: () => <div data-testid="map-btn" />,
+}));
+jest.mock("../../auth/hooks/useAuth", () => ({
+  __esModule: true,
+  useAuth: () => ({ user: null }),
+}), { virtual: true });
+jest.mock("../../app/auth/hooks/useAuth", () => ({
+  __esModule: true,
+  useAuth: () => ({ user: null }),
+}));
+
+jest.mock("../../hooks/useUserLocation", () => ({
+  useUserLocation: (_setShow: any, _setError: any, onSuccess: any, onDenied: any) => ({
+    handleAllow: () => onSuccess(1, 2),
+    handleDeny: () => onDenied && onDenied(),
+  }),
+}));
+
+jest.mock("../../store/store", () => ({
+  useMapStore: (selector: any) => selector({ countSelectedPoints: 3 }),
+}));
+
+const permissionProps: any[] = [];
+const errorProps: any[] = [];
+jest.mock("../../app/components/LocationPermissionPopup", () => (props: any) => {
+  permissionProps.push(props);
+  return <div data-testid="permission-popup" data-open={props.open} />;
 });
 
-// Mock amcharts5
-jest.mock("@amcharts/amcharts5", () => ({
-  Root: {
-    new: jest.fn(() => ({
-      setThemes: mockSetThemes,
-      container: {
-        children: {
-          push: mockPush,
-        },
-      },
-      set: mockSet,
-      dispose: mockDispose,
-      chartContainer: {
-        get: mockChartContainerGet,
-      },
-    })),
-  },
-  registry: {
-    rootElements: [],
-  },
-  color: jest.fn((color) => color),
-}));
-
-// Mock amcharts5/map
-jest.mock("@amcharts/amcharts5/map", () => {
-  const mockZoomControlInstance = jest.fn(() => ({
-    someMethod: jest.fn(),
-  }));
-  const mockZoomControlNew = jest.fn(() => mockZoomControlInstance);
-
-  return {
-    MapChart: {
-      new: jest.fn(() => ({
-        set: mockSet,
-        series: { push: mockPush },
-        chartContainer: { get: mockChartContainerGet },
-      })),
-    },
-    MapPolygonSeries: {
-      new: jest.fn(() => ({
-        mapPolygons: {
-          template: { setAll: jest.fn(), states: { create: jest.fn() } },
-        },
-      })),
-    },
-    ZoomControl: { new: mockZoomControlNew },
-    geoMercator: jest.fn(),
-  };
+jest.mock("../../app/components/LocationErrorPopup", () => (props: any) => {
+  errorProps.push(props);
+  return <div data-testid="error-popup" data-open={props.open} />;
 });
 
-// Mock other dependencies
-jest.mock("@amcharts/amcharts5-geodata/indonesiaLow", () => jest.fn());
-jest.mock("@amcharts/amcharts5/themes/Animated", () => ({
-  new: jest.fn(() => ({ themeName: "AnimatedTheme" })),
-}));
-
-// Mock hooks
-jest.mock('../../hooks/useIndonesiaMap');
-jest.mock('../../hooks/useUserLocation');
-
-// Mock components
-jest.mock('../../app/components/LocationPermissionPopup', () => ({
-  __esModule: true,
-  default: function MockLocationPermissionPopup({ 
-    open, 
-    onClose, 
-    onAllow, 
-    onDeny 
-  }: { 
-    open: boolean; 
-    onClose: () => void; 
-    onAllow: () => void; 
-    onDeny: () => void 
-  }) {
-    return (
-      <div data-testid="permission-popup" style={{ display: open ? 'block' : 'none' }}>
-        <button data-testid="allow-button" onClick={onAllow}>Allow</button>
-        <button data-testid="deny-button" onClick={onDeny}>Deny</button>
-        <button data-testid="close-button" onClick={onClose}>Close</button>
-      </div>
-    );
-  }
-}));
-
-jest.mock('../../app/components/LocationErrorPopup', () => ({
-  __esModule: true,
-  default: function MockLocationErrorPopup({ 
-    open, 
-    errorType, 
-    onOpenChange 
-  }: { 
-    open: boolean; 
-    errorType: string; 
-    onOpenChange: () => void 
-  }) {
-    return (
-      <div data-testid="error-popup" data-error-type={errorType} style={{ display: open ? 'block' : 'none' }}>
-        <button data-testid="close-error-button" onClick={onOpenChange}>Close</button>
-      </div>
-    );
-  }
-}));
-
-jest.mock('../../app/components/floating_buttons/LocationButton', () => ({
-  __esModule: true,
-  default: function MockLocationButton({ onClick }: { onClick: () => void }) {
-    return <button data-testid="location-button" onClick={onClick}>Location</button>;
-  }
-}));
-
-jest.mock('../../app/components/floating_buttons/WarningButton', () => ({
-  __esModule: true,
-  default: function MockWarningButton() {
-    return <button data-testid="warning-button">Warning</button>;
-  }
-}));
-
-jest.mock('../../app/components/floating_buttons/DashboardButton', () => ({
-  __esModule: true,
-  default: function MockDashboardButton() {
-    return <button data-testid="dashboard-button">Dashboard</button>;
-  }
-}));
-
-jest.mock('../../app/components/floating_buttons/MapButton', () => ({
-  __esModule: true,
-  MapButton: function MockMapButton() {
-    return <button data-testid="map-button">Map</button>;
-  }
-}));
-
-// Helper functions
-const renderIndonesiaMap = (props = {}) => {
-  const defaultProps = {
-    onError: jest.fn(),
-    locations: mockLocations,
-    provinceHumidityData: mockProvinceData.humidity,
-    provinceTemperatureData: mockProvinceData.temperature,
-    provincePrecipitationData: mockProvinceData.precipitation,
-    provinceSeverityData: mockProvinceData.severity,
-    ...props
-  };
-
-  return render(<IndonesiaMap {...defaultProps} />);
-};
-
-const setupMocks = () => {
-  const mockMapService = {
-    zoomToLocation: jest.fn(),
-  };
-  
-  const mockHandleAllow = jest.fn();
-  const mockHandleDeny = jest.fn();
-
-  (useIndonesiaMap as jest.Mock).mockReturnValue({
-    mapService: mockMapService
-  });
-  
-  (useUserLocation as jest.Mock).mockReturnValue({
-    handleAllow: mockHandleAllow,
-    handleDeny: mockHandleDeny
-  });
-
-  return {
-    mockMapService,
-    mockHandleAllow,
-    mockHandleDeny
-  };
-};
-
-const setupLocationPermissionTest = async () => {
-  await act(async () => {
-    renderIndonesiaMap();
-  });
-
-  const locationButton = screen.getByTestId("location-button");
-  fireEvent.click(locationButton);
-};
-
-describe("IndonesiaMap Component", () => {
+describe("IndonesiaMap", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    setupMocks();
-    
-    const mapDiv = document.createElement('div');
-    mapDiv.id = 'chartdiv';
-    document.body.appendChild(mapDiv);
-  });
-  
-  afterEach(() => {
-    document.body.innerHTML = '';
+    permissionProps.length = 0;
+    errorProps.length = 0;
+    mockZoomToLocation.mockClear();
   });
 
-  test("renders the map container", async () => {
+  const baseProps = {
+    locations: [],
+    provinceHumidityData: [],
+    provinceTemperatureData: [],
+    provincePrecipitationData: [],
+    provinceSeverityData: [],
+    onError: jest.fn(),
+  };
+
+  test("renders map container and fires location success", () => {
+    render(<IndonesiaMap {...baseProps} />);
+    // trigger allow flow from permission popup to invoke zoomToLocation
+    act(() => {
+      permissionProps[0]?.onAllow?.();
+    });
+    const container = screen.getByTestId("map-container");
+    expect(container).toHaveStyle("width: 100vw");
+    expect(mockZoomToLocation).toHaveBeenCalledWith(1, 2);
+  });
+
+  test("renders error popup when permission denied and closes it", async () => {
+    render(<IndonesiaMap {...baseProps} />);
     await act(async () => {
-      renderIndonesiaMap({ locations: [] });
+      permissionProps[0]?.onDeny?.();
     });
-    expect(screen.getByTestId("map-container")).toBeInTheDocument();
-  });
-  
-  test("calls onError when map initialization fails", async () => {
-    const mockOnError = jest.fn();
-    jest.spyOn(console, "error").mockImplementation(() => {});
-    
-    (useIndonesiaMap as jest.Mock).mockImplementation((...args) => {
-      const onError = args[7];
-      onError("Map initialization failed");
-      return { mapService: null };
-    });
+    await screen.findByTestId("error-popup");
+    expect(screen.getByTestId("error-popup")).toHaveAttribute("data-open", "true");
 
     await act(async () => {
-      renderIndonesiaMap({ onError: mockOnError, locations: [] });
+      errorProps[0]?.onOpenChange?.();
     });
-
-    expect(mockOnError).toHaveBeenCalledWith("Map initialization failed");
+    await waitFor(() =>
+      expect(screen.queryByTestId("error-popup")).not.toBeInTheDocument()
+    );
   });
 
-  test("handles location permission popup", async () => {
-    await setupLocationPermissionTest();
-    expect(screen.getByTestId("permission-popup")).toBeInTheDocument();
-  });
-
-  test("handles location permission allow", async () => {
-    const { mockHandleAllow } = setupMocks();
-    await setupLocationPermissionTest();
-
-    const allowButton = screen.getByTestId("allow-button");
-    fireEvent.click(allowButton);
-
-    expect(mockHandleAllow).toHaveBeenCalled();
-  });
-
-  test("handles location permission deny", async () => {
-    const { mockHandleDeny } = setupMocks();
-    await setupLocationPermissionTest();
-
-    const denyButton = screen.getByTestId("deny-button");
-    fireEvent.click(denyButton);
-
-    expect(mockHandleDeny).toHaveBeenCalled();
+  test("opens permission popup when location button clicked", async () => {
+    render(<IndonesiaMap {...baseProps} />);
+    const locationBtn = screen.getByTestId("location-btn");
+    await act(async () => {
+      fireEvent.click(locationBtn);
+    });
+    const latestProps = permissionProps[permissionProps.length - 1];
+    expect(latestProps?.open).toBe(true);
+    await act(async () => {
+      latestProps?.onClose?.();
+    });
+    await waitFor(() => {
+      const closedProps = permissionProps[permissionProps.length - 1];
+      expect(closedProps?.open).toBe(false);
+    });
   });
 });

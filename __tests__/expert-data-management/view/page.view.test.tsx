@@ -101,6 +101,36 @@ describe("ExpertViewPage", () => {
     expect(await screen.findByText("Jakarta")).toBeInTheDocument();
   });
 
+  test("renders provided dataset prop without hitting the API", async () => {
+    setParams({
+      id: "",
+      fileName: "Ignored name",
+      lastEdited: "",
+      submittedBy: "",
+    });
+
+    const injectedRows = [
+      {
+        data_id: "INJ-1",
+        gender: "Perempuan",
+        age: 32,
+        city: "Surabaya",
+        status: "Aktif",
+        disease_id: "D-123",
+        severity: "Sedang",
+        location_id: "LOC-1",
+      },
+    ];
+
+    render(<ExpertViewPage dataset={injectedRows} fileName="Injected Dataset" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Injected Dataset")).toBeInTheDocument();
+      expect(screen.getByText("Surabaya")).toBeInTheDocument();
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   test("shows access denied for unsupported role", async () => {
     mockUseAuth.mockReturnValue({ user: { role: "CURATOR" } });
     setParams({
@@ -182,6 +212,11 @@ describe("ExpertViewPage", () => {
 
     render(<ExpertViewPage />);
     expect(await screen.findByText("Dataset Detail")).toBeInTheDocument();
+  });
+
+  test("default export exposes Suspense fallback when rendered without props", () => {
+    const element = ExpertViewPage();
+    expect(element.props.fallback.props.children).toContain("Loading data...");
   });
 
   test("renders 'No data available' when API returns empty array", async () => {

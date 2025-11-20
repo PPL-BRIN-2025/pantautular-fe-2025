@@ -113,7 +113,7 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ],
 
   CONTRIBUTOR: [
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tambah Data", href: "/contributor-event-reporting" },
     { label: "Bantuan", href: "/help" },
   ],
 };
@@ -143,7 +143,7 @@ function formatRoleLabel(role?: string | null): string {
   return ROLE_DISPLAY_LABELS[normalized] ?? role;
 }
 
-function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
+export function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
   const links = resolveRoleLinks(role);
   if (!links.length) return null;
 

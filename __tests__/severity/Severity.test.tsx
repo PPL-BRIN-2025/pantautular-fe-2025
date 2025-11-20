@@ -1,8 +1,29 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { DiseaseSeverityChart, ProvinceSeverityChart, CitySeverityChart } from "../../app/components/severity/Severity";
+import SeverityChart, { DiseaseSeverityChart, ProvinceSeverityChart, CitySeverityChart } from "../../app/components/severity/Severity";
 import { severityApi } from "../../services/api";
+
+const canDownloadCalls: Array<boolean | undefined> = [];
+jest.mock("../../app/components/dashboard/DownloadButton", () => ({
+  __esModule: true,
+  default: ({ canDownload }: { canDownload?: () => boolean }) => {
+    const immediate = canDownload ? canDownload() : undefined;
+    canDownloadCalls.length = 0;
+    canDownloadCalls.push(immediate);
+
+    return (
+      <button
+        type="button"
+        aria-label="Download IMG"
+        data-testid="download-btn"
+        data-can-download={immediate}
+      >
+        Download IMG
+      </button>
+    );
+  },
+}));
 
 // Mock the API calls
 jest.mock("../../services/api", () => ({
@@ -131,6 +152,7 @@ describe("Severity Charts", () => {
   beforeEach(() => {
     // Reset all mocks before each test
     jest.clearAllMocks();
+    canDownloadCalls.length = 0;
     
     // Setup default mock responses
     (severityApi.getDiseaseSeverityStats as jest.Mock).mockResolvedValue(mockData);
@@ -139,13 +161,14 @@ describe("Severity Charts", () => {
   });
 
   describe("DiseaseSeverityChart", () => {
-    it("renders loading state initially", () => {
+    it("renders loading state initially", async () => {
       render(<DiseaseSeverityChart />);
       const loadingContainer = screen.getByText((_content, element) => {
         const className = typeof element?.getAttribute === "function" ? element.getAttribute("class") ?? "" : "";
         return className.includes("animate-spin");
       });
       expect(loadingContainer).toHaveClass("animate-spin", "rounded-full", "h-8", "w-8", "border-b-2", "border-gray-900");
+      await waitFor(() => expect(severityApi.getDiseaseSeverityStats).toHaveBeenCalled());
     });
 
     it("renders chart title and legend items", async () => {
@@ -156,7 +179,7 @@ describe("Severity Charts", () => {
         expect(screen.getByText("Hospitalisasi")).toBeInTheDocument();
         expect(screen.getByText("Insiden")).toBeInTheDocument();
         expect(screen.getByText("Mortalitas")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /download img/i })).toBeInTheDocument();
       });
     });
 
@@ -172,13 +195,14 @@ describe("Severity Charts", () => {
   });
 
   describe("ProvinceSeverityChart", () => {
-    it("renders loading state initially", () => {
+    it("renders loading state initially", async () => {
       render(<ProvinceSeverityChart />);
       const loadingContainer = screen.getByText((_content, element) => {
         const className = typeof element?.getAttribute === "function" ? element.getAttribute("class") ?? "" : "";
         return className.includes("animate-spin");
       });
       expect(loadingContainer).toHaveClass("animate-spin", "rounded-full", "h-8", "w-8", "border-b-2", "border-gray-900");
+      await waitFor(() => expect(severityApi.getProvinceSeverityStats).toHaveBeenCalled());
     });
 
     it("renders chart title and legend items", async () => {
@@ -189,7 +213,7 @@ describe("Severity Charts", () => {
         expect(screen.getByText("Hospitalisasi")).toBeInTheDocument();
         expect(screen.getByText("Insiden")).toBeInTheDocument();
         expect(screen.getByText("Mortalitas")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /download img/i })).toBeInTheDocument();
       });
     });
 
@@ -205,13 +229,14 @@ describe("Severity Charts", () => {
   });
 
   describe("CitySeverityChart", () => {
-    it("renders loading state initially", () => {
+    it("renders loading state initially", async () => {
       render(<CitySeverityChart />);
       const loadingContainer = screen.getByText((_content, element) => {
         const className = typeof element?.getAttribute === "function" ? element.getAttribute("class") ?? "" : "";
         return className.includes("animate-spin");
       });
       expect(loadingContainer).toHaveClass("animate-spin", "rounded-full", "h-8", "w-8", "border-b-2", "border-gray-900");
+      await waitFor(() => expect(severityApi.getCitySeverityStats).toHaveBeenCalled());
     });
 
     it("renders chart title and legend items", async () => {
@@ -222,7 +247,7 @@ describe("Severity Charts", () => {
         expect(screen.getByText("Hospitalisasi")).toBeInTheDocument();
         expect(screen.getByText("Insiden")).toBeInTheDocument();
         expect(screen.getByText("Mortalitas")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /download img/i })).toBeInTheDocument();
       });
     });
 
@@ -246,4 +271,101 @@ describe("Severity Charts", () => {
       expect(screen.getByText("No data available")).toBeInTheDocument();
     });
   });
-}); 
+
+  it("transforms filtered responses for province type", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      disease_stats: [],
+      province_stats: [
+        {
+          name: "West Java",
+          severity_counts: { hospitalisasi: 1, insiden: 2, mortalitas: 3 },
+          total_cases: 6,
+        },
+      ],
+      city_stats: [],
+    });
+
+    render(
+      <SeverityChart
+        title="Provincial Severity"
+        categoryField="name"
+        fetchData={fetchMock}
+        seriesConfig={[
+          { field: "hospitalisasi", name: "Hosp", color: "#000" },
+          { field: "insiden", name: "Inc", color: "#111" },
+        ]}
+        filter={{} as any}
+        type="province"
+      />
+    );
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        document.querySelector('[id^="chartdiv-"]')
+      ).toBeInTheDocument()
+    );
+  });
+
+  it("maps city stats when filter response is provided", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      disease_stats: [],
+      province_stats: [],
+      city_stats: [
+        {
+          name: "Jakarta",
+          severity_counts: { hospitalisasi: 2, insiden: 3, mortalitas: 4 },
+          total_cases: 9,
+        },
+      ],
+    });
+
+    render(
+      <SeverityChart
+        title="City Severity"
+        categoryField="name"
+        fetchData={fetchMock}
+        seriesConfig={[
+          { field: "hospitalisasi", name: "Hosp", color: "#123" },
+          { field: "insiden", name: "Inc", color: "#456" },
+        ]}
+        filter={{} as any}
+        type="city"
+      />
+    );
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await waitFor(() => expect(canDownloadCalls[0]).toBe(true));
+  });
+
+  it("disables download when city stats are empty totals", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      disease_stats: [],
+      province_stats: [],
+      city_stats: [
+        {
+          name: "Empty City",
+          severity_counts: { hospitalisasi: 0, insiden: 0, mortalitas: 0 },
+          total_cases: 0,
+        },
+      ],
+    });
+
+    render(
+      <SeverityChart
+        title="City Severity"
+        categoryField="name"
+        fetchData={fetchMock}
+        seriesConfig={[
+          { field: "hospitalisasi", name: "Hosp", color: "#123" },
+          { field: "insiden", name: "Inc", color: "#456" },
+        ]}
+        filter={{} as any}
+        type="city"
+      />
+    );
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    await waitFor(() => expect(canDownloadCalls[0]).toBe(false));
+  });
+});

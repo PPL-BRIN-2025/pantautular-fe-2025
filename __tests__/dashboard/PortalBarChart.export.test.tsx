@@ -10,6 +10,6 @@ describe("PortalBarChart download controls", () => {
       { portal: "B", count: 2 },
     ];
     render(<PortalBarChart title="Sumber" data={data as any} />);
-    expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /download img/i })).toBeInTheDocument();
   });
 });

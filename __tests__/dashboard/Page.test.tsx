@@ -1,21 +1,14 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import Page from "../../app/dashboard/page";
 import { FilterState } from "@/types";
-
-// Mock functions
-const mockSetFilterState = jest.fn();
-const mockConsoleLog = jest.fn();
-const mockConsoleError = jest.fn();
-
-// Save original console methods
-const originalConsoleLog = console.log;
-const originalConsoleError = console.error;
 
 // Mock components
 let mockFilterSubmitProp: ((filters: FilterState) => void) | undefined;
 let mockErrorHandlerProp: ((message: string) => void) | undefined;
 let mockFilterStateProp: FilterState | undefined;
+let logSpy: jest.SpyInstance;
+let errorSpy: jest.SpyInstance;
 
 jest.mock("../../app/components/Navbar", () => () => (
   <div data-testid="navbar">Navbar Content</div>
@@ -42,19 +35,17 @@ jest.mock("../../app/components/dashboard/InformationSection", () => (props: {
 describe("Dashboard Page", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Override console methods with mocks
-    console.log = mockConsoleLog;
-    console.error = mockConsoleError;
-    
-    // Reset useState mock to return undefined initial state
-    React.useState = jest.fn().mockReturnValue([undefined, mockSetFilterState]);
+    mockFilterSubmitProp = undefined;
+    mockErrorHandlerProp = undefined;
+    mockFilterStateProp = undefined;
+
+    logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
-    // Restore original console methods
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
+    logSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it("renders Navbar, FilterSection and InformationSection", () => {
@@ -82,7 +73,7 @@ describe("Dashboard Page", () => {
     expect(mockFilterStateProp).toBeUndefined();
   });
 
-  it("updates filterState when handleFilterSubmit is called", () => {
+  it("updates filterState when handleFilterSubmit is called", async () => {
     render(<Page />);
     
     // Create a mock filter state
@@ -92,19 +83,21 @@ describe("Dashboard Page", () => {
       level_of_alertness: 3,
       portals: ["news-portal-1", "news-portal-2"],
       start_date: new Date(),
-      end_date: new Date() 
+      end_date: new Date(),
       batch: "batch-1"
     };
     
     // Call the handleFilterSubmit function passed to FilterSection
-    if (mockFilterSubmitProp) {
-      mockFilterSubmitProp(mockFilters);
-      
-      // Check that setState was called with the correct filters
-      expect(mockSetFilterState).not.toHaveBeenCalled();
-      // Check that console.log was called
-      expect(mockConsoleLog).toHaveBeenCalledWith('Filter submitted:', mockFilters);
-    }
+    expect(typeof mockFilterSubmitProp).toBe("function");
+
+    act(() => {
+      mockFilterSubmitProp?.(mockFilters);
+    });
+
+    await waitFor(() => {
+      expect(mockFilterStateProp).toEqual(mockFilters);
+      expect(logSpy).toHaveBeenCalledWith("Filter submitted:", mockFilters);
+    });
   });
 
   it("logs error message when handleError is called", () => {
@@ -117,7 +110,7 @@ describe("Dashboard Page", () => {
       mockErrorHandlerProp(errorMessage);
       
       // Check that console.error was called with the correct message
-      expect(mockConsoleError).toHaveBeenCalledWith(errorMessage);
+      expect(errorSpy).toHaveBeenCalledWith(errorMessage);
     }
   });
 });

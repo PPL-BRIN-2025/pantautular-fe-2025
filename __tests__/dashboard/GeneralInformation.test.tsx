@@ -9,10 +9,25 @@ jest.mock("../../app/components/dashboard/gender_distribution/GenderDonutChart",
 jest.mock("../../app/components/dashboard/cases_number/CaseNumberCard", () => () => <div>CaseNumberCard</div>);
 jest.mock("../../app/components/dashboard/CasesLevel", () => () => <div>CasesLevel</div>);
 jest.mock("../../app/components/dashboard/age_statistic/AgeStatisticCard", () => () => <div>AgeStatisticCard</div>);
-jest.mock("../../app/components/dashboard/sumberBerita/PortalBarChart", () => () => <div>PortalBarChart</div>);
-jest.mock("../../app/components/dashboard/DetailDistribution", () => () => <div>DetailDistribution</div>);
+jest.mock("../../app/components/dashboard/ExcelVisualizationCard", () => () => <div>ExcelVisualizationCard</div>);
+jest.mock("../../app/components/dashboard/sumberBerita/PortalBarChart", () => {
+  const React = require("react");
+  return (props: any) => {
+    React.useEffect(() => {
+      props.onViewDetails(props.title, props.detailData);
+    }, []);
+    return <div>PortalBarChart</div>;
+  };
+});
+jest.mock("../../app/components/dashboard/DetailDistribution", () => {
+  return () => <div data-testid="detail-modal">DetailDistribution</div>;
+});
 
 describe("GeneralInformation Component", () => {
+  beforeAll(() => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+  });
+
   const mockData = {
     prevalence_statistics: {
       prevalence: 0.5,
@@ -96,5 +111,15 @@ describe("GeneralInformation Component", () => {
     };
     render(<GeneralInformation data={incompleteData} />);
     expect(screen.getByText("Informasi Kasus Penyakit Menular")).toBeInTheDocument();
+  });
+
+  it("shows excel view when enabled", () => {
+    render(<GeneralInformation data={mockData} showExcelView />);
+    expect(screen.getByText("ExcelVisualizationCard")).toBeInTheDocument();
+  });
+
+  it("opens and closes the detail modal through view detail handlers", async () => {
+    render(<GeneralInformation data={mockData} />);
+    expect(await screen.findByTestId("detail-modal")).toBeInTheDocument();
   });
 });

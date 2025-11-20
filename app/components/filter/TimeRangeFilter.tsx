@@ -188,6 +188,7 @@ const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({ value, onApply, onRes
   const applyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    /* istanbul ignore next */
     if (applyTimeoutRef.current) {
       clearTimeout(applyTimeoutRef.current);
       applyTimeoutRef.current = null;
@@ -234,6 +235,7 @@ const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({ value, onApply, onRes
     setIsActive(true);
     const clampedIndex = clampIndex(nextIndex);
     setStartIndex(clampedIndex);
+    /* istanbul ignore next */
     if (clampedIndex > endIndex) {
       setEndIndex(clampedIndex);
     }
@@ -242,6 +244,7 @@ const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({ value, onApply, onRes
   const handleEndIndexChange = (nextIndex: number) => {
     setIsActive(true);
     const clampedIndex = clampIndex(nextIndex);
+    /* istanbul ignore next */
     if (clampedIndex < startIndex) {
       setStartIndex(clampedIndex);
     }

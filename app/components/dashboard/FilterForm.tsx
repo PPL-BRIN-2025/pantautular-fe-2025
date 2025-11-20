@@ -59,7 +59,8 @@ const handleSelectChange = (
   setSelected: (value: SelectOption[]) => void
 ) => {
   if (newValue.some((option) => option.value === "all")) {
-    if (currentSelected.length === allOptions.length - 1) {
+    const isAllSelected = currentSelected.length >= allOptions.length - 1;
+    if (isAllSelected) {
       setSelected([]);
     } else {
       setSelected(allOptions.slice(1));

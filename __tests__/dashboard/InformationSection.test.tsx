@@ -3,13 +3,12 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import InformationSection from "../../app/components/dashboard/InformationSection";
 import { useDashboardData } from "../../hooks/useDashboardData";
 
-// Mock the useDashboardData hook
 jest.mock("../../hooks/useDashboardData", () => ({
   useDashboardData: jest.fn(),
 }));
 
-// Mock child components
 const mockGeneralInformation = jest.fn(() => <div>General Information Content</div>);
+const mockCasesOrder = jest.fn(() => <div>Cases Order Content</div>);
 
 jest.mock("../../app/components/dashboard/GeneralInformation", () => ({
   __esModule: true,
@@ -18,7 +17,7 @@ jest.mock("../../app/components/dashboard/GeneralInformation", () => ({
 
 jest.mock("../../app/components/dashboard/CasesOrder", () => ({
   __esModule: true,
-  default: () => <div>Cases Order Content</div>,
+  default: (props: any) => mockCasesOrder(props),
 }));
 
 jest.mock("../../app/components/floating_buttons/DashboardButton", () => () => (
@@ -38,6 +37,7 @@ describe("InformationSection", () => {
       error: null,
     });
     mockGeneralInformation.mockClear();
+    mockCasesOrder.mockClear();
   });
 
   it("renders correctly", () => {
@@ -86,6 +86,18 @@ describe("InformationSection", () => {
 
     render(<InformationSection />);
     expect(screen.getByText("General Information Content")).toBeInTheDocument();
+  });
+
+  it("passes filter state to hook and CasesOrder", () => {
+    const filterState = { diseases: ["d1"] };
+    render(<InformationSection filterState={filterState as any} />);
+
+    expect(useDashboardData).toHaveBeenCalledWith(filterState);
+
+    fireEvent.click(screen.getByText("Urutan Kasus"));
+    expect(mockCasesOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: filterState })
+    );
   });
 
   it("disables csv visualization by default", () => {

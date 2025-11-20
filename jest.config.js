@@ -48,4 +48,6 @@ module.exports = {
     "app/**/*.{ts,tsx}",   // include all app code
     "!app/**/_components/*", // optional: ignore small presentational components
   ],
+  testPathIgnorePatterns: [
+  ],
 };

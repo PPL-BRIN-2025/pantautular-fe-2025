@@ -1,5 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import AmChartTingkatanKasus from '../../app/components/dashboard/CasesLevel';
+import React from "react";
+
+const downloadedProps: any[] = [];
+jest.mock("../../app/components/dashboard/DownloadButton", () => ({
+  __esModule: true,
+  default: (props: any) => {
+    downloadedProps.push(props);
+    return <button aria-label="download img" onClick={() => props.canDownload?.()} />;
+  },
+}));
 
 // Create a more functional mock of amcharts that allows testing the actual logic
 const mockDispose = jest.fn();
@@ -148,6 +158,7 @@ describe('AmChartKasus Component', () => {
   beforeEach(() => {
     // Reset all mocks between tests
     jest.clearAllMocks();
+    downloadedProps.length = 0;
     
     // Set up a mock for document.getElementById
     document.getElementById = jest.fn().mockImplementation(() => ({
@@ -247,6 +258,19 @@ describe('AmChartKasus Component', () => {
     await waitFor(() => {
       expect(screen.getByTestId('chart-container')).toBeInTheDocument();
     });
+  });
+
+  it('exposes download helpers that respect data availability', async () => {
+    render(<AmChartTingkatanKasus jsonData={mockJsonData} />);
+    await waitFor(() => expect(downloadedProps[0]).toBeDefined());
+    expect(downloadedProps[0].canDownload()).toBe(true);
+    expect(downloadedProps[0].getTarget()).toBeInstanceOf(HTMLElement);
+
+    downloadedProps.length = 0;
+    const zeroData = { data: { none: [{ date: "2024-01-01", count: 0 }] } };
+    render(<AmChartTingkatanKasus jsonData={zeroData as any} />);
+    await waitFor(() => expect(downloadedProps[0]).toBeDefined());
+    expect(downloadedProps[0].canDownload()).toBe(false);
   });
 
   // Test legend hover events (lines 112-119)
@@ -388,7 +412,7 @@ describe('AmChartKasus Component', () => {
     
     expect(screen.getByText('Tingkatan Kasus')).toBeInTheDocument();
     expect(screen.getByTestId('chart-container')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /unduh gambar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /download img/i })).toBeInTheDocument();
   });
 
   // Unhappy Case - Component handles null data

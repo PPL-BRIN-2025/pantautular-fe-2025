@@ -25,21 +25,42 @@ type ExpertDataManagementPageProps = {
 };
 
 export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+
   try {
-    // prefer a user blob saved by your auth flow
     const raw = window.localStorage.getItem("user");
     if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.access_token) return String(parsed.access_token);
-      /* istanbul ignore next */
-      if (parsed?.token) return String(parsed.token);
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed?.access_token) return String(parsed.access_token);
+        /* istanbul ignore next */
+        if (parsed?.token) return String(parsed.token);
+      } catch {
+        // ignore parse failures and fall through to other lookups
+      }
     }
-    // fallback to a simple token key if you stored it directly
-    const t = window.localStorage.getItem("access_token") || window.localStorage.getItem("token");
-    return t || null;
   } catch {
-    return null;
+    // ignore access issues
   }
+
+  const fallbackKeys = ["access_token", "token", "accessToken", "jwt"];
+  for (const key of fallbackKeys) {
+    try {
+      const value = window.localStorage.getItem(key);
+      if (value) return value;
+    } catch {
+      // continue trying other keys
+    }
+  }
+
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+  } catch {
+    // ignore cookie parsing errors
+  }
+
+  return null;
 }
 
 export function getTokenForDelete(): string | null {

@@ -121,6 +121,7 @@ export default function CsvUpload({
   const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    /* istanbul ignore next -- UI never renders the file input for non EXP users */
     if (!isExpert)
       return onErrorAction?.("Hanya EXP_USER dapat mengunggah CSV.") as any;
     uploadFile(f);
