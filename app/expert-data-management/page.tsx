@@ -25,6 +25,7 @@ type PageProps = {
 };
 
 function getToken(): string | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem("user");
     if (raw) {
@@ -32,11 +33,17 @@ function getToken(): string | null {
       if (parsed?.access_token) return String(parsed.access_token);
       if (parsed?.token) return String(parsed.token);
     }
-    const t = window.localStorage.getItem("access_token") || window.localStorage.getItem("token");
-    return t || null;
-  } catch {
-    return null;
+  } catch {}
+  const keys = ["access_token", "token", "accessToken", "jwt"];
+  for (const key of keys) {
+    const v = window.localStorage.getItem(key);
+    if (v) return v;
   }
+  try {
+    const m = document.cookie.match(/(?:^|;\\s*)access_token=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
+  } catch {}
+  return null;
 }
 
 function getTokenForDelete(): string | null {

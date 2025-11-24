@@ -5,6 +5,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ExpertViewPage from "../../../app/expert-data-management/view/page";
 import "@testing-library/jest-dom";
+import React from "react";
 
 // --- Mock router and search params ---
 const mockBack = jest.fn();
@@ -14,8 +15,17 @@ jest.mock("next/navigation", () => ({
 }));
 
 // --- Mock layout components ---
-jest.mock("../../../app/components/Navbar", () => () => <div data-testid="navbar">Navbar</div>);
-jest.mock("../../../app/components/Footer", () => () => <div data-testid="footer">Footer</div>);
+jest.mock("../../../app/components/Navbar", () => ({
+  __esModule: true,
+  default: () => <div data-testid="navbar">Navbar</div>,
+}));
+jest.mock("../../../app/components/Footer", () => ({
+  __esModule: true,
+  default: () => <div data-testid="footer">Footer</div>,
+}));
+jest.mock("../../../app/auth/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { role: "EXP_USER" } }),
+}));
 
 // --- Mock global fetch ---
 global.fetch = jest.fn();

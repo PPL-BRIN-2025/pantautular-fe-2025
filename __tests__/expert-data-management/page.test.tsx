@@ -21,12 +21,14 @@ jest.mock("next/navigation", () => ({
   }),
 }));
 
-jest.mock("../../app/components/Navbar", () => () => (
-  <div data-testid="mock-navbar">Navbar</div>
-));
-jest.mock("../../app/components/Footer", () => () => (
-  <div data-testid="mock-footer">Footer</div>
-));
+jest.mock("../../app/components/Navbar", () => ({
+  __esModule: true,
+  default: () => <div data-testid="mock-navbar">Navbar</div>,
+}));
+jest.mock("../../app/components/Footer", () => ({
+  __esModule: true,
+  default: () => <div data-testid="mock-footer">Footer</div>,
+}));
 
 const mockUseAuth = jest.fn(() => ({ user: { role: "EXP_USER" } }));
 jest.mock("../../app/auth/hooks/useAuth", () => ({
