@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
@@ -13,20 +14,20 @@ type Contribution = {
   username: string;
 };
 
-// ---- DUMMY DATA ----
 const DUMMY: Contribution[] = [
-  { id: "ID1", title: "Bla Bla Bla", status: "APPROVED", username: "KontributorA" },
-  { id: "ID2", title: "Lorem Ipsum", status: "REJECTED", username: "KontributorB" },
-  { id: "ID3", title: "Dolor", status: "WAITING FOR APPROVAL", username: "KontributorC" },
-  { id: "ID4", title: "Sit", status: "REJECTED", username: "KontributorD" },
-  { id: "ID5", title: "Amet", status: "APPROVED", username: "KontributorE" },
+  { id: "ID1", title: "Bla Bla Bla", status: "APPROVED",            username: "KontributorA" },
+  { id: "ID2", title: "Lorem Ipsum", status: "REJECTED",            username: "KontributorB" },
+  { id: "ID3", title: "Dolor",        status: "WAITING FOR APPROVAL", username: "KontributorC" },
+  { id: "ID4", title: "Sit",          status: "REJECTED",            username: "KontributorD" },
+  { id: "ID5", title: "Amet",         status: "APPROVED",            username: "KontributorE" },
   { id: "ID6", title: "Lorem Ipsuuuuum", status: "WAITING FOR APPROVAL", username: "KontributorF" },
-  { id: "ID7", title: "Dolor Sit Amet", status: "APPROVED", username: "KontributorG" },
-  { id: "ID8", title: "Blabla", status: "WAITING FOR APPROVAL", username: "KontributorH" },
-  { id: "ID9", title: "Penyakit Menular", status: "REJECTED", username: "KontributorI" },
+  { id: "ID7", title: "Dolor Sit Amet", status: "APPROVED",          username: "KontributorG" },
+  { id: "ID8", title: "Blabla",       status: "WAITING FOR APPROVAL", username: "KontributorH" },
+  { id: "ID9", title: "Penyakit Menular", status: "REJECTED",        username: "KontributorI" },
 ];
 
 export default function ContributionManagementPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -37,6 +38,10 @@ export default function ContributionManagementPage() {
         c.username.toLowerCase().includes(q)
     );
   }, [search]);
+
+  const goView = (id: string) => {
+    router.push(`/contribution-management/view?id=${encodeURIComponent(id)}`);
+  };
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
@@ -63,12 +68,16 @@ export default function ContributionManagementPage() {
               <div className="px-4 py-3 border-l border-white/40">Judul</div>
               <div className="px-4 py-3 border-l border-white/40">Status</div>
               <div className="px-4 py-3 border-l border-white/40">Username</div>
-              <div className="px-4 py-3 border-l border-white/40 text-center">Action</div>
+              <div className="px-4 py-3 border-l border-white/40 text-center">
+                Action
+              </div>
             </div>
 
             {/* BODY */}
             {filtered.length === 0 ? (
-              <div className="py-6 text-center text-gray-500">Tidak ada data yang cocok.</div>
+              <div className="py-6 text-center text-gray-500">
+                Tidak ada data yang cocok.
+              </div>
             ) : (
               <ul className="divide-y divide-gray-200">
                 {filtered.map((c) => (
@@ -81,7 +90,10 @@ export default function ContributionManagementPage() {
                     <div className="px-4 py-3">{c.status}</div>
                     <div className="px-4 py-3">{c.username}</div>
                     <div className="px-4 py-3 flex justify-center">
-                      <button className="bg-[#2E8AF6] text-white px-4 py-1 rounded-md hover:bg-[#256fd4] transition">
+                      <button
+                        onClick={() => goView(c.id)}
+                        className="bg-[#2E8AF6] text-white px-4 py-1 rounded-md hover:bg-[#256fd4] transition"
+                      >
                         View
                       </button>
                     </div>
