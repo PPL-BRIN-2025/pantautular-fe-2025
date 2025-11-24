@@ -142,31 +142,36 @@ const ComparisonCard = ({
   );
 };
 
-export default function SpatialComparisonPanel({
-  baseFilters,
-  refreshToken,
-  onError,
-  provinceHumidityData,
-  provinceTemperatureData,
-  provincePrecipitationData,
-  provinceSeverityData,
-  initialRegions = [],
-  maxRegions,
-  overlayMode = false,
-  onClose,
-}: SpatialComparisonPanelProps) {
+export default function SpatialComparisonPanel(props: SpatialComparisonPanelProps) {
+  const {
+    baseFilters,
+    refreshToken,
+    onError,
+    provinceHumidityData,
+    provinceTemperatureData,
+    provincePrecipitationData,
+    provinceSeverityData,
+    initialRegions,
+    maxRegions,
+    overlayMode = false,
+    onClose,
+  } = props;
+  const normalizedInitialRegions = useMemo(
+    () => initialRegions ?? [],
+    [initialRegions]
+  );
   const [regionOptions, setRegionOptions] = useState<SpatialComparisonRegion[]>([]);
-  const [selectedRegions, setSelectedRegions] = useState<SpatialComparisonRegion[]>(initialRegions);
-  const [regionA, setRegionA] = useState<SpatialComparisonRegion | null>(initialRegions[0] || null);
-  const [regionB, setRegionB] = useState<SpatialComparisonRegion | null>(initialRegions[1] || null);
+  const [selectedRegions, setSelectedRegions] = useState<SpatialComparisonRegion[]>(normalizedInitialRegions);
+  const [regionA, setRegionA] = useState<SpatialComparisonRegion | null>(normalizedInitialRegions[0] || null);
+  const [regionB, setRegionB] = useState<SpatialComparisonRegion | null>(normalizedInitialRegions[1] || null);
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
   const [filtersError, setFiltersError] = useState<string | null>(null);
 
   useEffect(() => {
-    setSelectedRegions(initialRegions);
-    setRegionA(initialRegions[0] || null);
-    setRegionB(initialRegions[1] || null);
-  }, [initialRegions]);
+    setSelectedRegions(normalizedInitialRegions);
+    setRegionA(normalizedInitialRegions[0] || null);
+    setRegionB(normalizedInitialRegions[1] || null);
+  }, [normalizedInitialRegions]);
 
   const reconcileOption = (current: SpatialComparisonRegion | null) => {
     if (!current) return null;
