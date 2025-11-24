@@ -7,6 +7,7 @@ import { useAuth } from "../auth/hooks/useAuth";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import CsvUpload from "../components/CsvUpload";
+import type { ContributorCasePayload } from "../../api/contributorEvents";
 import type { FilterState, FilterStateDashboard, User } from "@/types";
 
 
@@ -489,45 +490,56 @@ export default function ContributorEventReportingPage() {
     try {
       // map to backend payload
       const STATUS_MAP: Record<number, string> = { 1: 'biasa', 2: 'minimal', 3: 'bahaya', 4: 'katastropik' };
-  const computedContent = (srcContent && srcContent.trim()) || (ringkasan && ringkasan.trim()) || (selectedSumber && selectedSumber.content && String(selectedSumber.content).trim()) || "Konten singkat tidak tersedia.";
+      const computedContent = (srcContent && srcContent.trim()) || (ringkasan && ringkasan.trim()) || (selectedSumber && selectedSumber.content && String(selectedSumber.content).trim()) || "Konten singkat tidak tersedia.";
 
-  // assemble date_published: prefer explicit assembled DD/MM/YYYY parts, fall back to srcDatePublished string
-  const assembledDatePublished = (function() {
-    const raw = (srcDatePublished || '').trim();
-    if (raw) return raw;
-    const dd = (srcDateDd || '').trim();
-    const mm = (srcDateMm || '').trim();
-    const yyyy = (srcDateYyyy || '').trim();
-    if (dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4) {
-      const d = new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0));
-      if (!isNaN(d.getTime())) return d.toISOString();
-    }
-    return null;
-  })();
+      // assemble date_published: prefer explicit assembled DD/MM/YYYY parts, fall back to srcDatePublished string
+      const assembledDatePublished = (function() {
+        const raw = (srcDatePublished || "").trim();
+        if (raw) return raw;
+        const dd = (srcDateDd || "").trim();
+        const mm = (srcDateMm || "").trim();
+        const yyyy = (srcDateYyyy || "").trim();
+        if (dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4) {
+          const d = new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0));
+          if (!isNaN(d.getTime())) return d.toISOString();
+        }
+        return null;
+      })();
 
-  const news = {
-    portal: srcPortal.trim() || 'Unknown',
-    title: srcTitle.trim() || (ringkasan.slice(0, 80) || 'Berita'),
-    type: srcType,
-    // ensure content is never blank because backend requires it
-    content: String(computedContent),
-    url: srcUrl.trim() || sumberBerita.trim(),
-    // backend serializer expects these keys to exist; use empty string when not provided so
-    // the JSON includes the fields (DRF treats missing keys as validation errors)
-    author: srcAuthor.trim() || '',
-  date_published: assembledDatePublished,
-    img_url: srcImgUrl.trim() || '',
-  };
+      const resolvedUrl = (srcUrl || sumberBerita || selectedSumber?.url || "").trim();
+      const resolvedPortal = (srcPortal || selectedSumber?.portal || "").trim() || "Unknown";
+      const resolvedTitle = (srcTitle || selectedSumber?.title || ringkasan || "").trim() || "Berita";
+      const resolvedType = (srcType || selectedSumber?.type || "artikel").trim() || "artikel";
+      const resolvedAuthor = (srcAuthor || selectedSumber?.author || "").trim() || "Unknown";
+      const resolvedImg = (srcImgUrl || selectedSumber?.img_url || "").trim();
 
-      const payload = {
-        disease: jenisPenyakit.trim() || "",
+      const news = {
+        portal: resolvedPortal,
+        title: resolvedTitle,
+        type: resolvedType,
+        // ensure content is never blank because backend requires it
+        content: String(computedContent),
+        url: resolvedUrl,
+        author: resolvedAuthor,
+        date_published: assembledDatePublished || selectedSumber?.date_published || new Date().toISOString(),
+        img_url: resolvedImg,
+      };
+
+      const cleanCity = (lokasi || "").trim();
+      const cleanProvince = (provinsi || "").trim();
+      const rawAge = usia && usia.trim() ? parseInt(usia.trim(), 10) : undefined;
+      const age = typeof rawAge === "number" && !Number.isNaN(rawAge) ? rawAge : undefined;
+      const locationPayload: { city: string; province?: string } = { city: cleanCity };
+      if (cleanProvince) locationPayload.province = cleanProvince;
+
+      const payload: ContributorCasePayload = {
+        disease: (jenisPenyakit || "").trim(),
         gender: jenisKelamin || undefined,
-        age: usia ? Number(usia) : null,
-        city: lokasi || undefined,
-        province: provinsi || undefined,
-        status: STATUS_MAP[kewaspadaan] || 'biasa',
+        age,
+        city: cleanCity || undefined,
+        status: STATUS_MAP[kewaspadaan] || "biasa",
         severity: tingkatKeparahan,
-        location: { city: lokasi, province: provinsi || undefined },
+        location: locationPayload,
         news,
       };
 
