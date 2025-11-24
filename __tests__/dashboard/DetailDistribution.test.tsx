@@ -245,6 +245,24 @@ describe("DetailDistribution Component", () => {
       expect(screen.getByText('Portal C')).toBeInTheDocument();
     });
 
+    it('toggles sort direction when clicking the same header twice', () => {
+      render(
+        <DetailDistribution
+          data={mockData}
+          title="Test Distribution"
+          isShowModal={true}
+          setIsShowModal={mockSetIsShowModal}
+        />
+      );
+
+      const newsHeader = screen.getByText(/Total Postingan Artikel/);
+      fireEvent.click(newsHeader); // asc
+      fireEvent.click(newsHeader); // desc
+
+      const rows = screen.getAllByRole('row');
+      expect(rows[1]).toHaveTextContent('Portal F'); // highest news_count
+    });
+
     it('sets new sort field when sorting by a different column', () => {
       render(
         <DetailDistribution

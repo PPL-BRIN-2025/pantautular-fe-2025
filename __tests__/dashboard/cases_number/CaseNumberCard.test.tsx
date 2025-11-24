@@ -4,6 +4,19 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CaseNumberCard from '../../../app/components/dashboard/cases_number/CaseNumberCard';
 
+const downloadCalls: any[] = [];
+jest.mock('../../../app/components/dashboard/DownloadButton', () => ({
+  __esModule: true,
+  default: (props: any) => {
+    downloadCalls.push(props);
+    return (
+      <button type="button" aria-label="download img" onClick={props.onClick}>
+        Download
+      </button>
+    );
+  },
+}));
+
 // Helper function to assert StatsItem content
 const assertStatsItem = (testId: string, expectedLabel: string, expectedCountPercentage: string) => {
   const item = screen.getByTestId(testId);
@@ -12,6 +25,10 @@ const assertStatsItem = (testId: string, expectedLabel: string, expectedCountPer
 };
 
 describe('CaseNumberCard', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    downloadCalls.length = 0;
+  });
   test('renders correctly with positive numbers', () => {
     const props = {
       jumlah_kasus: 100,
@@ -24,7 +41,7 @@ describe('CaseNumberCard', () => {
     // Header assertions
     expect(screen.getByText('Jumlah Kasus')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /unduh gambar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /download img/i })).toBeInTheDocument();
 
     // StatsItem assertions using the helper
     assertStatsItem('stats-item-kasus_kematian', 'Kasus Kematian', '10 (10%)');
@@ -68,5 +85,31 @@ describe('CaseNumberCard', () => {
     assertStatsItem('stats-item-kasus_kematian', 'Kasus Kematian', '10 (10%)');
     assertStatsItem('stats-item-kasus_terjangkit', 'Kasus Terjangkit', '80 (80%)');
     assertStatsItem('stats-item-kasus_sembuh', 'Kasus Sembuh', '10 (10%)');
+  });
+
+  test('Download button enables only when data available', () => {
+    render(
+      <CaseNumberCard
+        jumlah_kasus={0}
+        jumlah_kasus_kematian={0}
+        jumlah_kasus_terjangkit={0}
+        jumlah_kasus_sembuh={0}
+      />
+    );
+    let props = downloadCalls[downloadCalls.length - 1];
+    expect(props.canDownload()).toBe(false);
+
+    downloadCalls.length = 0;
+    render(
+      <CaseNumberCard
+        jumlah_kasus={5}
+        jumlah_kasus_kematian={1}
+        jumlah_kasus_terjangkit={3}
+        jumlah_kasus_sembuh={1}
+      />
+    );
+    props = downloadCalls[downloadCalls.length - 1];
+    expect(props.canDownload()).toBe(true);
+    expect(props.getTarget()).toBeInstanceOf(HTMLElement);
   });
 });

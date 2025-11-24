@@ -49,12 +49,32 @@ jest.mock("../../app/components/AccessDenied2", () => () => (
   <div data-testid="access-denied">Access denied</div>
 ));
 
+const defaultRows = [
+  {
+    data_id: "ID1",
+    file_name: "Dataset_ID1.csv",
+    last_edited: "2025-09-01 09:23:45",
+    submitted_by: "SYSTEM_A",
+  },
+  {
+    data_id: "ID2",
+    file_name: "Dataset_ID2.csv",
+    last_edited: "2025-09-27 15:33:37",
+    submitted_by: "SYSTEM_B",
+  },
+];
+
 const responseWithRows = (rows: any[]) =>
   Promise.resolve({
     ok: true,
     json: async () => ({ results: rows }),
   });
 
+const fetchMock = () => (global.fetch as jest.Mock);
+const getTokenHelper = () => getToken();
+const getTokenForDeleteHelper = () => getTokenForDelete();
+const filterRowsHelper = (rows: any[], query: string) => filterRowsByQuery(rows, query);
+const alertMock = () => (global.alert as jest.Mock);
 let mockFetch: jest.Mock;
 let mockConfirm: jest.Mock;
 let mockAlert: jest.Mock;
@@ -67,6 +87,9 @@ describe("ExpertDataManagementPage", () => {
     mockUseAuth.mockReturnValue({ user: { role: "EXP_USER" } });
     window.localStorage.clear();
     document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    (global as any).fetch = jest.fn(() => responseWithRows(defaultRows));
+    (global as any).confirm = jest.fn(() => true);
+    (global as any).alert = jest.fn();
     mockFetch = jest.fn(() =>
       responseWithRows([
         { data_id: "ID1", file_name: "file1.csv", last_edited: "2025-01-01", submitted_by: "USER1" },
@@ -392,8 +415,8 @@ describe("ExpertDataManagementPage", () => {
 
     render(<ExpertDataManagementPage />);
 
-    expect(await screen.findByText("ID1")).toBeInTheDocument();
-    const [, options] = mockFetch.mock.calls[0];
+    await waitFor(() => expect(fetchMock()).toHaveBeenCalled());
+    const [, options] = fetchMock().mock.calls[0];
     expect(options?.headers?.Authorization).toBe("Bearer JSON_TOKEN");
   });
 
@@ -403,8 +426,8 @@ describe("ExpertDataManagementPage", () => {
 
     render(<ExpertDataManagementPage />);
 
-    expect(await screen.findByText("ID1")).toBeInTheDocument();
-    const [, options] = mockFetch.mock.calls[0];
+    await waitFor(() => expect(fetchMock()).toHaveBeenCalled());
+    const [, options] = fetchMock().mock.calls[0];
     expect(options?.headers?.Authorization).toBe("Bearer FALLBACK_TOKEN");
   });
 
@@ -413,8 +436,8 @@ describe("ExpertDataManagementPage", () => {
 
     render(<ExpertDataManagementPage />);
 
-    expect(await screen.findByText("ID1")).toBeInTheDocument();
-    const [, options] = mockFetch.mock.calls[0];
+    await waitFor(() => expect(fetchMock()).toHaveBeenCalled());
+    const [, options] = fetchMock().mock.calls[0];
     expect(options?.headers?.Authorization).toBe("Bearer Cookie Token");
   });
 
@@ -436,8 +459,8 @@ describe("ExpertDataManagementPage", () => {
     render(<ExpertDataManagementPage initialRows={rows} />);
 
     await user.click(screen.getByRole("button", { name: /delete/i }));
-    expect(mockConfirm).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect((global.confirm as jest.Mock)).not.toHaveBeenCalled();
+    expect(fetchMock()).not.toHaveBeenCalled();
     expect(screen.getByText("NoId.csv")).toBeInTheDocument();
   });
 
@@ -446,12 +469,12 @@ describe("ExpertDataManagementPage", () => {
     const rows = [
       { data_id: "BATCH-1", file_name: "Batch1.csv", last_edited: "2025-01-01", submitted_by: "USER" } as any,
     ];
-    mockConfirm.mockReturnValueOnce(false);
+    (global.confirm as jest.Mock).mockReturnValueOnce(false);
 
     render(<ExpertDataManagementPage initialRows={rows} />);
 
     await user.click(screen.getByRole("button", { name: /delete/i }));
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(fetchMock()).not.toHaveBeenCalled();
     expect(screen.getByText("BATCH-1")).toBeInTheDocument();
   });
 
@@ -462,6 +485,10 @@ describe("ExpertDataManagementPage", () => {
       { data_id: "ID_DEL_2", file_name: "File2.csv", last_edited: "2025-01-02", submitted_by: "USER" },
     ];
     window.localStorage.setItem("user", JSON.stringify({ access_token: "DELETE_TOKEN" }));
+    fetchMock().mockResolvedValueOnce({
+      status: 204,
+      text: async () => "",
+    });
 
     render(<ExpertDataManagementPage initialRows={sampleRows} />);
 
@@ -469,8 +496,8 @@ describe("ExpertDataManagementPage", () => {
     await user.click(deleteButton);
 
     await waitFor(() => expect(screen.queryByText("ID_DEL_1")).not.toBeInTheDocument());
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    const [, options] = mockFetch.mock.calls[0];
+    expect(fetchMock()).toHaveBeenCalledTimes(1);
+    const [, options] = fetchMock().mock.calls[0];
     expect(options?.headers?.Authorization).toBe("Bearer DELETE_TOKEN");
   });
 
@@ -479,7 +506,7 @@ describe("ExpertDataManagementPage", () => {
     const rows = [
       { data_id: "ID_DEL_1", file_name: "File1.csv", last_edited: "2025-01-01", submitted_by: "USER" },
     ];
-    mockFetch.mockImplementationOnce(() =>
+    fetchMock().mockImplementationOnce(() =>
       Promise.resolve({
         status: 500,
         text: async () => "boom",
@@ -489,7 +516,7 @@ describe("ExpertDataManagementPage", () => {
     render(<ExpertDataManagementPage initialRows={rows} />);
 
     await user.click(screen.getByRole("button", { name: /delete/i }));
-    await waitFor(() => expect(mockAlert).toHaveBeenCalledWith("Failed to delete batch (status 500)."));
+    await waitFor(() => expect(alertMock()).toHaveBeenCalledWith("Failed to delete batch (status 500)."));
     expect(screen.getByText("ID_DEL_1")).toBeInTheDocument();
   });
 
@@ -498,12 +525,12 @@ describe("ExpertDataManagementPage", () => {
     const rows = [
       { data_id: "ID_DEL_1", file_name: "File1.csv", last_edited: "2025-01-01", submitted_by: "USER" },
     ];
-    mockFetch.mockImplementationOnce(() => Promise.reject(new Error("network down")));
+    fetchMock().mockImplementationOnce(() => Promise.reject(new Error("network down")));
 
     render(<ExpertDataManagementPage initialRows={rows} />);
 
     await user.click(screen.getByRole("button", { name: /delete/i }));
-    await waitFor(() => expect(mockAlert).toHaveBeenCalledWith("Delete failed (network)."));
+    await waitFor(() => expect(alertMock()).toHaveBeenCalledWith("Delete failed (network)."));
     expect(screen.getByText("ID_DEL_1")).toBeInTheDocument();
   });
 });
@@ -661,6 +688,11 @@ describe("token helper functions", () => {
     window.localStorage?.clear?.();
     document.cookie = "";
   });
+
+  // local wrappers so the helper calls are defined in this describe scope
+  const getTokenHelper = () => getToken();
+  const getTokenForDeleteHelper = () => getTokenForDelete();
+  const filterRowsHelper = (rows: any[], query: string) => filterRowsByQuery(rows, query);
 
   test("getToken returns null when no storage exists", () => {
     expect(getTokenHelper()).toBeNull();

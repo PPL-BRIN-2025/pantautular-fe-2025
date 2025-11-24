@@ -195,4 +195,103 @@ describe("DownloadButton", () => {
       screen.getByText("Gagal mengunduh data CSV karena data kosong.")
     ).toBeInTheDocument();
   });
+
+  it("falls back to canDownload predicate when CSV specific predicate missing", () => {
+    const target = document.createElement("div");
+    render(
+      <DownloadButton
+        filename="dataset"
+        getTarget={() => target}
+        csvExporter={() => "col"}
+        canDownload={() => false}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /download csv/i }));
+    expect(
+      screen.getByText("Gagal mengunduh data CSV karena data kosong.")
+    ).toBeInTheDocument();
+  });
+
+  it("surfaces csv export errors", async () => {
+    const target = document.createElement("div");
+    const error = new Error("boom");
+    const csvExporter = jest.fn().mockRejectedValue(error);
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    render(
+      <DownloadButton
+        filename="dataset"
+        getTarget={() => target}
+        csvExporter={csvExporter}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /download csv/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Gagal mengunduh data CSV karena terjadi kesalahan.")
+      ).toBeInTheDocument()
+    );
+    expect(errorSpy).toHaveBeenCalledWith("Failed to export dataset as CSV", error);
+    errorSpy.mockRestore();
+  });
+
+  it("handles image export failure gracefully", async () => {
+    const target = document.createElement("div");
+    const error = new Error("capture failed");
+    exportElementAsPng.mockRejectedValue(error);
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    render(
+      <DownloadButton
+        filename="bad-img"
+        getTarget={() => target}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /download img/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Gagal mengunduh gambar visualisasi karena terjadi kesalahan.")
+      ).toBeInTheDocument()
+    );
+    expect(errorSpy).toHaveBeenCalledWith("Failed to export bad-img as image", error);
+    errorSpy.mockRestore();
+  });
+
+  it("clears previous download notifications when a new one appears", async () => {
+    jest.useFakeTimers();
+    const warningSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    render(
+      <DownloadButton
+        filename="combo"
+        getTarget={() => null}
+        csvExporter={() => "c1,c2"}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /download csv/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /download img/i })).toBeDisabled()
+    );
+    jest.runOnlyPendingTimers();
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /download img/i })).not.toBeDisabled()
+    );
+    fireEvent.click(screen.getByRole("button", { name: /download img/i }));
+    jest.runAllTimers();
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Gagal mengunduh gambar visualisasi karena elemen visualisasi tidak ditemukan.")
+      ).toBeInTheDocument()
+    );
+    warningSpy.mockRestore();
+    jest.useRealTimers();
+  });
 });

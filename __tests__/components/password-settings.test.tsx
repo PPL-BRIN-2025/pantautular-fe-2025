@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import PasswordSettings from '../../app/components/password-settings';
 import fetchMock from 'jest-fetch-mock';
@@ -33,10 +33,26 @@ const TEST_PASSWORDS = {
   different: 'Test456!'
 };
 
+const mockOnClose = jest.fn();
+
+beforeAll(() => {
+  jest.useFakeTimers();
+});
+
 beforeEach(() => {
   fetchMock.resetMocks();
   jest.clearAllMocks();
   mockLocalStorage.getItem.mockReturnValue('test-token');
+  mockOnClose.mockReset();
+});
+
+afterEach(() => {
+  jest.runOnlyPendingTimers();
+  jest.clearAllTimers();
+});
+
+afterAll(() => {
+  jest.useRealTimers();
 });
 
 // Mock the UI components
@@ -78,8 +94,6 @@ jest.mock('../../app/components/ui-profile/Checkicon', () => ({
 }));
 
 describe('PasswordSettings Component', () => {
-  const mockOnClose = jest.fn();
-  
   // Helper function to fill form and optionally submit
   const fillPasswordForm = (
     currentPassword = TEST_PASSWORDS.current,
@@ -187,8 +201,23 @@ describe('PasswordSettings Component', () => {
     render(<PasswordSettings onClose={mockOnClose} />);
     
     fillPasswordForm(TEST_PASSWORDS.current, TEST_PASSWORDS.new, TEST_PASSWORDS.different);
+    const form = screen.getByTestId('password-settings').querySelector('form');
+    if (form) {
+      fireEvent.submit(form);
+    }
     
-    expect(screen.getByText('Konfirmasi kata sandi tidak sesuai')).toBeInTheDocument();
+    const messages = screen.getAllByText(/Konfirmasi kata sandi tidak sesuai/);
+    expect(messages.length).toBeGreaterThan(0);
+  });
+
+  it('blocks submission when password requirements fail', () => {
+    render(<PasswordSettings onClose={mockOnClose} />);
+    fillPasswordForm(TEST_PASSWORDS.current, "short", "short");
+    const form = screen.getByTestId('password-settings').querySelector('form');
+    if (form) {
+      fireEvent.submit(form);
+    }
+    expect(screen.getByText('Kata sandi baru tidak memenuhi semua persyaratan')).toBeInTheDocument();
   });
   
   it('disables submit button when form is invalid', () => {
@@ -213,6 +242,7 @@ describe('PasswordSettings Component', () => {
 
   describe('API interactions', () => {
     it('calls API and shows success message on successful form submission', async () => {
+      jest.useFakeTimers();
       fetchMock.mockResponseOnce(JSON.stringify({ message: 'Kata sandi berhasil diubah' }));
       
       render(<PasswordSettings onClose={mockOnClose} />);
@@ -225,10 +255,20 @@ describe('PasswordSettings Component', () => {
       await waitFor(() => {
         expect(screen.getByText('Kata sandi berhasil diubah')).toBeInTheDocument();
       });
+
+      await waitFor(() => expect(mockOnClose).not.toHaveBeenCalled());
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      expect(mockOnClose).toHaveBeenCalled();
+      jest.useRealTimers();
     });
   
     it('displays error message when API returns error', async () => {
-      fetchMock.mockRejectOnce(new Error('Kata sandi saat ini tidak valid'));
+      fetchMock.mockResponseOnce(
+        JSON.stringify({ error: 'Kata sandi saat ini tidak valid' }),
+        { status: 400 }
+      );
   
       render(<PasswordSettings onClose={mockOnClose} />);
       fillPasswordForm(TEST_PASSWORDS.wrong, TEST_PASSWORDS.new, TEST_PASSWORDS.new, true);

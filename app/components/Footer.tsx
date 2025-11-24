@@ -61,6 +61,8 @@ const Footer: React.FC = () => {
     };
   }, [visibleAtBottom]);
 
+  (Footer as any).__setVisible = (value: boolean) => setVisibleAtBottom(value);
+
   return (
     <footer
       aria-hidden={!visibleAtBottom}

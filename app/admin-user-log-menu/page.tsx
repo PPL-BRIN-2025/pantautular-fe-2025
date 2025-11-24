@@ -22,8 +22,12 @@ type LogRow = {
 type AllResp = { count: number; logs: LogRow[] };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
-const isTest = process.env.NODE_ENV === "test";
+const getApiKey = () => process.env.NEXT_PUBLIC_API_KEY;
+const ENV_FORCE_FULL_UI = process.env.NEXT_PUBLIC_ADMIN_USER_LOG_FORCE_FULL_UI === "true";
+const hasRuntimeForceFullUi = () =>
+  typeof globalThis !== "undefined" && Boolean((globalThis as any).__ADMIN_USER_LOG_FORCE_FULL_UI);
+const computeIsTest = () =>
+  !(ENV_FORCE_FULL_UI || hasRuntimeForceFullUi()) && process.env.NODE_ENV === "test";
 
 /* ===== Helpers ===== */
 function getToken(): string | null {
@@ -40,7 +44,8 @@ function authHeaders(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
   const token = getToken();
   if (token) h.Authorization = `Bearer ${token}`;
-  if (API_KEY) h["X-API-KEY"] = String(API_KEY);
+  const apiKey = getApiKey();
+  if (apiKey) h["X-API-KEY"] = String(apiKey);
   return h;
 }
 
@@ -54,6 +59,37 @@ function fmtDate(iso?: string | null) {
   if (isNaN(d.getTime())) return "-";
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function filterLogs(rows: LogRow[], searchInputText: string, startDate: Date | null, endDate: Date | null) {
+  const q = searchInputText.trim().toLowerCase();
+  const startTs = startDate ? startDate.getTime() : null;
+  const endTs = endDate ? endDate.getTime() : null;
+
+  return rows.filter((r) => {
+    const username = r.username ? r.username : "";
+    const email = r.email ? r.email : "";
+    const action = r.action ? r.action : "";
+    const detail = r.detail ? r.detail : "";
+    const hay = `${username} ${email} ${action} ${detail}`.toLowerCase();
+    if (q && !hay.includes(q)) return false;
+
+    const t = new Date(r.timestamp).getTime();
+    if (startTs && t < startTs) return false;
+    if (endTs && t > endTs) return false;
+
+    return true;
+  });
+}
+
+function interpretFetchError(msg: string) {
+  if (msg.startsWith("403:")) {
+    return { blocked403Detail: msg.slice(4) || "Akses Ditolak", errMessage: null };
+  }
+  if (msg !== "Unauthorized") {
+    return { blocked403Detail: undefined, errMessage: msg || "Gagal memuat" };
+  }
+  return { blocked403Detail: undefined, errMessage: null };
 }
 
 /** ===== Fetch ALL logs from AdminUserLog table ===== */
@@ -104,6 +140,8 @@ export default function AdminUserLogMenuPage() {
   // modal
   const [openId, setOpenId] = useState<number | null>(null);
 
+  const isTest = computeIsTest();
+
   /** load all logs once */
   useEffect(() => {
     const go = async () => {
@@ -119,8 +157,9 @@ export default function AdminUserLogMenuPage() {
         setAllRows(sorted);
       } catch (e: any) {
         const msg: string = e?.message ?? "";
-        if (msg.startsWith("403:")) setBlocked403Detail(msg.slice(4) || "Akses Ditolak");
-        else if (msg !== "Unauthorized") setErr(msg || "Gagal memuat");
+        const { blocked403Detail: detail, errMessage } = interpretFetchError(msg);
+        if (detail) setBlocked403Detail(detail);
+        else if (errMessage) setErr(errMessage);
         setAllRows([]);
       } finally {
         setLoading(false);
@@ -130,23 +169,10 @@ export default function AdminUserLogMenuPage() {
   }, []);
 
   /** client-side filter */
-  const filtered = useMemo(() => {
-    const q = searchInputText.trim().toLowerCase();
-    const startTs = startDate ? startDate.getTime() : null;
-    const endTs = endDate ? endDate.getTime() : null;
-
-    return allRows.filter((r) => {
-      // search in username, email, action, detail
-      const hay = `${r.username ?? ""} ${r.email ?? ""} ${r.action ?? ""} ${r.detail ?? ""}`.toLowerCase();
-      if (q && !hay.includes(q)) return false;
-
-      const t = new Date(r.timestamp).getTime();
-      if (startTs && t < startTs) return false;
-      if (endTs && t > endTs) return false;
-
-      return true;
-    });
-  }, [allRows, searchInputText, startDate, endDate]);
+  const filtered = useMemo(
+    () => filterLogs(allRows, searchInputText, startDate, endDate),
+    [allRows, searchInputText, startDate, endDate]
+  );
 
   // client pagination
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -181,9 +207,9 @@ export default function AdminUserLogMenuPage() {
           </div>
         </main>
         <Footer />
-      </div>
-    );
-  }
+  </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-[#F3F7FB]">
@@ -308,4 +334,19 @@ export default function AdminUserLogMenuPage() {
 
     </div>
   );
+}
+
+// Export test hooks for unit tests without relying on globalThis injection.
+const __adminUserLogTestHooks = {
+  getToken,
+  authHeaders,
+  getNextPath,
+  fmtDate,
+  fetchAllLogs,
+  filterLogs,
+  interpretFetchError,
+};
+
+if (typeof globalThis !== "undefined") {
+  (globalThis as any).__adminUserLogTestHooks = __adminUserLogTestHooks;
 }

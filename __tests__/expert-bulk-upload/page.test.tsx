@@ -81,6 +81,8 @@ describe('CuratorBulkUploadPage (expert-bulk-upload)', () => {
   (global as any).location = originalLocation;
   });
 
+  test('shows access denied for authenticated role outside EXP_USER/ADMIN', async () => {
+    mockUseAuth.mockReturnValue({ user: { role: 'CURATOR' } });
   test('shows access denied for authenticated non-EXP_USER', async () => {
     mockUseAuth.mockReturnValue({ user: { role: 'USER' } });
 

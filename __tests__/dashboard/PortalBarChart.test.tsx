@@ -123,7 +123,14 @@ const createMocks = () => {
   // Mock series
   const mockSeries = {
     bullets: { push: jest.fn() },
-    columns: { template: { setAll: jest.fn() } },
+    columns: {
+      template: {
+        setAll: jest.fn(),
+        adapters: {
+          add: jest.fn(),
+        },
+      },
+    },
     data: { setAll: jest.fn() },
     appear: jest.fn(),
     get: jest.fn().mockImplementation(prop => {
@@ -363,7 +370,7 @@ describe('PortalBarChart Component', () => {
     render(<PortalBarChart title={testTitle} data={testData} />);
     expect(screen.getByText(testTitle)).toBeInTheDocument();
     expect(screen.getByText('Lihat Detail')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /unduh gambar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /download img/i })).toBeInTheDocument();
     expect(document.querySelector('div[class="w-full"]')).toBeInTheDocument();
   });
 

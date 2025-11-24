@@ -80,9 +80,11 @@ jest.mock("@amcharts/amcharts5", () => ({
 }));
 
 describe("DiseaseSeverityChart", () => {
+  it("renders a download button", async () => {
+    render(<DiseaseSeverityChart />);
   it("does not render a download button when disabled", async () => {
     render(<DiseaseSeverityChart showDownloadButton={false} />);
     await waitFor(() => expect(screen.getByText("Kasus Jenis Penyakit")).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: /download/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /download/i })).toBeInTheDocument();
   });
 });

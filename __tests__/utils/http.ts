@@ -1,46 +1,60 @@
-export function okJson(body: any): Promise<Response> {
-  const response = {
-    ok: true,
-    status: 200,
-    json: () => Promise.resolve(body),
-    text: () => Promise.resolve(JSON.stringify(body)),
-    clone() {
-      return this as unknown as Response;
+function buildMockResponse(opts: {
+  ok: boolean;
+  status: number;
+  body: any;
+}): Response {
+  const payload = {
+    ok: opts.ok,
+    status: opts.status,
+    json: async () => {
+      if (typeof opts.body === "string") {
+        try {
+          return JSON.parse(opts.body);
+        } catch {
+          return { detail: opts.body };
+        }
+      }
+      return opts.body ?? {};
     },
-  } as unknown as Response;
-  return Promise.resolve(response);
+    text: async () =>
+      typeof opts.body === "string" ? opts.body : JSON.stringify(opts.body ?? {}),
+  } as unknown as Response & { clone: () => Response };
+
+  payload.clone = () =>
+    buildMockResponse({
+      ok: opts.ok,
+      status: opts.status,
+      body: opts.body,
+    });
+
+  return payload;
+}
+
+export function okJson(body: any): Promise<Response> {
+  return Promise.resolve(
+    buildMockResponse({ ok: true, status: 200, body })
+  );
 }
 
 export function resp(status: number, body?: any): Promise<Response> {
-  const response = {
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => {
-      if (typeof body === "string") {
-        try { return JSON.parse(body); } catch { return { detail: body }; }
-      }
-      return body ?? {};
-    },
-    text: async () => (typeof body === "string" ? body : JSON.stringify(body ?? {})),
-    clone() {
-      return this as unknown as Response;
-    },
-  } as unknown as Response;
-  return Promise.resolve(response);
+  return Promise.resolve(
+    buildMockResponse({ ok: status >= 200 && status < 300, status, body })
+  );
 }
 
-// Smoke tests to satisfy Jest runner
-describe("http test helpers", () => {
-  it("okJson returns ok response", async () => {
-    const res = await okJson({ foo: "bar" });
-    expect(res.ok).toBe(true);
-    expect(await res.json()).toEqual({ foo: "bar" });
+describe("http response helpers", () => {
+  it("okJson resolves with accessible json() and clone()", async () => {
+    const response = await okJson({ foo: "bar" });
+    expect(response.ok).toBe(true);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ foo: "bar" });
+    await expect(response.clone().json()).resolves.toEqual({ foo: "bar" });
   });
 
-  it("resp returns typed response", async () => {
-    const res = await resp(500, { detail: "err" });
-    expect(res.ok).toBe(false);
-    expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ detail: "err" });
+  it("resp exposes status and text", async () => {
+    const response = await resp(500, "Boom");
+    expect(response.ok).toBe(false);
+    expect(response.status).toBe(500);
+    await expect(response.text()).resolves.toBe("Boom");
   });
 });

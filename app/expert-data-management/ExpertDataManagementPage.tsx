@@ -27,37 +27,40 @@ type ExpertDataManagementPageProps = {
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
 
-  const readCookie = () => {
-    try {
-      const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
-      if (m) return decodeURIComponent(m[1]);
-    } catch {
-      // ignore cookie parsing
+  try {
+    const raw = window.localStorage.getItem("user");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed?.access_token) return String(parsed.access_token);
+        /* istanbul ignore next */
+        if (parsed?.token) return String(parsed.token);
+      } catch {
+        // ignore parse failures and fall through to other lookups
+      }
     }
-    return null;
-  };
-
-  // prefer a user blob saved by your auth flow
-  const raw = window.localStorage.getItem("user");
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed?.access_token) return String(parsed.access_token);
-      /* istanbul ignore next */
-      if (parsed?.token) return String(parsed.token);
-    } catch {
-      // ignore parse failures and proceed to other fallbacks
-    }
+  } catch {
+    // ignore access issues
   }
 
-  // fallback to a simple token key if you stored it directly
-  const fallbackKeys = ["access_token", "token", "jwt", "accessToken"];
+  const fallbackKeys = ["access_token", "token", "accessToken", "jwt"];
   for (const key of fallbackKeys) {
-    const v = window.localStorage.getItem(key);
-    if (v) return v;
+    try {
+      const value = window.localStorage.getItem(key);
+      if (value) return value;
+    } catch {
+      // continue trying other keys
+    }
   }
 
-  return readCookie();
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+  } catch {
+    // ignore cookie parsing errors
+  }
+
+  return null;
 }
 
 export function getTokenForDelete(): string | null {

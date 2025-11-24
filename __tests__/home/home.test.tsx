@@ -7,6 +7,16 @@ jest.mock("../../app/layout", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+jest.mock("../../app/components/Navbar", () => ({
+  __esModule: true,
+  default: () => <nav data-testid="mock-navbar">Mock Navbar</nav>,
+}));
+
+jest.mock("../../app/components/Footer", () => ({
+  __esModule: true,
+  default: () => <footer data-testid="mock-footer">Mock Footer</footer>,
+}));
+
 jest.mock('../../app/auth/hooks/useAuth', () => ({
   useAuth: jest.fn().mockReturnValue({
     user: {

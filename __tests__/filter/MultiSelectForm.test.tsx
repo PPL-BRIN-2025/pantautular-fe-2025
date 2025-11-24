@@ -1,15 +1,28 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { act } from "react-dom/test-utils";
 import MultiSelectForm from "../../app/components/filter/MultiSelectForm";
+import { mapApi } from "../../services/api";
 
 // Mock the react-select component
+const capturedSelectProps: any[] = [];
+var mockComponentsRef: any;
+
 jest.mock("react-select", () => {
-  return function MockSelect({
+  mockComponentsRef = {
+    Group: ({ children, ...rest }: any) => (
+      <div data-testid="mock-group" {...rest}>
+        {children}
+      </div>
+    ),
+  };
+  const MockSelect = function MockSelect({
     isMulti,
     options,
     value,
     onChange,
     isClearable,
+    components,
+    styles,
   }: {
     isMulti?: boolean;
     options: Array<
@@ -22,7 +35,11 @@ jest.mock("react-select", () => {
       | null;
     onChange: (val: unknown) => void;
     isClearable?: boolean;
+    components?: any;
+    styles?: any;
   }) {
+    capturedSelectProps.push({ isMulti, options, value, onChange, isClearable, components, styles });
+
     const flattenOptions = () =>
       options.reduce((acc: Array<{ value: string; label: string }>, opt) => {
         if ("options" in opt) {
@@ -86,6 +103,8 @@ jest.mock("react-select", () => {
       </select>
     );
   };
+
+  return { __esModule: true, default: MockSelect, components: mockComponentsRef };
 });
 
 // Mock the date picker
@@ -117,6 +136,12 @@ jest.mock("react-datepicker", () => {
 // Mock fetch API
 global.fetch = jest.fn();
 global.alert = jest.fn();
+jest.mock("../../services/api", () => ({
+  mapApi: {
+    getExpertBatches: jest.fn(),
+  },
+}));
+const getExpertBatchesMock = mapApi.getExpertBatches as jest.Mock;
 
 describe("MultiSelectForm Component", () => {
   const mockFilterOptions = {
@@ -204,6 +229,8 @@ describe("MultiSelectForm Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     console.error = jest.fn();
+    capturedSelectProps.length = 0;
+    getExpertBatchesMock.mockResolvedValue(mockBatches);
     (global.fetch as jest.Mock).mockImplementation((input: any) => {
       const url =
         typeof input === "string"
@@ -321,7 +348,10 @@ describe("MultiSelectForm Component", () => {
       render(<MultiSelectForm onError={mockOnError} />);
       
       await waitForLoading();
-      expect(console.error).toHaveBeenCalledWith("Failed to fetch filter options");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching filter data",
+        expect.any(Error)
+      );
     });
     
     test("handles fetch error", async () => {
@@ -336,14 +366,7 @@ describe("MultiSelectForm Component", () => {
     });
 
     test("notifies when batch fetch fails", async () => {
-      (global.fetch as jest.Mock)
-        .mockImplementationOnce(() =>
-          Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockFilterOptions),
-          })
-        )
-        .mockImplementationOnce(() => Promise.reject(new Error("Batch fetch failed")));
+      getExpertBatchesMock.mockRejectedValueOnce(new Error("Batch fetch failed"));
 
       render(<MultiSelectForm onError={mockOnError} />);
 
@@ -484,6 +507,26 @@ describe("MultiSelectForm Component", () => {
       await selectNews("all");
     });
 
+    test("invokes custom group renderer and style callbacks", async () => {
+      render(<MultiSelectForm onError={mockOnError} />);
+      await waitForLoading();
+
+      const locationProps = capturedSelectProps.find(
+        (props) => Array.isArray(props.options) && props.options.some((opt: any) => opt.label === "Provinsi")
+      );
+      expect(locationProps).toBeDefined();
+      const groupComponent = locationProps!.components?.Group ?? mockComponentsRef.Group;
+      expect(groupComponent({ label: "Provinsi", children: <div /> })).toBeTruthy();
+
+      const sty = locationProps!.styles;
+      const base = {};
+      sty.menuList(base);
+      sty.group(base);
+      sty.groupHeading(base);
+      sty.menu(base);
+      sty.option(base);
+    });
+
     test("handles date selection edge cases", async () => {
       render(<MultiSelectForm onError={mockOnError} />);
       
@@ -504,7 +547,7 @@ describe("MultiSelectForm Component", () => {
           level_of_alertness: 0,
           start_date: new Date("2023-01-01"),
           end_date: new Date("2023-01-31"),
-          batch: "batch-1",
+          batch: "batch-1"
         });
       };
       
@@ -650,12 +693,25 @@ describe("MultiSelectForm Component", () => {
       expect(endDatePicker).toHaveValue("");
     });
     
+    test("handles null batch in initialFilterState", async () => {
+      const initialState = createInitialState({
+        batch: null,
+      });
+
+      render(<MultiSelectForm initialFilterState={initialState} onError={mockOnError} />);
+      await waitForLoading();
+
+      const batchSelect = screen.getAllByTestId("select")[3];
+      expect(batchSelect).toHaveValue("");
+    });
+
     test("handles initialFilterState with values not in filter options", async () => {
       const initialState = createInitialState({
         diseases: ["malaria"], // Not in original options
         locations: ["surabaya"], // Not in original options
         portals: ["reuters"], // Not in original options
-        level_of_alertness: 2
+        level_of_alertness: 2,
+        batch: "custom-batch"
       });
       
       render(<MultiSelectForm initialFilterState={initialState} onError={mockOnError} />);
@@ -740,6 +796,88 @@ describe("MultiSelectForm Component", () => {
         start_date: null,
         end_date: null,
         batch: null
+      });
+    });
+
+    test("selecting 'Pilih Semua' toggles disease and location options", async () => {
+      const mockOnSubmitFilterState = jest.fn();
+      render(<MultiSelectForm onError={mockOnError} onSubmitFilterState={mockOnSubmitFilterState} />);
+      await waitForLoading();
+
+      const selects = screen.getAllByTestId("select");
+      const diseaseSelect = selects[0];
+      const locationSelect = selects[1];
+
+      fireEvent.change(diseaseSelect, { target: { value: "all" } });
+      fireEvent.change(locationSelect, { target: { value: "all" } });
+      await submitForm();
+      const firstCall = mockOnSubmitFilterState.mock.calls[0][0];
+      expect(firstCall.diseases).toEqual(expect.arrayContaining(["covid", "dengue"]));
+      expect(firstCall.locations.length).toBeGreaterThan(0);
+
+      mockOnSubmitFilterState.mockClear();
+      fireEvent.change(diseaseSelect, { target: { value: "all" } });
+      fireEvent.change(locationSelect, { target: { value: "all" } });
+      await submitForm();
+      expect(mockOnSubmitFilterState).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          diseases: [],
+          locations: [],
+        })
+      );
+    });
+
+    test("selecting All uploads keeps batch null on submit", async () => {
+      const mockOnSubmitFilterState = jest.fn();
+      render(<MultiSelectForm onError={mockOnError} onSubmitFilterState={mockOnSubmitFilterState} />);
+      await waitForLoading();
+
+      const selects = screen.getAllByTestId("select");
+      const batchSelect = selects[3];
+      fireEvent.change(batchSelect, { target: { value: "" } });
+      await submitForm();
+
+      expect(mockOnSubmitFilterState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          batch: null,
+        })
+      );
+    });
+
+    test("clears batch selection via clear option", async () => {
+      const mockOnSubmitFilterState = jest.fn();
+      render(<MultiSelectForm onError={mockOnError} onSubmitFilterState={mockOnSubmitFilterState} />);
+      await waitForLoading();
+
+      await selectBatch("batch-1");
+      const batchSelect = screen.getAllByTestId("select")[3];
+      await act(async () => {
+        fireEvent.change(batchSelect, { target: { value: "__clear__" } });
+      });
+      await submitForm();
+
+      expect(mockOnSubmitFilterState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          batch: null,
+        })
+      );
+    });
+
+    test("ignores async updates after unmount", async () => {
+      let resolveFetch: any = null;
+      (global.fetch as jest.Mock).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFetch = resolve;
+          })
+      );
+      const { unmount } = render(<MultiSelectForm onError={mockOnError} />);
+      unmount();
+      await act(async () => {
+        resolveFetch?.({
+          ok: true,
+          json: () => Promise.resolve(mockFilterOptions),
+        });
       });
     });
   });

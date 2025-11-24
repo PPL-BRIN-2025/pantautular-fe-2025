@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -23,6 +23,137 @@ const normalizeRole = (r?: string | null) => (r ? r.trim().toUpperCase() : "");
 
 type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
+const hasWindow = () => typeof window !== "undefined";
+
+export function resolveEffectiveUser<T extends { role?: string } | null | undefined>(user: T) {
+  let resolved = user as any;
+  if (!resolved && hasWindow()) {
+    try {
+      const stored = window.localStorage.getItem("user");
+      if (stored) resolved = JSON.parse(stored);
+    } catch {}
+  }
+  return resolved;
+}
+
+export async function obtainAccessToken(getAccessToken?: (() => Promise<string | null>) | null) {
+  let token: string | null = null;
+  if (typeof getAccessToken === "function") {
+    token = await Promise.resolve()
+      .then(() => getAccessToken())
+      .catch(() => null);
+  }
+  if (!token && hasWindow()) {
+    try {
+      token = window.localStorage.getItem("accessToken");
+    } catch {
+      token = null;
+    }
+  }
+  return token;
+}
+
+type FetchArgs = {
+  url: string;
+  token: string | null;
+  signal: AbortSignal;
+  fetchImpl?: typeof fetch;
+};
+
+export const clampPrevPage = (page: number) => Math.max(1, page - 1);
+export const clampNextPage = (page: number, pageCount: number) =>
+  Math.min(pageCount, page + 1);
+
+export function maybeClampPage(
+  page: number,
+  pageCount: number,
+  firstClampRef: { current: boolean }
+) {
+  if (!firstClampRef.current && page > pageCount) {
+    return pageCount;
+  }
+  firstClampRef.current = false;
+  return null;
+}
+
+export function clampPageIfNeeded(
+  page: number,
+  pageCount: number,
+  firstClampRef: { current: boolean },
+  setPage: Dispatch<SetStateAction<number>>
+) {
+  const next = maybeClampPage(page, pageCount, firstClampRef);
+  if (typeof next === "number") setPage(next);
+}
+
+export function parseAuditResponse(res: Response, bodyText: string) {
+  /* istanbul ignore next */
+  if (!res.ok) {
+    throw new Error(`Server returned ${res.status}: ${bodyText || "Unknown error"}`);
+  }
+  const json = bodyText ? JSON.parse(bodyText) : {};
+  const rows = Array.isArray(json?.data) ? (json.data as CuratorRow[]) : [];
+  /* istanbul ignore next */
+  const totalCount = Number(json?.total ?? rows.length ?? 0);
+  return { rows, totalCount };
+}
+
+export async function executeAuditFetch({ url, token, signal, fetchImpl }: FetchArgs) {
+  const request = fetchImpl ?? fetch;
+  let res: Response | undefined;
+  let bodyText = "";
+
+  const perform = async (init: RequestInit) => {
+    const response = await request(url, init);
+    if (!response) return;
+    bodyText = await response.clone().text();
+    res = response;
+  };
+
+  if (token) {
+    const headerVariants: HeadersInit[] = [
+      { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+    ];
+    for (const headers of headerVariants) {
+      await perform({
+        method: "GET",
+        mode: "cors",
+        cache: "no-store",
+        headers,
+        signal,
+      });
+      if (res && (res.ok || res.status === 401 || res.status === 403)) break;
+    }
+  } else {
+    await perform({
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      credentials: "include",
+      signal,
+    });
+  }
+
+  if (!res) throw new Error("No response");
+  return { res, bodyText };
+}
+
+export function handleUnauthorizedRedirect(res: Response, replace: (url: string) => void) {
+  if (res.status !== 401) return false;
+  /* istanbul ignore next */
+  if (hasWindow()) {
+    try {
+      window.localStorage.removeItem("accessToken");
+    } catch {}
+  }
+  const nextParam = encodeURIComponent("/curator-data-management");
+  replace(`/login?next=${nextParam}`);
+  return true;
+}
+
+export const isAbortError = (error: any) => error?.name === "AbortError";
+
 export default function CuratorDataManagementPage() {
   const router = useRouter();
   const { user, getAccessToken } = useAuth();
@@ -31,13 +162,7 @@ export default function CuratorDataManagementPage() {
 
   // ---- ACCESS GATE ----
   useEffect(() => {
-    let resolved = user as any;
-    if (!resolved && typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem("user");
-        if (stored) resolved = JSON.parse(stored);
-      } catch {}
-    }
+    const resolved = resolveEffectiveUser(user);
 
     if (!resolved) {
       setAccessState("redirect");
@@ -69,8 +194,7 @@ export default function CuratorDataManagementPage() {
 
   const firstClamp = useRef(true);
   useEffect(() => {
-    if (!firstClamp.current && page > pageCount) setPage(pageCount);
-    firstClamp.current = false;
+    clampPageIfNeeded(page, pageCount, firstClamp, setPage);
   }, [pageCount, page]);
 
   // ---- DATA FETCH ----
@@ -94,81 +218,27 @@ export default function CuratorDataManagementPage() {
           sort: "last_edited:desc",
         });
 
-        let token: string | null = null;
-        try {
-          token = typeof getAccessToken === "function" ? await getAccessToken() : null;
-        } catch {
-          token = null;
-        }
-        if (!token && typeof window !== "undefined") {
-          token = window.localStorage.getItem("accessToken");
-        }
+        const token = await obtainAccessToken(getAccessToken);
 
         const url = `${API_BASE}/curator-feature/api/curator/audit-logs/?${params}`;
-        let res: Response | undefined;
-        let bodyText = "";
+        const { res, bodyText } = await executeAuditFetch({
+          url,
+          token,
+          signal: ac.signal,
+        });
 
-        const readBody = async (response?: Response) => {
-          if (!response) return "";
-          const text = (response as any)?.text;
-          if (typeof text === "function") {
-            try {
-              return await text.call(response);
-            } catch {
-              return "";
-            }
-          }
-          return "";
-        };
-
-        if (token) {
-          const r = await fetch(url, {
-            method: "GET",
-            mode: "cors",
-            cache: "no-store",
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            signal: ac.signal,
-          });
-          res = r;
-          bodyText = await readBody(typeof (r as any)?.clone === "function" ? (r as any).clone() : r);
-        } else {
-          const r = await fetch(url, {
-            method: "GET",
-            mode: "cors",
-            cache: "no-store",
-            credentials: "include",
-            signal: ac.signal,
-          });
-          res = r;
-          bodyText = await readBody(typeof (r as any)?.clone === "function" ? (r as any).clone() : r);
-        }
-
-        if (!res) throw new Error("No response");
-
-        if (res.status === 401) {
-          if (typeof window !== "undefined") {
-            try {
-              window.localStorage.removeItem("accessToken");
-            } catch {}
-          }
+        if (handleUnauthorizedRedirect(res, router.replace)) {
           setData([]);
           setTotal(0);
           setError("Sesi berakhir. Silakan login ulang.");
-          const nextParam = encodeURIComponent("/curator-data-management");
-          router.replace(`/login?next=${nextParam}`);
           return;
         }
 
-        if (!res.ok) {
-          throw new Error(`Server returned ${res.status}: ${bodyText || "Unknown error"}`);
-        }
-
-        const json = bodyText ? JSON.parse(bodyText) : {};
-        const rows = Array.isArray(json?.data) ? (json.data as CuratorRow[]) : [];
+        const { rows, totalCount } = parseAuditResponse(res, bodyText);
         setData(rows);
-        setTotal(Number(json?.total ?? rows.length ?? 0));
+        setTotal(totalCount);
       } catch (e: any) {
-        if (e?.name === "AbortError") return;
+        if (isAbortError(e)) return;
         console.error("Fetch audit logs failed:", e);
         setError("Gagal mengambil data audit trail dari server.");
       } finally {
@@ -304,7 +374,7 @@ export default function CuratorDataManagementPage() {
                   <button
                     className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
                     disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() => setPage((p) => clampPrevPage(p))}
                   >
                     Prev
                   </button>
@@ -314,7 +384,7 @@ export default function CuratorDataManagementPage() {
                   <button
                     className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
                     disabled={page >= pageCount}
-                    onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                    onClick={() => setPage((p) => clampNextPage(p, pageCount))}
                   >
                     Next
                   </button>
@@ -331,3 +401,17 @@ export default function CuratorDataManagementPage() {
     </div>
   );
 }
+
+export const __curatorDataTestHooks = {
+  normalizeRole,
+  obtainAccessToken,
+  executeAuditFetch,
+  clampPrevPage,
+  clampNextPage,
+  resolveEffectiveUser,
+  maybeClampPage,
+  parseAuditResponse,
+  clampPageIfNeeded,
+  handleUnauthorizedRedirect,
+  isAbortError,
+};

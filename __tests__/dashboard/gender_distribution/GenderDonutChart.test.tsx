@@ -53,6 +53,6 @@ describe("GenderDonutChart", () => {
 
   it("renders download button", () => {
     render(<GenderDonutChart total={120} priaValue={40} wanitaValue={80} />);
-    expect(screen.getByRole("button", { name: /unduh gambar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /download img/i })).toBeInTheDocument();
   });
 });

@@ -10,8 +10,8 @@ jest.mock("../../app/components/dashboard/gender_distribution/ChartHook", () => 
 }));
 
 describe("GenderDonutChart", () => {
-  it("does not render a download button", () => {
+  it("renders a download button", () => {
     render(<GenderDonutChart total={10} priaValue={6} wanitaValue={4} />);
-    expect(screen.queryByRole("button", { name: /download/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /download/i })).toBeInTheDocument();
   });
 });

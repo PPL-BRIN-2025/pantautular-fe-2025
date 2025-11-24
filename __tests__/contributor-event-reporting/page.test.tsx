@@ -547,7 +547,7 @@ describe('Extra edge coverage for ContributorEventReportingPage', () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const svc = require('../../services/api');
-    const origGetLocations = svc.getLocations;
+    const origGetLocations = svc.mapApi.getLocations;
     svc.mapApi.getLocations = async () => [{ name: 'RemoteCityOne' }, { city: 'RemoteCityTwo' }];
 
     render(<ContributorEventReportingPage />);
@@ -555,7 +555,7 @@ describe('Extra edge coverage for ContributorEventReportingPage', () => {
     await waitFor(() => expect(screen.getByText(/RemoteCityTwo/i)).toBeInTheDocument());
 
     // restore
-    svc.getLocations = origGetLocations;
+    svc.mapApi.getLocations = origGetLocations;
   });
 
   test('addNewJenis uses created.title when registry returns title and selects it', async () => {
