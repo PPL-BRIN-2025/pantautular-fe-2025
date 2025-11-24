@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import MapPage from "../../app/map/page";
 import { useLocations } from "../../hooks/useLocations";
@@ -48,6 +48,11 @@ jest.mock("../../app/components/MapLoadErrorPopup", () => ({
   ),
 }));
 
+jest.mock("../../app/components/spatial/SpatialComparisonPanel", () => ({
+  __esModule: true,
+  default: () => <div data-testid="spatial-comparison-panel">Spatial comparison mock</div>,
+}));
+
 jest.mock("../../app/components/filter/TimeRangeFilter", () => ({
   __esModule: true,
   default: ({
@@ -87,6 +92,10 @@ describe("MapPage Component", () => {
       isLoading: true,
       error: null,
     }));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it("renders loading state correctly", async () => {
@@ -174,5 +183,40 @@ describe("MapPage Component", () => {
 
     // No data popup should appear
     expect(screen.getByText(/data tidak ditemukan/i)).toBeInTheDocument();
+  });
+
+  it("triggers manual refresh and passes incremented refreshToken to useLocations", async () => {
+    let lastRefresh = -1;
+    (useLocations as jest.Mock).mockImplementation((_filters, refreshToken) => {
+      lastRefresh = refreshToken;
+      return { data: [], isLoading: false, error: null };
+    });
+    render(<MapPage />);
+
+    expect(lastRefresh).toBe(0);
+    fireEvent.click(screen.getByTestId("auto-refresh-toggle-button"));
+    fireEvent.click(screen.getByTestId("manual-refresh"));
+    expect(lastRefresh).toBe(1);
+  });
+
+  it("auto refresh increments refresh token on interval", async () => {
+    jest.useFakeTimers();
+    let lastRefresh = -1;
+    (useLocations as jest.Mock).mockImplementation((_filters, refreshToken) => {
+      lastRefresh = refreshToken;
+      return { data: [], isLoading: false, error: null };
+    });
+
+    render(<MapPage />);
+    fireEvent.click(screen.getByTestId("auto-refresh-toggle-button"));
+    const toggle = screen.getByTestId("auto-refresh-toggle");
+    fireEvent.click(toggle);
+
+    await act(async () => {
+      jest.advanceTimersByTime(30000);
+    });
+
+    expect(lastRefresh).toBeGreaterThanOrEqual(1);
+    jest.useRealTimers();
   });
 });
