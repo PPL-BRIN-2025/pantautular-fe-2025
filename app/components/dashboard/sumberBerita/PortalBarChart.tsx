@@ -258,13 +258,15 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
           stroke: null
         });
 
-        series.columns.template.adapters.add("tooltipText", (text: string | undefined, target: any) => {
-          const custom = target?.dataItem?.dataContext?.tooltipText;
-          if (typeof custom === "string" && custom.trim().length > 0) {
-            return custom;
-          }
-          return text;
-        });
+        if (series?.columns?.template?.adapters) {
+          series.columns.template.adapters.add("tooltipText", (text: string | undefined, target: any) => {
+            const custom = target?.dataItem?.dataContext?.tooltipText;
+            if (typeof custom === "string" && custom.trim().length > 0) {
+              return custom;
+            }
+            return text;
+          });
+        }
 
         // Prepare series data using the utility function
         const seriesData = prepareSeriesData(chartData);

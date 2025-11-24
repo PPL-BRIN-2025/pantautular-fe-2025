@@ -8,8 +8,15 @@ import { MapChartManager } from "./map";
 export class MapChartService {
   private readonly mapManager: MapChartManager;
 
-  constructor(onError?: (message: string) => void) {
-    this.mapManager = new MapChartManager(onError);
+  constructor(
+    onError?: (message: string) => void,
+    options?: {
+      syncStore?: boolean;
+    }
+  ) {
+    this.mapManager = new MapChartManager(onError, {
+      syncStore: options?.syncStore ?? true,
+    });
   }
 
   /**
