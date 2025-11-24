@@ -4,6 +4,7 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import React from "react";
 import ExpertViewPage from "../../../app/expert-data-management/view/page";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -15,6 +16,18 @@ jest.mock("next/navigation", () => ({
   useSearchParams: jest.fn(),
 }));
 
+// --- Mock layout components ---
+jest.mock("../../../app/components/Navbar", () => ({
+  __esModule: true,
+  default: () => <div data-testid="navbar">Navbar</div>,
+}));
+jest.mock("../../../app/components/Footer", () => ({
+  __esModule: true,
+  default: () => <div data-testid="footer">Footer</div>,
+}));
+jest.mock("../../../app/auth/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { role: "EXP_USER" } }),
+}));
 const mockUseAuth = jest.fn();
 
 jest.mock("../../../app/auth/hooks/useAuth", () => ({

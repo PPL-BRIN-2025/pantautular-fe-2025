@@ -29,6 +29,8 @@ export default function MapPage() {
   const [refreshToken, setRefreshToken] = useState(0);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(30000);
+  const [showAutoRefreshPanel, setShowAutoRefreshPanel] = useState(false);
+  const [showSpatialComparison, setShowSpatialComparison] = useState(false);
   const { data: locations, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData, provinceSeverityData } = useLocations(filterState, refreshToken);
   const { error: mapError, setError: setMapError, clearError } = useMapError();
   const [isEmptyData, setIsEmptyData] = useState(false);
@@ -101,47 +103,12 @@ export default function MapPage() {
     <>
       <Navbar />
       <div className="w-full min-h-[calc(100vh-5rem)] relative">
-        {/* Changed from absolute to fixed positioning with greater top value to account for navbar */}
-        <div className="fixed top-[calc(5rem+1rem)] left-4 z-30 flex flex-col gap-3">
+        {/* Filter trigger */}
+        <div className="fixed top-[calc(5rem+1rem)] left-4 z-30">
           <FilterButton
             onClick={toggleFilterVisibility}
             isActive={isFilterVisible}
           />
-          <div className="bg-white/90 shadow-lg rounded-lg p-3 max-w-xs text-sm space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold">Auto-refresh</span>
-              <label className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={autoRefreshEnabled}
-                  onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
-                  data-testid="auto-refresh-toggle"
-                />
-                Aktif
-              </label>
-            </div>
-            <label className="flex items-center gap-2 text-xs">
-              <span>Interval</span>
-              <select
-                className="border rounded p-1 flex-1"
-                value={autoRefreshInterval}
-                onChange={(e) => setAutoRefreshInterval(Number(e.target.value))}
-                data-testid="auto-refresh-interval"
-              >
-                <option value={15000}>15 detik</option>
-                <option value={30000}>30 detik</option>
-                <option value={60000}>60 detik</option>
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={triggerManualRefresh}
-              className="w-full bg-blue-500 text-white py-1 rounded-md"
-              data-testid="manual-refresh"
-            >
-              Muat ulang peta
-            </button>
-          </div>
         </div>
 
         {/* Conditionally render the filter form */}
@@ -209,17 +176,84 @@ export default function MapPage() {
               />
             }
           />
-        </div>
-        <div className="w-full px-4 py-6 bg-gray-50">
-          <SpatialComparisonPanel
-            baseFilters={filterState}
-            refreshToken={refreshToken}
-            onError={(message) => setMapError(message)}
-            provinceHumidityData={provinceHumidityData}
-            provincePrecipitationData={provincePrecipitationData}
-            provinceSeverityData={provinceSeverityData}
-            provinceTemperatureData={provinceTemperatureData}
-          />
+          {/* Spatial comparison toggle */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
+            <button
+              type="button"
+              className="bg-white/90 shadow rounded-full px-4 py-2 text-sm font-semibold border"
+              onClick={() => setShowSpatialComparison((prev) => !prev)}
+              data-testid="spatial-toggle"
+            >
+              {showSpatialComparison ? "Tutup Peta Berdampingan" : "Perbandingan Spasial"}
+            </button>
+          </div>
+          {/* Spatial comparison overlay */}
+          {showSpatialComparison ? (
+            <div className="absolute inset-x-4 top-16 z-30 pointer-events-auto">
+              <div className="bg-white shadow-2xl rounded-xl p-4 max-h-[70vh] overflow-y-auto border border-gray-200">
+                <SpatialComparisonPanel
+                  baseFilters={filterState}
+                  refreshToken={refreshToken}
+                  onError={(message) => setMapError(message)}
+                  provinceHumidityData={provinceHumidityData}
+                  provincePrecipitationData={provincePrecipitationData}
+                  provinceSeverityData={provinceSeverityData}
+                  provinceTemperatureData={provinceTemperatureData}
+                  maxRegions={2}
+                  overlayMode
+                  onClose={() => setShowSpatialComparison(false)}
+                />
+              </div>
+            </div>
+          ) : null}
+          {/* Auto-refresh toggle near bottom-left */}
+          <div className="absolute bottom-16 left-4 z-30 pointer-events-auto">
+            <button
+              type="button"
+              className="bg-white/90 shadow rounded-md px-3 py-2 text-sm font-semibold border"
+              onClick={() => setShowAutoRefreshPanel((prev) => !prev)}
+              data-testid="auto-refresh-toggle-button"
+            >
+              {showAutoRefreshPanel ? "Tutup Auto Refresh" : "Auto Refresh"}
+            </button>
+            {showAutoRefreshPanel ? (
+              <div className="mt-2 bg-white/95 shadow-lg rounded-lg p-3 w-64 text-sm space-y-2 border border-gray-200">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">Auto-refresh</span>
+                  <label className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={autoRefreshEnabled}
+                      onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                      data-testid="auto-refresh-toggle"
+                    />
+                    Aktif
+                  </label>
+                </div>
+                <label className="flex items-center gap-2 text-xs">
+                  <span>Interval</span>
+                  <select
+                    className="border rounded p-1 flex-1"
+                    value={autoRefreshInterval}
+                    onChange={(e) => setAutoRefreshInterval(Number(e.target.value))}
+                    data-testid="auto-refresh-interval"
+                  >
+                    <option value={15000}>15 detik</option>
+                    <option value={30000}>30 detik</option>
+                    <option value={60000}>60 detik</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={triggerManualRefresh}
+                  className="w-full bg-blue-500 text-white py-1 rounded-md"
+                  data-testid="manual-refresh"
+                >
+                  Muat ulang peta
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </>

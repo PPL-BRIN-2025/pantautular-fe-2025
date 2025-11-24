@@ -1,4 +1,4 @@
-import { MapLocation, FilterState, ProvinceData, ExpertBatch } from "../types";
+import { MapLocation, FilterState, ProvinceData, ExpertBatch, SpatialComparisonResponse } from "../types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
@@ -57,6 +57,34 @@ export const mapApi = {
       return await response.json();
     } catch (error) {
       console.error('Error fetching filtered locations:', error);
+      throw error;
+    }
+  },
+
+  async getSpatialComparisons(payload: {
+    regions: Array<Record<string, unknown>>;
+  }): Promise<SpatialComparisonResponse> {
+    try {
+      const accessToken = typeof localStorage !== "undefined" ? localStorage.getItem("accessToken") : null;
+      const response = await fetch(`${API_BASE_URL}/cases/spatial-comparisons/`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "x-api-key": String(API_KEY),
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching spatial comparisons:", error);
       throw error;
     }
   },

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MapLocation, FilterState } from '../types';
 import { mapApi } from '../services/api';
 
-const serializeFilterState = (state: FilterState): string => {
+const serializeFilterState = (state: FilterState, refreshToken = 0): string => {
   const normalizeDate = (value: FilterState["start_date"]) => {
     if (!value) {
       return null;
@@ -17,10 +17,11 @@ const serializeFilterState = (state: FilterState): string => {
     ...state,
     start_date: normalizeDate(state.start_date),
     end_date: normalizeDate(state.end_date),
+    __refreshToken: refreshToken,
   });
 };
 
-export const useLocations = (filterState: FilterState) => {
+export const useLocations = (filterState: FilterState, refreshToken = 0) => {
   const [data, setData] = useState<MapLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -94,7 +95,7 @@ export const useLocations = (filterState: FilterState) => {
   };
 
   useEffect(() => {
-    const serializedFilter = serializeFilterState(filterState);
+    const serializedFilter = serializeFilterState(filterState, refreshToken);
 
     // Skip re-fetching when filters are effectively unchanged
     if (lastSerializedFilterRef.current === serializedFilter) {
@@ -194,7 +195,7 @@ export const useLocations = (filterState: FilterState) => {
     return () => {
       isCancelled = true;
     };
-  }, [filterState]);
+  }, [filterState, refreshToken]);
 
   return { data, isLoading, error, provinceHumidityData, provinceTemperatureData, provincePrecipitationData, provinceSeverityData };
 };

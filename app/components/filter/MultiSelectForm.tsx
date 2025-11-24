@@ -93,6 +93,16 @@ export default function MultiSelectForm({
     },
     news: [],
   });
+
+  // Preselect batch if provided so mocked selects pick it up even before options arrive
+  useEffect(() => {
+    if (initialFilterState?.batch) {
+      setSelectedBatch({
+        value: initialFilterState.batch,
+        label: initialFilterState.batch,
+      });
+    }
+  }, [initialFilterState?.batch]);
   
   const handleReset = () => {
     setSelectedDiseases([]);
@@ -176,14 +186,13 @@ export default function MultiSelectForm({
 
         if (!isActive) return;
 
-        if (
-          initialFilterState?.batch &&
-          !batchSelectOptions.some((option) => option.value === initialFilterState.batch)
-        ) {
-          batchSelectOptions = [
-            ...batchSelectOptions,
-            { value: initialFilterState.batch, label: initialFilterState.batch },
-          ];
+        if (initialFilterState?.batch) {
+          if (!batchSelectOptions.some((option) => option.value === initialFilterState.batch)) {
+            batchSelectOptions = [
+              ...batchSelectOptions,
+              { value: initialFilterState.batch, label: initialFilterState.batch },
+            ];
+          }
         }
 
         setBatchOptions(batchSelectOptions);

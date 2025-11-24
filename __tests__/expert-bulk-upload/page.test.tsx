@@ -82,7 +82,7 @@ describe('CuratorBulkUploadPage (expert-bulk-upload)', () => {
   });
 
   test('shows access denied for authenticated non-EXP_USER', async () => {
-    mockUseAuth.mockReturnValue({ user: { role: 'ADMIN' } });
+    mockUseAuth.mockReturnValue({ user: { role: 'USER' } });
 
     const Page = require('../../app/expert-bulk-upload/page').default;
     render(<Page />);

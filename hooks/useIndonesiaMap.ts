@@ -12,12 +12,18 @@ export function useIndonesiaMap(
   provincePrecipitationData: ProvinceData[],
   provinceSeverityData: ProvinceData[],
   onError: (message: string) => void,
-  initialized = false
+  initialized = false,
+  options?: {
+    shareStore?: boolean;
+    syncStore?: boolean;
+  }
 ) {
   const mapServiceRef = useRef<MapChartService | null>(null);
   const [mapService, setMapService] = useState<MapChartService | null>(null);
   const locationsRef = useRef<MapLocation[]>(locations);
   const setMapServiceStore = useMapStore((state) => state.setMapService);
+  const shareStore = options?.shareStore ?? true;
+  const syncStore = options?.syncStore ?? true;
   
   // Set up the map once
   useEffect(() => {
@@ -27,7 +33,7 @@ export function useIndonesiaMap(
       return;
     }
     
-    const service = new MapChartService(onError);
+    const service = new MapChartService(onError, { syncStore });
     
     try {
       service.initialize(containerId, config);
@@ -38,7 +44,9 @@ export function useIndonesiaMap(
       service.populateProvinceSeverityData(provinceSeverityData);
       mapServiceRef.current = service;
       setMapService(service);
-      setMapServiceStore(service); // Update the Zustand store
+      if (shareStore) {
+        setMapServiceStore(service); // Update the Zustand store
+      }
     } catch (error) {
       console.error("Failed to initialize map:", error);
     }
@@ -48,10 +56,12 @@ export function useIndonesiaMap(
       if (!initialized && mapServiceRef.current) {
         mapServiceRef.current.dispose();
         mapServiceRef.current = null;
-        setMapServiceStore(null); // Clear the service from store on cleanup
+        if (shareStore) {
+          setMapServiceStore(null); // Clear the service from store on cleanup
+        }
       }
     };
-  }, [containerId, config, initialized, onError, setMapServiceStore]);
+  }, [containerId, config, initialized, onError, setMapServiceStore, shareStore, syncStore]);
   
   // Update locations when they change, without reinitializing the map
   useEffect(() => {
