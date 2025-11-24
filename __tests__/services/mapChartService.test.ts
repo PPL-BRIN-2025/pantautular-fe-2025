@@ -62,12 +62,12 @@ describe("MapChartService", () => {
   it("constructs MapChartManager with provided onError handler", () => {
     const onError = jest.fn();
     createService(onError);
-    expect(MapChartManagerMock).toHaveBeenCalledWith(onError);
+    expect(MapChartManagerMock).toHaveBeenCalledWith(onError, { syncStore: true });
   });
 
   it("constructs MapChartManager with undefined onError by default", () => {
     createService();
-    expect(MapChartManagerMock).toHaveBeenCalledWith(undefined);
+    expect(MapChartManagerMock).toHaveBeenCalledWith(undefined, { syncStore: true });
   });
 
   it("initializes the map via the manager", () => {

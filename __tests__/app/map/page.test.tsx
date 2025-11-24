@@ -120,6 +120,11 @@ jest.mock("../../../app/components/floating_buttons/FilterButton", () => ({
   )),
 }));
 
+jest.mock("../../../app/components/spatial/SpatialComparisonPanel", () => ({
+  __esModule: true,
+  default: () => <div data-testid="spatial-comparison-panel">Spatial comparison mock</div>,
+}));
+
 describe("MapPage Component", () => {
   const mockSetMapError = jest.fn();
   const mockClearError = jest.fn();

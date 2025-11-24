@@ -10,6 +10,7 @@ import WarningButton from "./floating_buttons/WarningButton";
 import LocationButton from "./floating_buttons/LocationButton";
 import {MapButton} from "./floating_buttons/MapButton";
 import { useMapStore } from "../../store/store";
+import { MapChartService } from "../../services/mapChartService";
 
 interface IndonesiaMapProps {
   locations: MapLocation[];
@@ -24,6 +25,11 @@ interface IndonesiaMapProps {
   provincePrecipitationData: ProvinceData[];
   provinceSeverityData: ProvinceData[];
   timeFilter?: React.ReactNode;
+  mapId?: string;
+  shareStore?: boolean;
+  syncStore?: boolean;
+  onMapReady?: (service: MapChartService) => void;
+  showMapChrome?: boolean;
 }
 
 export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
@@ -37,8 +43,13 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
   width = "100vw",
   onError,
   timeFilter,
+  mapId = "chartdiv",
+  shareStore = true,
+  syncStore = true,
+  onMapReady,
+  showMapChrome = true,
 }) => {
-  const mapContainerId = "chartdiv";
+  const mapContainerId = mapId;
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [locationError, setLocationError] = useState<LocationError | null>(null);
   const mapInitialized = useRef(false);
@@ -59,7 +70,8 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
     provincePrecipitationData,
     provinceSeverityData,
     onError,
-    mapInitialized.current
+    mapInitialized.current,
+    { shareStore, syncStore }
   );
   
   // Set mapInitialized to true after first render
@@ -67,8 +79,11 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
     /*istanbul ignore next*/
     if (!mapInitialized.current && mapService) {
       mapInitialized.current = true;
+      if (onMapReady) {
+        onMapReady(mapService);
+      }
     }
-  }, [mapService]);
+  }, [mapService, onMapReady]);
 
   // Fungsi untuk menangani zoom ke lokasi user
   const handleLocationSuccess = useCallback((latitude: number, longitude: number) => {
@@ -107,30 +122,34 @@ export const IndonesiaMap: React.FC<IndonesiaMapProps> = ({
       />
       
       {/* Changed from absolute to fixed positioning with greater top value to account for navbar */}
-      <div className="fixed top-[calc(5rem+1rem)] left-32 z-20 flex gap-3">
-        <LocationButton onClick={() => setShowPermissionPopup(true)} />
-        <WarningButton />
-      </div>
-      
-      {/* Changed from absolute to fixed positioning with greater top value to account for navbar */}
-      <div className="fixed top-[calc(5rem+1rem)] right-5 z-20 flex gap-2">
-        <DashboardButton />
-        <MapButton />
-      </div>
-      
-      {/* Popup izin lokasi */}
-      <LocationPermissionPopup
-        open={showPermissionPopup}
-        onClose={() => setShowPermissionPopup(false)}
-        onAllow={handleAllow}
-        onDeny={handleDeny}
-      />
-      <div className="fixed bottom-5 left-5 z-20 flex flex-col gap-3 md:flex-row md:items-end">
-        <div className="rounded-lg bg-black/60 p-2 text-lg font-bold text-white">
-          {`Points Visible: ${countSelectedPoints}`}
-        </div>
-        {timeFilter ? <div className="pointer-events-auto">{timeFilter}</div> : null}
-      </div>
+      {showMapChrome && (
+        <>
+          <div className="fixed top-[calc(5rem+1rem)] left-32 z-20 flex gap-3">
+            <LocationButton onClick={() => setShowPermissionPopup(true)} />
+            <WarningButton />
+          </div>
+          
+          {/* Changed from absolute to fixed positioning with greater top value to account for navbar */}
+          <div className="fixed top-[calc(5rem+1rem)] right-5 z-20 flex gap-2">
+            <DashboardButton />
+            <MapButton />
+          </div>
+          
+          {/* Popup izin lokasi */}
+          <LocationPermissionPopup
+            open={showPermissionPopup}
+            onClose={() => setShowPermissionPopup(false)}
+            onAllow={handleAllow}
+            onDeny={handleDeny}
+          />
+          <div className="fixed bottom-5 left-5 z-20 flex flex-col gap-3 md:flex-row md:items-end">
+            <div className="rounded-lg bg-black/60 p-2 text-lg font-bold text-white">
+              {`Points Visible: ${countSelectedPoints}`}
+            </div>
+            {timeFilter ? <div className="pointer-events-auto">{timeFilter}</div> : null}
+          </div>
+        </>
+      )}
       
       {/* Popup error lokasi */}
       {/*istanbul ignore next*/}
