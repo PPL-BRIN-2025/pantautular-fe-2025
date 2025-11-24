@@ -59,4 +59,48 @@ describe("TooltipContent", () => {
 
     expect(screen.queryByTestId("tooltip-change")).toBeNull();
   });
+
+  it("formats negative deltas with minus signs", () => {
+    render(
+      <TooltipContent
+        datum={{ label: "Kasus", value: 50, reference: 80 }}
+      />
+    );
+
+    expect(screen.getByTestId("tooltip-change")).toHaveTextContent(
+      "Change: -30 (-37,5%)"
+    );
+  });
+
+  it("renders neutral delta when value equals reference", () => {
+    render(
+      <TooltipContent
+        datum={{ label: "Kasus", value: 30, reference: 30 }}
+      />
+    );
+
+    expect(screen.getByTestId("tooltip-change")).toHaveTextContent(
+      "Change: 0 (0%)"
+    );
+  });
+
+  it("omits label when not provided", () => {
+    render(<TooltipContent datum={{ value: 10 }} />);
+    expect(screen.queryByTestId("tooltip-label")).toBeNull();
+  });
+
+  it("renders timestamp metadata when supplied", () => {
+    render(
+      <TooltipContent
+        datum={{ label: "Kasus", value: 10, reference: 5, timestamp: "2025-01-01" }}
+      />
+    );
+    expect(screen.getByTestId("tooltip-timestamp")).toHaveTextContent("2025-01-01");
+  });
+
+  it("omits reference block when reference is null", () => {
+    render(<TooltipContent datum={{ label: "Kasus", value: 15, reference: null }} />);
+    expect(screen.queryByTestId("tooltip-reference")).toBeNull();
+    expect(screen.queryByTestId("tooltip-change")).toBeNull();
+  });
 });

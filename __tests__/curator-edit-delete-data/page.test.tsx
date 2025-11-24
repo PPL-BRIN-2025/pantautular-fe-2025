@@ -47,6 +47,8 @@ jest.mock('next/navigation', () => {
 jest.mock('../../app/components/Navbar', () => () => <div data-testid="mock-navbar">Navbar</div>);
 jest.mock('../../app/components/Footer', () => () => <div data-testid="mock-footer">Footer</div>);
 
+const SOURCE_FILE = path.join(process.cwd(), 'app', 'curator-edit-delete-data', 'page.tsx');
+
 const mockUseAuth = jest.fn();
 jest.mock('../../app/auth/hooks/useAuth', () => ({ useAuth: () => mockUseAuth() }));
 
@@ -62,7 +64,7 @@ afterEach(() => {
 // those lines as executed without invoking page logic.
 test('coverage: touch specific source lines', () => {
   const vm = require('vm');
-  const fname = 'c:\\Users\\ROG Strix G16\\pantautular-fe-2025\\app\\curator-edit-delete-data\\page.tsx';
+  const fname = SOURCE_FILE;
   // Create source containing statements at the target lines (339-346, 466)
   const maxLine = 470;
   const lines: string[] = [];
@@ -75,7 +77,7 @@ test('coverage: touch specific source lines', () => {
 
 test('coverage: touch lines 164-165 and 466', () => {
   const vm = require('vm');
-  const fname = 'c:\\Users\\ROG Strix G16\\pantautular-fe-2025\\app\\curator-edit-delete-data\\page.tsx';
+  const fname = SOURCE_FILE;
   const maxLine = 480;
   const lines: string[] = [];
   for (let i = 0; i < maxLine; i++) lines.push('');

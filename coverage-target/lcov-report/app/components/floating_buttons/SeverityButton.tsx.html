@@ -1,0 +1,349 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for app/components/floating_buttons/SeverityButton.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">app/components/floating_buttons</a> SeverityButton.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/13</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/10</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/5</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/13</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">"use client"
+&nbsp;
+import { useEffect, useState } from "react"
+import { cn } from "../../../utils/tmg"
+import { useMapStore } from "../../../store/store"
+&nbsp;
+interface GearToggleButtonProps {
+  onClick?: () =&gt; void
+  className?: string
+  size?: "sm" | "md" | "lg"
+  ariaLabel?: string
+}
+&nbsp;
+export default function <span class="fstat-no" title="function not covered" >GearToggleButton(</span>{
+  onClick,
+  className,
+  size = <span class="branch-0 cbranch-no" title="branch not covered" >"md",</span>
+  ariaLabel = <span class="branch-0 cbranch-no" title="branch not covered" >"Settings",</span>
+}: Readonly&lt;GearToggleButtonProps&gt;) {
+  const { mapService, activeButton, setActiveButton } = <span class="cstat-no" title="statement not covered" >useMapStore()</span>
+  const isActive = <span class="cstat-no" title="statement not covered" >activeButton === 'severity'</span>
+  const [isHovered, setIsHovered] = <span class="cstat-no" title="statement not covered" >useState(false)</span>
+&nbsp;
+  const sizeClasses = <span class="cstat-no" title="statement not covered" >{</span>
+    sm: "h-10 w-10",
+    md: "h-12 w-12",
+    lg: "h-16 w-16",
+  }
+&nbsp;
+  const iconSizes = <span class="cstat-no" title="statement not covered" >{</span>
+    sm: 16,
+    md: 20,
+    lg: 24,
+  }
+&nbsp;
+  const handleClick = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; { </span>
+    const newActiveState = <span class="cstat-no" title="statement not covered" >!isActive</span>
+<span class="cstat-no" title="statement not covered" >    setActiveButton(newActiveState ? 'severity' : null)</span>
+<span class="cstat-no" title="statement not covered" >    onClick?.()</span>
+  }
+&nbsp;
+  // Add useEffect to respond to activeButton changes
+<span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+    /* istanbul ignore next */
+    if (mapService) {
+      /* istanbul ignore next */
+      if (isActive) mapService.showSeverityLayer()
+      // else mapService.hideSeverityLayer()
+      if (activeButton == null) mapService.hideAllLayers()
+    }
+  }, [isActive, mapService])
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return (</span>
+    &lt;div className="relative"&gt;
+      &lt;button
+        type="button"
+        onClick={handleClick}
+        onMouseEnter={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setIsHovered(true)}</span>
+        onMouseLeave={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setIsHovered(false)}</span>
+        aria-label={ariaLabel}
+        className={cn(
+          "rounded-full flex items-center justify-center transition-colors duration-200 shadow-sm",
+          isActive ? "bg-red-500" : "bg-white border border-gray-200",
+          sizeClasses[size],
+          className,
+        )}
+      &gt;
+        &lt;svg
+          width={iconSizes[size]}
+          height={iconSizes[size]}
+          viewBox="0 0 14 14"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={cn("transition-colors duration-200", isActive ? "text-white" : "text-red-500")}
+        &gt;
+          &lt;path
+            d="M13.3 6.3H13.181C12.4439 6.3 11.8104 5.8317 11.5311 5.1492L11.5164 5.1149C11.2308 4.431 11.3421 3.647 11.8664 3.1227L11.9497 3.0394C12.0147 2.97441 12.0662 2.89725 12.1014 2.81234C12.1366 2.72742 12.1547 2.63641 12.1547 2.5445C12.1547 2.45259 12.1366 2.36158 12.1014 2.27666C12.0662 2.19175 12.0147 2.11459 11.9497 2.0496C11.8847 1.98461 11.8076 1.93305 11.7226 1.89788C11.6377 1.86271 11.5467 1.84461 11.4548 1.84461C11.3629 1.84461 11.2719 1.86271 11.187 1.89788C11.102 1.93305 11.0249 1.98461 10.9599 2.0496L10.8766 2.1329C10.3523 2.6572 9.5683 2.7685 8.8844 2.4829L8.8501 2.4682C8.1683 2.1896 7.7 1.5526 7.7 0.8155V0.7588C7.7 0.3129 7.3871 0 7 0C6.6129 0 6.3 0.3129 6.3 0.7V0.7252C6.3 1.4924 5.838 2.184 5.1289 2.4773L5.1247 2.4794C4.77806 2.62288 4.39666 2.66036 4.02873 2.5871C3.66079 2.51383 3.32284 2.33312 3.0576 2.0678L3.0401 2.0503C2.97511 1.98531 2.89795 1.93375 2.81304 1.89858C2.72812 1.86341 2.63711 1.84531 2.5452 1.84531C2.45329 1.84531 2.36228 1.86341 2.27736 1.89858C2.19245 1.93375 2.11529 1.98531 2.0503 2.0503C1.98531 2.11529 1.93375 2.19245 1.89858 2.27736C1.86341 2.36228 1.84531 2.45329 1.84531 2.5452C1.84531 2.63711 1.86341 2.72812 1.89858 2.81304C1.93375 2.89795 1.98531 2.97511 2.0503 3.0401L2.0755 3.0653C2.33847 3.3285 2.51758 3.66371 2.59021 4.02861C2.66284 4.39352 2.62575 4.77176 2.4836 5.1156L2.4647 5.1604C2.32494 5.49763 2.08836 5.78587 1.78486 5.9887C1.48135 6.19153 1.12454 6.29986 0.7595 6.3C0.3136 6.3 0 6.6129 0 7C0 7.3871 0.3129 7.7 0.7 7.7H0.7476C1.1162 7.69991 1.47653 7.80921 1.78296 8.01408C2.08938 8.21894 2.32811 8.51015 2.4689 8.8508L2.4836 8.8851C2.62575 9.22894 2.66284 9.60718 2.59021 9.97208C2.51758 10.337 2.33847 10.6722 2.0755 10.9354L2.0503 10.9606C1.91904 11.0919 1.84531 11.2699 1.84531 11.4555C1.84531 11.6411 1.91904 11.8191 2.0503 11.9504C2.18156 12.0817 2.35958 12.1554 2.5452 12.1554C2.73082 12.1554 2.90884 12.0817 3.0401 11.9504L3.0653 11.9252C3.32845 11.6621 3.66366 11.483 4.02859 11.4103C4.39351 11.3377 4.77178 11.3749 5.1156 11.5171L5.2157 11.5591C5.53675 11.6917 5.8112 11.9166 6.00424 12.2053C6.19728 12.4941 6.30022 12.8337 6.3 13.181V13.2405C6.3 13.6871 6.6129 14 7 14C7.3871 14 7.7 13.6864 7.7 13.3V13.181C7.7 12.4705 8.1277 11.83 8.785 11.5584L8.9614 11.4856C9.28253 11.3524 9.63598 11.3176 9.97694 11.3855C10.3179 11.4534 10.631 11.621 10.8766 11.8671L10.9599 11.9504C11.0249 12.0154 11.102 12.0669 11.187 12.1021C11.2719 12.1373 11.3629 12.1554 11.4548 12.1554C11.5467 12.1554 11.6377 12.1373 11.7226 12.1021C11.8076 12.0669 11.8847 12.0154 11.9497 11.9504C12.0147 11.8854 12.0662 11.8083 12.1014 11.7233C12.1366 11.6384 12.1547 11.5474 12.1547 11.4555C12.1547 11.3636 12.1366 11.2726 12.1014 11.1877C12.0662 11.1027 12.0147 11.0256 11.9497 10.9606L11.8664 10.8773C11.3421 10.353 11.2308 9.569 11.5164 8.8851L11.5311 8.8508C11.8104 8.1683 12.4474 7.7 13.1845 7.7H13.2405C13.6871 7.7 14 7.3871 14 7C14 6.6129 13.6871 6.3 13.3 6.3ZM4.2 7.7C4.01435 7.7 3.8363 7.62625 3.70503 7.49497C3.57375 7.3637 3.5 7.18565 3.5 7C3.5 6.81435 3.57375 6.6363 3.70503 6.50503C3.8363 6.37375 4.01435 6.3 4.2 6.3C4.38565 6.3 4.5637 6.37375 4.69497 6.50503C4.82625 6.6363 4.9 6.81435 4.9 7C4.9 7.18565 4.82625 7.3637 4.69497 7.49497C4.5637 7.62625 4.38565 7.7 4.2 7.7ZM7.7 10.15C7.51435 10.15 7.3363 10.0763 7.20503 9.94497C7.07375 9.8137 7 9.63565 7 9.45C7 9.26435 7.07375 9.0863 7.20503 8.95503C7.3363 8.82375 7.51435 8.75 7.7 8.75C7.88565 8.75 8.0637 8.82375 8.19497 8.95503C8.32625 9.0863 8.4 9.26435 8.4 9.45C8.4 9.63565 8.32625 9.8137 8.19497 9.94497C8.0637 10.0763 7.88565 10.15 7.7 10.15ZM8.4 7C8.2161 6.99995 8.03402 6.96369 7.86414 6.89327C7.69425 6.82285 7.53991 6.71967 7.4099 6.5896C7.2799 6.45953 7.17679 6.30513 7.10646 6.13522C7.03613 5.9653 6.99995 5.7832 7 5.5993C7.00005 5.4154 7.03631 5.23332 7.10673 5.06344C7.17715 4.89355 7.28033 4.73921 7.4104 4.60921C7.54047 4.4792 7.69487 4.37609 7.86478 4.30576C8.0347 4.23543 8.2168 4.19925 8.4007 4.1993C8.7721 4.19939 9.12824 4.34702 9.39079 4.6097C9.65335 4.87238 9.80079 5.2286 9.8007 5.6C9.80061 5.9714 9.65298 6.32754 9.3903 6.59009C9.12762 6.85265 8.7714 7.00009 8.4 7Z"
+            fill="currentColor"
+          /&gt;
+        &lt;/svg&gt;
+      &lt;/button&gt;
+      {isHovered &amp;&amp; (
+        &lt;div className="absolute right-0 mt-2 bg-black text-white text-xs rounded py-1 px-2 z-30 whitespace-nowrap"&gt;
+          Peta Tematik: Keparahan
+        &lt;/div&gt;
+      )}
+    &lt;/div&gt;
+  )
+}</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2025-11-11T14:09:02.682Z
+            </div>
+        <script src="../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
+    </body>
+</html>
+    

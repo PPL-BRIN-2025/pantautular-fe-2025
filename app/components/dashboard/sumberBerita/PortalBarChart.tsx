@@ -95,7 +95,8 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
     const slug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .replace(/^-+/, "")
+      .replace(/-+$/, "");
     return slug || "portal-bar-chart";
   }, [title]);
 
@@ -267,6 +268,14 @@ const PortalBarChart: React.FC<PortalBarChartProps> = ({
             return text;
           });
         }
+        const tooltipAdapter = series.columns?.template?.adapters;
+        tooltipAdapter?.add?.("tooltipText", (text: string | undefined, target: any) => {
+          const custom = target?.dataItem?.dataContext?.tooltipText;
+          if (typeof custom === "string" && custom.trim().length > 0) {
+            return custom;
+          }
+          return text;
+        });
 
         // Prepare series data using the utility function
         const seriesData = prepareSeriesData(chartData);

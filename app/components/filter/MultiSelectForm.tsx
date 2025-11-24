@@ -241,7 +241,11 @@ export default function MultiSelectForm({
           setSelectedBatch(null);
         }
       } catch (error) {
-        console.error("Error fetching filter data", error);
+        const msg =
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to fetch filter options";
+        console.error(msg);
         if (isActive) {
           onError("Failed to load the map. Please try again.");
         }

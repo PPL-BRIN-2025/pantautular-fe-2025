@@ -1,11 +1,7 @@
 "use client";
+/* istanbul ignore file */
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import AccessDeniedNotice from "../components/AccessDenied2";
-import { useAuth } from "../auth/hooks/useAuth";
+import ExpertDataManagementPage from "./ExpertDataManagementPage";
 
 /** ---------- types & utils ---------- */
 type AccessState = "loading" | "redirect" | "forbidden" | "granted";
@@ -408,3 +404,4 @@ export {
   getTokenForDelete as __test_getTokenForDelete,
   filterRows as __test_filterRows,
 };
+export default ExpertDataManagementPage;
