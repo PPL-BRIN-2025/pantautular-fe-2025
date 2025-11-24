@@ -13,8 +13,14 @@ export default function Navbar() {
   return <NavbarContent />;
 }
 
-export const ProfileIcon = ({ logoutAction }: { logoutAction: () => void }) => {
+type ProfileIconProps = {
+  logoutAction?: () => void;
+  logout?: () => void;
+};
+
+export const ProfileIcon = ({ logoutAction, logout }: ProfileIconProps) => {
   const [showSettings, setShowSettings] = useState(false);
+  const resolvedLogout = logoutAction ?? logout ?? (() => {});
 
   return (
     <>
@@ -30,7 +36,7 @@ export const ProfileIcon = ({ logoutAction }: { logoutAction: () => void }) => {
           <DropdownMenuItem onClick={() => setShowSettings(true)}>
             <span className="text-gray-800">Pengaturan</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={logoutAction}>
+          <DropdownMenuItem onClick={resolvedLogout}>
             <span className="text-red-500">Keluar</span>
           </DropdownMenuItem>
         </DropdownMenuContent>

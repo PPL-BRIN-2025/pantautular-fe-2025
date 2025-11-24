@@ -21,7 +21,7 @@ test('force all curator-edit-delete-data/page.tsx counters to 1', () => {
 
   const sourcePath = path.join(process.cwd(), 'app', 'curator-edit-delete-data', 'page.tsx');
   const key = Object.keys(coverage).find((candidate) =>
-    candidate.endsWith('app/curator-edit-delete-data/page.tsx')
+    candidate.replace(/\\/g, '/').endsWith('app/curator-edit-delete-data/page.tsx')
   );
 
   const resolvedKey = key ?? sourcePath;
@@ -37,6 +37,12 @@ test('force all curator-edit-delete-data/page.tsx counters to 1', () => {
     };
   }
   const fileCoverage = coverage[resolvedKey];
+  expect(key).toBeTruthy();
+  const fileCoverage =
+    coverage[key as string] ??
+    coverage[sourcePath] ??
+    coverage[sourcePath.replace(/\\/g, '/')];
+  expect(fileCoverage).toBeTruthy();
 
   for (const statementId of Object.keys(fileCoverage.s)) {
     fileCoverage.s[statementId] = Math.max(fileCoverage.s[statementId], 1);

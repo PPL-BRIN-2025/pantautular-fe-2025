@@ -171,4 +171,27 @@ describe('useLocations', () => {
     expect(mapApi.getFilteredLocations).toHaveBeenCalledTimes(2);
     expect(mapApi.getFilteredLocations).toHaveBeenLastCalledWith(updatedFilterState);
   });
+
+  it("should refetch when refreshToken changes even if filters stay the same", async () => {
+    const first = [{ id: "1", city: "A", location__latitude: 1, location__longitude: 1, location__province: "P1" }];
+    const second = [{ id: "2", city: "B", location__latitude: 2, location__longitude: 2, location__province: "P2" }];
+    (mapApi.getFilteredLocations as jest.Mock)
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(second);
+
+    const { result, rerender } = renderHook(
+      (props: { refresh: number }) => useLocations(defaultFilterState, props.refresh),
+      { initialProps: { refresh: 0 } }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.data).toEqual(first);
+    expect(mapApi.getFilteredLocations).toHaveBeenCalledTimes(1);
+
+    rerender({ refresh: 1 });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.data).toEqual(second);
+    expect(mapApi.getFilteredLocations).toHaveBeenCalledTimes(2);
+  });
 });

@@ -24,6 +24,15 @@ jest.mock("next/navigation", () => ({
   }),
 }));
 
+jest.mock("../../app/components/Navbar", () => ({
+  __esModule: true,
+  default: () => <div data-testid="mock-navbar">Navbar</div>,
+}));
+jest.mock("../../app/components/Footer", () => ({
+  __esModule: true,
+  default: () => <div data-testid="mock-footer">Footer</div>,
+}));
+
 const mockUseAuth = jest.fn();
 
 jest.mock("../../app/auth/hooks/useAuth", () => ({
@@ -66,6 +75,9 @@ const getTokenHelper = () => getToken();
 const getTokenForDeleteHelper = () => getTokenForDelete();
 const filterRowsHelper = (rows: any[], query: string) => filterRowsByQuery(rows, query);
 const alertMock = () => (global.alert as jest.Mock);
+let mockFetch: jest.Mock;
+let mockConfirm: jest.Mock;
+let mockAlert: jest.Mock;
 
 describe("ExpertDataManagementPage", () => {
   beforeEach(() => {
@@ -78,6 +90,16 @@ describe("ExpertDataManagementPage", () => {
     (global as any).fetch = jest.fn(() => responseWithRows(defaultRows));
     (global as any).confirm = jest.fn(() => true);
     (global as any).alert = jest.fn();
+    mockFetch = jest.fn(() =>
+      responseWithRows([
+        { data_id: "ID1", file_name: "file1.csv", last_edited: "2025-01-01", submitted_by: "USER1" },
+      ])
+    );
+    (global as any).fetch = mockFetch;
+    mockConfirm = jest.fn(() => true);
+    (global as any).confirm = mockConfirm;
+    mockAlert = jest.fn();
+    (global as any).alert = mockAlert;
   });
 
   test("redirects to login when no user and nothing stored", async () => {

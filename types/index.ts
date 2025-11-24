@@ -125,6 +125,23 @@ export interface ExpertBatch {
   total_cases: number;
 }
 
+export interface SpatialComparisonRegion {
+  value: string;
+  label: string;
+  scope?: "province" | "city";
+}
+
+export interface SpatialComparisonItem {
+  label: string;
+  count: number;
+  locations: MapLocation[];
+  filters: Record<string, unknown>;
+}
+
+export interface SpatialComparisonResponse {
+  comparisons: SpatialComparisonItem[];
+}
+
 export const TEMPERATURE_COLORS: Record<number, string> = {
   [-10]: "#0000FF", // 0, 0, 255
   [-9]: "#0019FF", // 0, 25, 255

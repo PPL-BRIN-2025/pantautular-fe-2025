@@ -3,10 +3,16 @@
 import React, { useEffect, useRef, useState, useLayoutEffect } from "react";
 
 const Footer: React.FC = () => {
-  const [visibleAtBottom, setVisibleAtBottom] = useState(false);
+  const [visibleAtBottom, setVisibleAtBottom] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return typeof window.IntersectionObserver === "undefined";
+  });
   const footerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+      return;
+    }
     const el = footerRef.current;
     if (!el) return;
 
@@ -32,6 +38,9 @@ const Footer: React.FC = () => {
 
   // Update tinggi footer ke CSS variable agar layout.tsx bisa kasih padding bawah
   useLayoutEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return;
+    }
     const el = footerRef.current;
     if (!el) return;
 
@@ -41,12 +50,12 @@ const Footer: React.FC = () => {
     };
 
     updateVar();
-    const resizeObs = new ResizeObserver(updateVar);
-    resizeObs.observe(el);
+    const resizeObs = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateVar) : null;
+    resizeObs?.observe(el);
     window.addEventListener("resize", updateVar);
 
     return () => {
-      resizeObs.disconnect();
+      resizeObs?.disconnect();
       window.removeEventListener("resize", updateVar);
       document.documentElement.style.removeProperty("--pt-footer-h");
     };
@@ -82,26 +91,27 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Contacts grid */}
-          <nav aria-label="Saluran Bantuan" className="flex-1">
+          <nav aria-label="Saluran Bantuan" className="flex-1 space-y-3">
+            <p className="text-sm font-semibold">Saluran Bantuan</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <address className="not-italic">
-                <p className="font-medium text-xs">Kementerian Kesehatan RI</p>
+                <p className="font-medium text-xs">Kementerian Kesehatan RI (Kemenkes RI)</p>
                 <a href="tel:1500567" className="text-xs underline">Hotline: 1500-567</a>
               </address>
 
               <address className="not-italic">
                 <p className="font-medium text-xs">Layanan Masyarakat Sehat (LMS)</p>
-                <a href="tel:081212123119" className="text-xs underline">0812-1212-3119</a>
+                <a href="tel:081212123119" className="text-xs underline">Hotline: 0812-1212-3119</a>
               </address>
 
               <address className="not-italic">
-                <p className="font-medium text-xs">RS Infeksi Prof. Dr. Sulianti Saroso</p>
-                <a href="tel:0216506559" className="text-xs underline">(021) 6506559 / 6507024</a>
+                <p className="font-medium text-xs">Rumah Sakit Penyakit Infeksi Prof. Dr. Sulianti Saroso</p>
+                <a href="tel:0216506559" className="text-xs underline">Hotline: (021) 6506559 atau (021) 6507024</a>
               </address>
 
               <address className="not-italic">
                 <p className="font-medium text-xs">Pusat Informasi Kesehatan Terpadu (PIKT)</p>
-                <a href="tel:081376905598" className="text-xs underline">0813-7690-5598</a>
+                <a href="tel:081376905598" className="text-xs underline">Hotline: 0813-7690-5598</a>
               </address>
             </div>
           </nav>

@@ -187,8 +187,9 @@ export default function CuratorDataManagementPage() {
   const [rawSearch, setRawSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastFetchKey = useRef<string | null>(null);
 
-  const pageSize = 10;
+  const pageSize = 8;
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
 
   const firstClamp = useRef(true);
@@ -201,6 +202,10 @@ export default function CuratorDataManagementPage() {
     if (accessState !== "granted") return;
 
     const ac = new AbortController();
+
+    const key = `${page}|${pageSize}|${rawSearch.trim()}`;
+    if (lastFetchKey.current === key) return;
+    lastFetchKey.current = key;
 
     const fetchLogs = async () => {
       setLoading(true);

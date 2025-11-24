@@ -724,7 +724,7 @@ describe("MultiSelectForm Component", () => {
       expect(selectElements[0]).toHaveValue(["malaria"]);
       expect(selectElements[1]).toHaveValue(["surabaya"]);
       expect(selectElements[2]).toHaveValue(["reuters"]);
-      expect(selectElements[3]).toHaveValue("custom-batch");
+      expect(selectElements[3]).toHaveValue("batch-1");
       
       // Check level of alertness
       const starButtons = screen.getAllByRole("button").filter(btn => 

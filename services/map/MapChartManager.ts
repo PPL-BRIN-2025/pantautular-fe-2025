@@ -19,9 +19,16 @@ export class MapChartManager {
   private locations: MapLocation[] | null = null;
   private _countSelectedPoints: number = 0;
   private readonly onError: ((message: string) => void) | null = null;
+  private readonly syncStore: boolean;
 
-  constructor(onError?: (message: string) => void) {
+  constructor(
+    onError?: (message: string) => void,
+    options?: {
+      syncStore?: boolean;
+    }
+  ) {
     this.onError = onError || null;
+    this.syncStore = options?.syncStore ?? true;
   }
 
   /**
@@ -195,7 +202,9 @@ export class MapChartManager {
   private set countSelectedPoints(value: number) {
     this._countSelectedPoints = value;
     // Update Zustand store
-    useMapStore.getState().setCountSelectedPoints(value);
+    if (this.syncStore) {
+      useMapStore.getState().setCountSelectedPoints(value);
+    }
   }
 
   /**
