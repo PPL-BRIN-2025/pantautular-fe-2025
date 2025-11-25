@@ -53,6 +53,14 @@ beforeEach(() => {
   };
 });
 
+test('non-contributor role sees access denied page', () => {
+  // Ensure all calls to useAuth within this render return a non-contributor role
+  mockUseAuth.mockReturnValue({ user: { role: 'ADMIN' } } as any);
+  render(<ContributorEventReportingPage />);
+  expect(screen.getByText(/Akses Kurator Ditolak/i)).toBeInTheDocument();
+  expect(screen.queryByText(/Tambahkan Informasi Penyakit Menular/i)).not.toBeInTheDocument();
+});
+
 afterEach(() => {
   // ensure no leakage between tests
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment

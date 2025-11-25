@@ -683,6 +683,32 @@ export default function ContributorEventReportingPage() {
     }
   }
 
+  if (accessState === "redirect") {
+    return null; // redirect in progress
+  }
+
+  if (accessState === "loading") {
+    return (
+      <div className="min-h-screen bg-[#f0f6f8]">
+        <Navbar />
+        <main className="pt-28 pb-28 flex justify-center">
+          <div className="text-sm text-gray-600">Memeriksa akses...</div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (accessState === "forbidden") {
+    return (
+      <div className="min-h-screen bg-[#f0f6f8]">
+        <Navbar />
+        <AccessDeniedNotice />
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f0f6f8]">
       <Navbar />
