@@ -175,6 +175,26 @@ export type ContributorCasePayload = {
   news: ContributorNewsPayload;
 };
 
+export type ContributorCaseRead = {
+  id: string;
+  gender?: string;
+  age?: number;
+  city?: string;
+  status?: string;
+  severity?: string;
+  disease_name?: string;
+  location?: { city?: string; province?: string; latitude?: number; longitude?: number };
+  news?: ContributorNewsPayload | null;
+  state?: string;
+  review_note?: string;
+  reviewed_at?: string;
+  reviewed_by?: { id?: string; name?: string; email?: string; role?: string } | null;
+  created_by?: { id?: string; name?: string; email?: string; role?: string } | null;
+  created_at?: string;
+  updated_at?: string;
+  approved_case?: string | null;
+};
+
 export async function createContributorEvent(body: ContributorCasePayload) {
   const base = await resolveBase();
   try {
@@ -189,6 +209,18 @@ export async function listContributorEvents(pageUrl?: string) {
     console.debug(`[contributorEvents] LIST -> ${base}`);
   } catch (e) {}
   return request<any>(base);
+}
+
+export async function listPendingContributorEvents() {
+  const base = await resolveBase();
+  const url = `${base}/?state=pending`;
+  try {
+    console.debug(`[contributorEvents] LIST (pending) -> ${url}`);
+  } catch (e) {}
+  const data = await request<any>(url);
+  if (Array.isArray(data)) return data as ContributorCaseRead[];
+  if (data && Array.isArray((data as any).results)) return (data as any).results as ContributorCaseRead[];
+  return [];
 }
 
 export async function reviewContributorEvent(id: string, action: "approve" | "reject", note?: string) {
