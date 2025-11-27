@@ -52,11 +52,11 @@ test("help panel toggle opens and closes", async () => {
   await screen.findByText("Alice");
 
   fireEvent.click(screen.getByRole("button", { name: /Bantuan/i }));
-  expect(screen.getByText("Bantuan & Tips")).toBeInTheDocument();
+  expect(await screen.findByText(/Bantuan Pengelolaan Peran/i)).toBeInTheDocument();
 
   // close via close button
   fireEvent.click(screen.getByTitle("Tutup"));
-  await waitFor(() => expect(screen.queryByText("Bantuan & Tips")).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText(/Bantuan Pengelolaan Peran/i)).not.toBeInTheDocument());
 });
 
 test("confirm modal cancel closes modal without deleting", async () => {
@@ -129,7 +129,7 @@ test("save role failure shows error toast and alert", async () => {
 
   // open modal and save with change
   fireEvent.click(screen.getAllByText("Ubah")[1]);
-  await screen.findByText(/Edit Peran/i);
+  await screen.findAllByText(/Edit Peran Pengguna/i);
   fireEvent.change(screen.getByLabelText("Peran"), { target: { value: "EXP_USER" } });
   fireEvent.click(screen.getByText("Simpan"));
 
