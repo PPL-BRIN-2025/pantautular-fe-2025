@@ -7,11 +7,14 @@ import ExpertDataManagementPage, {
   filterRowsByQuery,
   getEmptyStateMessage,
   getToken,
+  getTokenHelper,
   getTokenForDelete,
+  getTokenForDeleteHelper,
   hydrateUserFromStorage,
   normalizeRole,
   normalizeDatasetResults,
   resolveAccessState,
+  filterRowsHelper,
 } from "../../app/expert-data-management/ExpertDataManagementPage";
 
 const mockPush = jest.fn();

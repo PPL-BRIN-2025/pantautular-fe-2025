@@ -54,6 +54,12 @@ test("help panel toggle opens and closes", async () => {
   fireEvent.click(screen.getByRole("button", { name: /Bantuan/i }));
   expect(await screen.findByText(/Bantuan Pengelolaan Peran/i)).toBeInTheDocument();
 
+  // ensure the new help icons are rendered
+  expect(screen.getByTestId('help-icon-save')).toBeInTheDocument();
+  expect(screen.getByTestId('help-icon-delete')).toBeInTheDocument();
+  expect(screen.getByTestId('help-icon-search')).toBeInTheDocument();
+  expect(screen.getByTestId('help-icon-secure')).toBeInTheDocument();
+
   // close via close button
   fireEvent.click(screen.getByTitle("Tutup"));
   await waitFor(() => expect(screen.queryByText(/Bantuan Pengelolaan Peran/i)).not.toBeInTheDocument());
