@@ -239,3 +239,19 @@ export async function getContributorEvent(id: string) {
   } catch (e) {}
   return request(`${base}/${id}/`);
 }
+
+export async function updateContributorEvent(id: string, body: ContributorCasePayload) {
+  const base = await resolveBase();
+  try {
+    console.debug(`[contributorEvents] UPDATE -> ${base}/${id}/`, body);
+  } catch (e) {}
+  return request(`${base}/${id}/`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export async function deleteContributorEvent(id: string) {
+  const base = await resolveBase();
+  try {
+    console.debug(`[contributorEvents] DELETE -> ${base}/${id}/`);
+  } catch (e) {}
+  return request(`${base}/${id}/`, { method: "DELETE" });
+}

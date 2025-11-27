@@ -3,6 +3,12 @@ import { render, screen, waitFor, fireEvent, within } from "@testing-library/rea
 import Page from "../../app/admin-role-management/page";
 
 describe("Admin role management - coverage targets", () => {
+  beforeEach(() => {
+    // prevent jsdom not-implemented alerts from bubbling
+    // @ts-ignore
+    (window as any).alert = jest.fn();
+  });
+
   afterEach(() => {
     // restore default fetch mock
     // @ts-ignore
@@ -42,7 +48,7 @@ describe("Admin role management - coverage targets", () => {
     render(<Page />);
 
     // the component should surface the error message
-    await waitFor(() => expect(screen.getByText(/Error:/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Error/i)).toBeInTheDocument());
     expect(screen.getByText(/internal failure/i)).toBeInTheDocument();
   });
 
@@ -66,13 +72,13 @@ describe("Admin role management - coverage targets", () => {
     fireEvent.click(ubah);
 
     // modal should appear
-    await screen.findByText(/Edit Peran/i);
+    await screen.findByText(/Edit Peran Pengguna/i);
 
     // click Batal to close
     const batal = screen.getByText("Batal");
     fireEvent.click(batal);
 
-    await waitFor(() => expect(screen.queryByText(/Edit Peran/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/Edit Peran Pengguna/i)).not.toBeInTheDocument());
   });
 
   test("opens confirm modal when clicking Hapus and cancels", async () => {
@@ -165,7 +171,7 @@ describe("Admin role management - coverage targets", () => {
 
     // open role modal
     fireEvent.click(screen.getByText("Ubah"));
-    await screen.findByText(/Edit Peran/i);
+    await screen.findByText(/Edit Peran Pengguna/i);
 
     // click Simpan
     fireEvent.click(screen.getByText("Simpan"));
@@ -192,7 +198,7 @@ describe("Admin role management - coverage targets", () => {
 
     // open role modal
     fireEvent.click(screen.getByText("Ubah"));
-    await screen.findByText(/Edit Peran/i);
+    await screen.findByText(/Edit Peran Pengguna/i);
 
     // click Simpan (this will fail)
     fireEvent.click(screen.getByText("Simpan"));
@@ -246,7 +252,7 @@ describe("Admin role management - coverage targets", () => {
 
     // Confirm modal and Role modal should appear
     await screen.findByText(/Hapus Pengguna ini\?/i);
-    await screen.findByText(/Edit Peran/i);
+    await screen.findByText(/Edit Peran Pengguna/i);
 
   // close confirm modal (last modal 'Batal')
   const batalButtons = screen.getAllByText("Batal", { selector: "button" });
@@ -255,7 +261,7 @@ describe("Admin role management - coverage targets", () => {
   await waitFor(() => expect(screen.queryByText(/Hapus Pengguna ini\?/i)).not.toBeInTheDocument());
   // close role modal: pick the next-to-last 'Batal' which belongs to role modal
   fireEvent.click(batalButtons[batalButtons.length - 2]);
-  await waitFor(() => expect(screen.queryByText(/Edit Peran/i)).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText(/Edit Peran Pengguna/i)).not.toBeInTheDocument());
   });
 
   test("toast close button removes toast and exercises class ternaries", async () => {
@@ -281,7 +287,7 @@ describe("Admin role management - coverage targets", () => {
 
     // find the info toast and its close button
     const info = await screen.findByTestId("toast-info");
-    const closeBtn = within(info.closest('[data-testid^="toast-"]') as HTMLElement).getByText('×', { selector: 'button' });
+    const closeBtn = within(info.closest('[data-testid^="toast-"]') as HTMLElement).getByRole('button');
     fireEvent.click(closeBtn);
 
     // after clicking close, the info toast should be removed

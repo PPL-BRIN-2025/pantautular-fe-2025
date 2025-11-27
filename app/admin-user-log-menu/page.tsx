@@ -132,8 +132,12 @@ export default function AdminUserLogMenuPage() {
   /** client-side filter */
   const filtered = useMemo(() => {
     const q = searchInputText.trim().toLowerCase();
-    const startTs = startDate ? startDate.getTime() : null;
-    const endTs = endDate ? endDate.getTime() : null;
+    const startTs = startDate
+      ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime()
+      : null;
+    const endTs = endDate
+      ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999).getTime()
+      : null;
 
     return allRows.filter((r) => {
       // search in username, email, action, detail
@@ -149,11 +153,19 @@ export default function AdminUserLogMenuPage() {
   }, [allRows, searchInputText, startDate, endDate]);
 
   // client pagination
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
   }, [filtered, page, pageSize]);
+
+  const uniqueUsers = useMemo(() => {
+    const s = new Set<string>();
+    allRows.forEach((r) => {
+      if (r.username) s.add(r.username);
+      else if (r.email) s.add(r.email);
+    });
+    return s.size;
+  }, [allRows]);
 
   useEffect(() => {
     // reset ke page 1 kalau filter berubah
@@ -186,56 +198,141 @@ export default function AdminUserLogMenuPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F7FB]">
+    <div className="min-h-screen bg-gradient-to-b from-[#f2f7ff] via-[#f7faff] to-white text-slate-900">
       {!isTest && <Navbar />}
 
-      <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-36">
+      <header className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+        <div className="mx-auto max-w-screen-xl">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#0d63d5] via-[#0c55b6] to-[#0a4496] p-6 sm:p-8 text-white shadow-xl shadow-blue-200/50">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/70">
+                  Audit Log
+                </p>
+                <h1 className="mt-2 text-2xl sm:text-3xl font-semibold">Admin User Log</h1>
+                <p className="mt-2 max-w-2xl text-sm text-white/80">
+                  Pantau aktivitas pengguna admin dengan tampilan yang rapi dan fokus pada informasi penting.
+                </p>
+              </div>
+              <div className="grid w-full sm:w-auto grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl bg-white/10 px-4 py-3 shadow-sm shadow-black/10 backdrop-blur">
+                  <p className="text-xs font-medium text-white/80">Total Log</p>
+                  <p className="text-lg font-semibold">{allRows.length}</p>
+                </div>
+                <div className="rounded-2xl bg-white/10 px-4 py-3 shadow-sm shadow-black/10 backdrop-blur">
+                  <p className="text-xs font-medium text-white/80">Terfilter</p>
+                  <p className="text-lg font-semibold">{filtered.length}</p>
+                </div>
+                <div className="rounded-2xl bg-white/10 px-4 py-3 shadow-sm shadow-black/10 backdrop-blur">
+                  <p className="text-xs font-medium text-white/80">User Unik</p>
+                  <p className="text-lg font-semibold">{uniqueUsers}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-36">
 
         {err && <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{err}</div>}
 
         {/* Filter */}
-        <div className="mb-4 sm:mb-6">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 rounded-xl bg-white p-2 sm:p-2.5 shadow-sm ring-1 ring-gray-200">
-            <input
-              type="text"
-              placeholder="Cari username/email/action/detail…"
-              value={searchInputText}
-              onChange={(e) => setSearchInputText(e.target.value)}
-              className="h-9 sm:h-10 flex-1 min-w-[220px] rounded-md bg-gray-100 px-3 sm:px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Dari</span>
-              <DatePicker
-                selected={startDate}
-                onChange={setStartDate}
-                placeholderText="dd/mm/yy"
-                dateFormat="dd/MM/yy"
-                className="h-9 sm:h-10 w-[120px] sm:w-[140px] rounded-md bg-gray-100 px-3 sm:px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="ml-1 sm:ml-2 text-sm text-gray-600">Sampai</span>
-              <DatePicker
-                selected={endDate}
-                onChange={setEndDate}
-                placeholderText="dd/mm/yy"
-                dateFormat="dd/MM/yy"
-                className="h-9 sm:h-10 w-[120px] sm:w-[140px] rounded-md bg-gray-100 px-3 sm:px-4 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
+        <section className="mb-5 sm:mb-8">
+          <div className="relative rounded-2xl border border-blue-100 bg-white shadow-lg shadow-blue-100/50">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0e7ae6] via-[#0c63c4] to-[#0b4fa6]" />
+            <div className="space-y-4 p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0b4fa6]">Filter</p>
+                  <p className="text-sm text-slate-600">Cari aktivitas dengan cepat berdasarkan kata kunci atau rentang tanggal.</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setSearchInputText("");
+                    setStartDate(null);
+                    setEndDate(null);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#0f7df3] to-[#0d6ad1] px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-300/40 transition hover:brightness-105"
+                >
+                  Reset Filter
+                </button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[1.15fr_1fr]">
+                <div className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 px-3 py-2.5 shadow-inner shadow-blue-100/60">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#0b4fa6] shadow-sm shadow-blue-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                      <path d="M11 11L16 16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      <circle cx="8.5" cy="8.5" r="4.5" stroke="currentColor" strokeWidth="1.6" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cari username / email / action / detail..."
+                    value={searchInputText}
+                    onChange={(e) => setSearchInputText(e.target.value)}
+                    className="h-11 flex-1 rounded-xl border border-blue-100 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-[#0f7df3] focus:ring-2 focus:ring-[#9cc9ff]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                  <div className="flex flex-1 items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 px-3 py-2.5 shadow-inner shadow-blue-100/60">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#0b4fa6] shadow-sm shadow-blue-100">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                        <rect x="4" y="5" width="16" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+                        <path d="M9 3V7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        <path d="M15 3V7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        <path d="M4 10H20" stroke="currentColor" strokeWidth="1.6" />
+                      </svg>
+                    </div>
+                    <div className="flex flex-1 flex-wrap items-center gap-2">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-[#0b4fa6]">Dari</div>
+                      <DatePicker
+                        selected={startDate}
+                        onChange={(date) => setStartDate(date)}
+                        popperClassName="z-40"
+                        selectsStart
+                        startDate={startDate}
+                        endDate={endDate}
+                        placeholderText="dd/mm/yy"
+                        dateFormat="dd/MM/yy"
+                        className="h-11 w-[130px] rounded-xl border border-blue-100 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-[#0f7df3] focus:ring-2 focus:ring-[#9cc9ff]"
+                      />
+                      <span className="text-sm font-semibold text-[#0b4fa6]">-</span>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-[#0b4fa6]">Sampai</div>
+                      <DatePicker
+                        selected={endDate}
+                        onChange={(date) => setEndDate(date)}
+                        popperClassName="z-40"
+                        selectsEnd
+                        startDate={startDate}
+                        endDate={endDate}
+                        minDate={startDate || undefined}
+                        placeholderText="dd/mm/yy"
+                        dateFormat="dd/MM/yy"
+                        className="h-11 w-[130px] rounded-xl border border-blue-100 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-[#0f7df3] focus:ring-2 focus:ring-[#9cc9ff]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Table */}
-        <div className="rounded-2xl border shadow-sm bg-white">
+        <div className="overflow-hidden rounded-3xl border border-blue-100 bg-white/90 shadow-2xl shadow-blue-100/40 backdrop-blur">
           <div className="overflow-x-auto">
-            <div className="min-w-[980px] max-h-[70vh] overflow-y-auto rounded-2xl">
+            <div className="min-w-[980px] max-h-[70vh] overflow-y-auto">
               {/* Sticky Header */}
-              <div className="sticky top-0 z-20 bg-blue-500 text-white rounded-t-2xl">
-                <div className="grid grid-cols-[1fr_1.6fr_1.2fr_1fr_2fr] border-b border-white/30">
+              <div className="sticky top-0 z-20 bg-gradient-to-r from-[#0f63d2] to-[#0b4ea5] text-white shadow-md">
+                <div className="grid grid-cols-[1fr_1.6fr_1.2fr_1fr_2fr] border-b border-white/20">
                   {["Username","Email","Timestamp","Action","Detail"].map((label, idx) => (
                     <div
                       key={label}
-                      className={`px-4 py-3 text-sm sm:text-base font-semibold ${
-                        idx !== 0 ? "border-l border-white/50" : ""
+                      className={`px-4 py-3 text-xs sm:text-sm font-semibold uppercase tracking-wide ${
+                        idx !== 0 ? "border-l border-white/30" : ""
                       }`}
                     >
                       {label}
@@ -245,44 +342,48 @@ export default function AdminUserLogMenuPage() {
               </div>
 
               {pageRows.length > 0 ? (
-                <ul className="divide-y divide-gray-200">
+                <ul className="divide-y divide-blue-50">
                   {pageRows.map((r) => (
-                    <li key={r.id} className="hover:bg-gray-50">
+                    <li key={r.id} className="transition hover:bg-blue-50/60">
                       <div className="grid grid-cols-[1fr_1.6fr_1.2fr_1fr_2fr] items-center text-sm sm:text-base">
-                        <div className="px-4 py-3">{r.username || "-"}</div>
-                        <div className="px-4 py-3 truncate">{r.email || "-"}</div>
-                        <div className="px-4 py-3 tabular-nums">{fmtDate(r.timestamp)}</div>
-                        <div className="px-4 py-3">{r.action || "-"}</div>
-                        <div className="px-4 py-3 truncate" title={r.detail || ""}>{r.detail || "-"}</div>
+                        <div className="px-4 py-3 font-semibold text-slate-800">{r.username || "-"}</div>
+                        <div className="px-4 py-3 truncate text-slate-600">{r.email || "-"}</div>
+                        <div className="px-4 py-3 tabular-nums text-slate-600">{fmtDate(r.timestamp)}</div>
+                        <div className="px-4 py-3">
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-[#0b4fa6] shadow-inner shadow-blue-100/70">
+                            {r.action || "-"}
+                          </span>
+                        </div>
+                        <div className="px-4 py-3 truncate text-slate-600" title={r.detail || ""}>{r.detail || "-"}</div>
                       </div>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="px-4 py-10 text-center text-gray-500">
-                  {loading ? "Loading…" : "Tidak ada data"}
+                <div className="px-4 py-10 text-center text-slate-500">
+                  {loading ? "Loading..." : "Tidak ada data"}
                 </div>
               )}
 
               {/* Pagination */}
-              <div className="flex items-center justify-between bg-white p-3 sm:p-4">
-                <p className="text-xs text-gray-600">
-                  Menampilkan <span className="font-medium">{pageRows.length}</span> dari{" "}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white/95 px-3 sm:px-4 py-4">
+                <p className="text-xs text-slate-600">
+                  Menampilkan <span className="font-semibold text-[#0b4fa6]">{pageRows.length}</span> dari{" "}
                   <span className="font-medium">{filtered.length}</span> (total: {allRows.length})
                 </p>
                 <div className="flex items-center gap-2">
                   <button
-                    className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+                    className="rounded-lg border border-blue-100 px-3 py-1.5 text-sm text-[#0b4fa6] transition hover:bg-blue-50 disabled:opacity-50 disabled:hover:bg-white"
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >
                     Prev
                   </button>
-                  <div className="rounded-lg bg-gray-50 px-3 py-1.5 text-sm">
+                  <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-[#0b4fa6]">
                     {page} / {Math.max(1, Math.ceil(filtered.length / pageSize))}
                   </div>
                   <button
-                    className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+                    className="rounded-lg border border-blue-100 px-3 py-1.5 text-sm text-[#0b4fa6] transition hover:bg-blue-50 disabled:opacity-50 disabled:hover:bg-white"
                     disabled={page >= Math.ceil(filtered.length / pageSize)}
                     onClick={() => setPage((p) => Math.min(Math.ceil(filtered.length / pageSize), p + 1))}
                   >

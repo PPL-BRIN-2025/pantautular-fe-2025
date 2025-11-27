@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
@@ -164,7 +164,7 @@ export default function Page() {
     })();
   }, []);
 
-  // filter (keep covered—simple and deterministic)
+  // filter (keep covered?simple and deterministic)
   /* istanbul ignore next -- simple client-side filter; not valuable for coverage */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -222,7 +222,7 @@ export default function Page() {
           detail = (j as any)?.detail || detail;
         } catch {}
         setUsers(prev);
-        pushToast({ id: `del-forbid-${id}-${Date.now()}`, type: "error", title: detail, emoji: "❌" });
+        pushToast({ id: `del-forbid-${id}-${Date.now()}`, type: "error", title: detail, emoji: "?" });
         /* keep legacy alert for tests/compat */
         try {
           if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(detail);
@@ -239,10 +239,10 @@ export default function Page() {
         throw new Error(`DELETE gagal: ${res.status}${detail ? " | " + detail : ""}`);
       }
 
-      pushToast({ id: `del-ok-${id}-${Date.now()}`, type: "success", title: "Pengguna berhasil dihapus", emoji: "✅" });
+      pushToast({ id: `del-ok-${id}-${Date.now()}`, type: "success", title: "Pengguna berhasil dihapus", emoji: "?" });
     } catch (e) {
       setUsers(prev);
-      pushToast({ id: `del-err-${id}-${Date.now()}`, type: "error", title: "Gagal menghapus pengguna", emoji: "❌" });
+      pushToast({ id: `del-err-${id}-${Date.now()}`, type: "error", title: "Gagal menghapus pengguna", emoji: "?" });
       try {
         /* istanbul ignore next -- legacy alert kept only for test/compat */
         if (typeof window !== "undefined" && typeof window.alert === "function") window.alert("Gagal menghapus pengguna");
@@ -278,7 +278,7 @@ export default function Page() {
           detail = (j as any)?.detail || detail;
         } catch {}
         setUsers(prev);
-        pushToast({ id: `save-forbid-${user.id}-${Date.now()}`, type: "error", title: detail, emoji: "❌" });
+        pushToast({ id: `save-forbid-${user.id}-${Date.now()}`, type: "error", title: detail, emoji: "?" });
         try {
           if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(detail);
         } catch {}
@@ -296,10 +296,10 @@ export default function Page() {
       }
 
       // show success toast
-      pushToast({ id: `save-success-${user.id}-${Date.now()}`, type: "success", title: "Peran berhasil disimpan", emoji: "✅" });
+      pushToast({ id: `save-success-${user.id}-${Date.now()}`, type: "success", title: "Peran berhasil disimpan", emoji: "?" });
     } catch {
       setUsers(prev);
-      pushToast({ id: `save-fail-${user.id}-${Date.now()}`, type: "error", title: "Gagal menyimpan perubahan peran", emoji: "❌" });
+      pushToast({ id: `save-fail-${user.id}-${Date.now()}`, type: "error", title: "Gagal menyimpan perubahan peran", emoji: "?" });
       try {
         /* istanbul ignore next -- legacy alert kept only for test/compat */
         if (typeof window !== "undefined" && typeof window.alert === "function") window.alert("Gagal menyimpan perubahan peran");
@@ -334,77 +334,123 @@ export default function Page() {
   const renderHelp = () => {
     if (!showHelp) return null;
     return (
-      <>
-        {/* overlay */}
-        <button
-          aria-label="Tutup bantuan"
-          className="fixed inset-0 z-40 cursor-default bg-transparent"
-          onClick={closeHelp}
-        />
+      <div className="fixed inset-0 z-50 flex items-start justify-center px-4 py-12 sm:py-16">
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={closeHelp} aria-hidden />
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="help-title"
-          className="fixed right-4 top-20 z-50 w-[22rem] max-w-[90vw] rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl"
+          className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-2xl"
         >
-          <div className="flex items-center justify-between">
-            <h2 id="help-title" className="text-sm font-semibold text-gray-800">
-              Bantuan & Tips
-            </h2>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0d63d5] via-[#0c55b6] to-[#0a4496]" />
+          <div className="flex items-center justify-between border-b border-blue-50 px-6 py-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0b4fa6]">Panduan</p>
+              <h2 id="help-title" className="text-lg font-semibold text-gray-800">
+                Bantuan Pengelolaan Peran
+              </h2>
+            </div>
             {/* istanbul ignore next -- close button mirrors overlay behavior */}
             <button
               onClick={closeHelp}
-              className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
+              className="rounded-full p-1.5 text-gray-400 transition hover:bg-[#f0f4ff]"
               aria-label="Tutup"
               title="Tutup"
             >
-              ×
+              X
             </button>
           </div>
 
-          <div className="mt-3 space-y-3 text-sm text-gray-700">
-            <div>
-              <div className="font-medium text-gray-900">Mengubah Peran</div>
-              <p>
-                Klik <span className="rounded bg-gray-100 px-1 py-0.5">Ubah</span>, pilih peran baru, lalu{" "}
-                <span className="rounded bg-gray-100 px-1 py-0.5">Simpan</span>. Perubahan berlaku saat login berikutnya.
-              </p>
+          <div className="grid gap-4 px-6 py-5 text-sm text-gray-700">
+            <div className="flex gap-3 rounded-2xl border border-blue-50 bg-[#f5f9ff] p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0b74e6]/10 text-[#0b74e6]" data-testid="help-icon-save" aria-hidden>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#0b74e6]">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <path d="M17 21v-8H7v8" />
+                  <path d="M7 3v5h8" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900">Mengubah Peran</div>
+                <p className="mt-1 leading-relaxed">
+                  Klik <span className="rounded bg-white px-1 py-0.5 shadow-inner">Ubah</span>, pilih peran baru, lalu
+                  tekan <span className="rounded bg-white px-1 py-0.5 shadow-inner">Simpan</span>. Perubahan aktif saat login berikutnya.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <div className="font-medium text-gray-900">Menghapus Pengguna</div>
-              <p>
-                Gunakan <span className="rounded bg-gray-100 px-1 py-0.5">Hapus</span>. Anda akan diminta konfirmasi untuk
-                mencegah aksi tidak sengaja.
-              </p>
+            <div className="flex gap-3 rounded-2xl border border-blue-50 bg-[#fff7f7] p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ef4444]/10 text-[#dc2626]" data-testid="help-icon-delete" aria-hidden>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-[#dc2626]">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900">Menghapus Pengguna</div>
+                <p className="mt-1 leading-relaxed">
+                  Tekan <span className="rounded bg-white px-1 py-0.5 shadow-inner">Hapus</span> lalu konfirmasi di modal. Aksi ini permanen.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <div className="font-medium text-gray-900">Pencarian Cepat</div>
-              <p>Ketik nama, email, peran, atau ID di kotak pencarian untuk memfilter daftar secara instan.</p>
+            <div className="flex gap-3 rounded-2xl border border-blue-50 bg-[#f5f9ff] p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0b74e6]/10 text-[#0b74e6]" data-testid="help-icon-search" aria-hidden>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-[#0b74e6]">
+                  <circle cx="11" cy="11" r="6" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900">Pencarian Cepat</div>
+                <p className="mt-1 leading-relaxed">
+                  Ketik nama, email, atau peran di kotak pencarian untuk memfilter daftar secara instan.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <div className="font-medium text-gray-900">Pencegahan Error</div>
-              <ul className="ml-4 list-disc space-y-1">
-                <li>Konfirmasi sebelum hapus untuk mencegah klik tidak sengaja.</li>
-                <li>Hanya peran yang valid tersedia pada pilihan (select).</li>
-                <li>Pastikan token/izin valid untuk menghindari kegagalan saat menyimpan.</li>
-              </ul>
+            <div className="flex gap-3 rounded-2xl border border-blue-50 bg-white p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0b74e6]/10 text-[#0b74e6]" data-testid="help-icon-secure" aria-hidden>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-[#0b74e6]">
+                  <path d="M12 17s4-2 4-5V9a4 4 0 0 0-8 0v3c0 3 4 5 4 5z" />
+                  <path d="M5 12v1a7 7 0 0 0 14 0v-1" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900">Tips Keamanan</div>
+                <ul className="mt-1 ml-4 list-disc space-y-1">
+                  <li>Gunakan konfirmasi hapus untuk mencegah klik tidak sengaja.</li>
+                  <li>Pilih hanya peran yang tersedia pada dropdown.</li>
+                  <li>Pastikan token/izin masih berlaku sebelum menyimpan.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
-      </>
+      </div>
     );
   };
 
+
+
   return (
-    <div className="min-h-screen bg-[#F3F7FB]" onKeyDown={onKeyDown}>
+    <div
+      className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#e8f2ff] via-white to-[#eaf3ff]"
+      onKeyDown={onKeyDown}
+    >
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div className="absolute -left-10 -top-16 h-72 w-72 rounded-full bg-[#0b74e6]/10 blur-3xl" />
+        <div className="absolute right-6 top-20 h-80 w-80 rounded-full bg-[#0069cf]/10 blur-3xl" />
+      </div>
       {NAVBAR}
 
       {blocked403Detail ? (
         <main className="mx-auto max-w-3xl px-4 py-10">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+          <div className="relative overflow-hidden rounded-3xl border border-amber-200 bg-white/90 p-8 shadow-xl backdrop-blur">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 to-red-400" />
             <div className="text-sm font-semibold text-amber-700">Informasi Akses</div>
             <div className="mt-2 text-2xl font-semibold text-amber-900">Akses Ditolak</div>
             <p className="mt-2 text-sm text-amber-800">
@@ -415,16 +461,16 @@ export default function Page() {
                 {blocked403Detail}
               </p>
             )}
-            <div className="mt-4 flex gap-2">
+            <div className="mt-5 flex flex-wrap gap-2">
               <Link
                 href="/"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50"
               >
                 Kembali
               </Link>
               <Link
                 href={`/login?next=${encodeURIComponent(getNextPath())}`}
-                className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#055bb1]"
               >
                 Masuk
               </Link>
@@ -433,41 +479,65 @@ export default function Page() {
         </main>
       ) : (
         <main
-          className="relative mx-auto max-w-6xl px-4 py-8 pb-40"
+          className="relative mx-auto max-w-6xl px-4 py-10 pb-40"
           /* istanbul ignore next -- style depends on measured footer height */
           style={footerPadPx ? { paddingBottom: `${footerPadPx}px` } : undefined}
         >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-semibold text-gray-800">Daftar Pengguna</h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Kelola peran: perbarui/hapus. Perubahan berlaku pada login berikutnya.
-              </p>
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#0d63d5] via-[#0c55b6] to-[#0a4496] p-6 sm:p-8 text-white shadow-xl shadow-blue-200/50">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Akses Peran</p>
+                <h1 className="text-2xl sm:text-3xl font-semibold">Manajemen Peran Pengguna</h1>
+                <p className="mt-2 max-w-2xl text-sm text-white/80">
+                  Kelola hak akses dengan tampilan bersih dan kontras biru-putih yang konsisten dengan halaman log.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Bantuan dan Tips"
+                onClick={toggleHelp}
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-black/20 backdrop-blur transition hover:bg-white/15 hover:-translate-y-0.5"
+                title="Bantuan"
+              >
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 font-bold">
+                  ?
+                </span>
+                Bantuan
+              </button>
             </div>
-
-            <button
-              type="button"
-              aria-label="Bantuan dan Tips"
-              onClick={toggleHelp}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-              title="Bantuan"
-            >
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#0069CF]/10 font-bold text-[#0069CF]">
-                ?
-              </span>
-              Bantuan
-            </button>
           </div>
 
-          <div className="relative mt-4">
-            {/* istanbul ignore next -- presentational input element; behavior tested via state change */}
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari Nama / Email / Peran"
-              aria-label="Cari Nama / Email / Peran"
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 pr-12 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
-            />
+          <div className="relative rounded-2xl border border-blue-100 bg-white/90 p-4 shadow-lg backdrop-blur">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full md:max-w-md">
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#0b74e6]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="16.65" y1="16.65" x2="21" y2="21" />
+                </svg>
+                {/* istanbul ignore next -- presentational input element; behavior tested via state change */}
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Cari Nama / Email / Peran"
+                  aria-label="Cari Nama / Email / Peran"
+                  className="w-full rounded-xl border border-blue-100 bg-white px-10 py-3 text-sm text-gray-800 shadow-inner focus:border-[#0b74e6] focus:outline-none focus:ring-2 focus:ring-[#0b74e6]/30"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                <span className="rounded-full border border-blue-100 bg-[#f5f9ff] px-3 py-1">Cari nama/email/peran</span>
+                <span className="rounded-full border border-blue-100 bg-[#f5f9ff] px-3 py-1">Klik Ubah untuk edit peran</span>
+                <span className="rounded-full border border-blue-100 bg-[#f5f9ff] px-3 py-1 text-[#ef4444]">Hapus berwarna merah</span>
+              </div>
+            </div>
           </div>
 
           {/* test-only helper: push an info toast when running under test env */}
@@ -475,7 +545,7 @@ export default function Page() {
             <div style={{ display: "none" }}>
               <button
                 data-testid="test-push-info"
-                onClick={() => pushToast({ id: `info-${Date.now()}`, type: "info", title: "Informasi", emoji: "ℹ️" })}
+                onClick={() => pushToast({ id: `info-${Date.now()}`, type: "info", title: "Informasi", emoji: "!" })}
               >
                 test-info
               </button>
@@ -502,65 +572,81 @@ export default function Page() {
             </div>
           )}
 
-          <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            {loading ? (
-              <div className="p-6 text-sm text-gray-500">Memuat pengguna…</div>
+            <div className="overflow-hidden rounded-3xl border border-blue-100 bg-white/90 shadow-2xl backdrop-blur">
+              <div className="flex items-center justify-between border-b border-blue-50 px-6 py-4">
+                <p className="text-sm font-semibold text-[#0b74e6]">Daftar Pengguna</p>
+              </div>
+              {loading ? (
+              <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-sm text-gray-500">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#0b74e6]/30 border-t-[#0b74e6]" />
+                <span>Memuat pengguna...</span>
+              </div>
             ) : err ? (
-              <div className="p-6 text-sm text-red-600">Error: {err}</div>
+              <div className="px-6 py-6 text-sm text-red-600">
+                <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 shadow-sm">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-red-500">Error</div>
+                  <div className="mt-1 text-sm text-red-700">{err}</div>
+                </div>
+              </div>
             ) : (
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-gradient-to-r from-[#0B74E6] to-[#0069CF] text-white">
-                    <th className="px-4 py-3 text-left font-medium uppercase tracking-wide text-xs">Nama</th>
-                    <th className="px-4 py-3 text-left font-medium uppercase tracking-wide text-xs">Email</th>
-                    <th className="px-4 py-3 text-left font-medium uppercase tracking-wide text-xs">Peran</th>
-                    <th className="px-4 py-3 text-left font-medium uppercase tracking-wide text-xs">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((u, idx) => (
-                    <tr
-                      key={u.id}
-                      className={`${idx % 2 ? "bg-gray-50/50" : "bg-white"} hover:bg-blue-50 transition-colors`}
-                    >
-                      <td className="px-4 py-3 text-gray-800">{u.name}</td>
-                      <td className="px-4 py-3 text-gray-700">{u.email}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold bg-gradient-to-r from-blue-50 to-blue-100 text-[#0559A7] shadow-sm">
-                          <span className="uppercase tracking-wide">{u.role}</span>
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {u.role !== "ADMIN" && (
-                            <>
-                              <button
-                                onClick={() => setEditing(u)}
-                                className="rounded-lg bg-[#0069CF] px-3 py-1.5 text-xs font-medium text-white hover:opacity-95 shadow-sm transition transform hover:-translate-y-0.5"
-                              >
-                                Ubah
-                              </button>
-                              <button
-                                onClick={() => onDelete(u.id)}
-                                className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-95 shadow-sm transition transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-red-300"
-                              >
-                                Hapus
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-[#0b74e6] via-[#2d9dff] to-[#0069cf] text-left text-white">
+                      <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide">Nama</th>
+                      <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide">Email</th>
+                      <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide">Peran</th>
+                      <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wide">Aksi</th>
                     </tr>
-                  ))}
-                  {filtered.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
-                        Tidak ada data yang cocok dengan pencarian Anda.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-blue-50">
+                    {filtered.map((u, idx) => (
+                      <tr key={u.id} className={`group transition hover:bg-[#f2f7ff] ${idx % 2 ? "bg-white" : "bg-white/95"}`}>
+                        <td className="px-6 py-4 text-gray-800">
+                          <div className="font-semibold">{u.name}</div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          <div className="font-medium text-gray-700">{u.email}</div>
+                          {u.last_login && <p className="text-xs text-gray-500">Login terakhir: {u.last_login}</p>}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-2 rounded-full bg-[#0b74e6]/10 px-3 py-1 text-[11px] font-semibold uppercase text-[#0b74e6] shadow-sm ring-1 ring-[#0b74e6]/15">
+                            <span className="h-2 w-2 rounded-full bg-[#0b74e6]" />
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {u.role !== "ADMIN" && (
+                              <>
+                                <button
+                                  onClick={() => setEditing(u)}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-[#0b74e6] px-3 py-2 text-xs font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#0a63c2] focus:outline-none focus:ring-2 focus:ring-[#0b74e6]/40"
+                                >
+                                  Ubah
+                                </button>
+                                <button
+                                  onClick={() => onDelete(u.id)}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-[#ef4444] px-3 py-2 text-xs font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#dc2626] focus:outline-none focus:ring-2 focus:ring-red-300"
+                                >
+                                  Hapus
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filtered.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-500">
+                          Tidak ada data yang cocok dengan pencarian Anda.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
@@ -580,74 +666,53 @@ export default function Page() {
       {showConfirm && deleteTarget !== null && (
         <ConfirmModal
           title={"Hapus Pengguna ini?"}
-          emoji={"⁉️🤔"}
+          emoji={"!!"}
           onCancel={handleConfirmCancel}
           onConfirm={() => performDelete(deleteTarget)}
         />
       )}
 
-  {/* istanbul ignore next -- presentational toast container not worth line-level testing */}
-  {/* istanbul ignore next */}
-  {/* Toasts (center-screen modal-like, above navbar) */}
-  <div aria-live="polite" data-testid="toast-container" className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none">
+      {/* istanbul ignore next -- presentational toast container not worth line-level testing */}
+      {/* Toasts (smooth slide/fade) */}
+      <div aria-live="polite" data-testid="toast-container" className="fixed inset-0 z-[9999] flex items-start justify-center pt-6 pointer-events-none">
         <div className="flex flex-col gap-3 items-center w-full px-4">
-          {/* istanbul ignore next */}
           {toasts.map((t) => (
             <div
               key={t.id}
               data-testid={`toast-${t.type}`}
               role="status"
-              className={/* istanbul ignore next */ `pointer-events-auto w-[28rem] max-w-[95vw] rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-4 transform transition-all ${
-                /* istanbul ignore next */
+              className={`pointer-events-auto w-[28rem] max-w-[95vw] rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-3 backdrop-blur-md border transition-all duration-300 ease-out animate-toast-in ${
                 t.type === "success"
-                  ? "bg-green-600 text-white scale-95 border-green-700 shadow-[0_10px_30px_rgba(34,197,94,0.15)] toast-success"
-                  /* istanbul ignore next */
+                  ? "bg-[#16a34a] text-white border-[#0f8a3b]"
                   : t.type === "error"
-                  ? "bg-red-600 text-white scale-95 border-red-700 shadow-[0_10px_30px_rgba(239,68,68,0.12)]"
-                  : "bg-white"
+                  ? "bg-[#dc2626] text-white border-[#b91c1c]"
+                  : "bg-white text-gray-800 border-blue-50"
               }`}
             >
-              {/* istanbul ignore next */}
-              <div data-testid={`toast-emoji-${t.type}`} className={/* istanbul ignore next */ `text-3xl shrink-0 ${t.type === "success" ? "emoji-success" : t.type === "error" ? "emoji-error" : ""}`}>
-                { /* istanbul ignore next */ (t.emoji ?? "") }
+              <div
+                data-testid={`toast-emoji-${t.type}`}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-xl"
+              >
+                {t.type === "success" ? "?" : t.type === "error" ? "!" : (t.emoji || "i")}
               </div>
-              <div data-testid="toast-title" className="flex-1 text-sm font-medium">{t.title}</div>
-              {/* istanbul ignore next -- presentational close button styling */}
-              <button onClick={() => removeToast(t.id)} className={/* istanbul ignore next */ `text-sm ${t.type === "success" || t.type === "error" ? "text-white/90" : "text-gray-500"}`}>
-                ×
+              <div data-testid="toast-title" className="flex-1 text-sm font-semibold">{t.title}</div>
+              <button
+                onClick={() => removeToast(t.id)}
+                className={`text-sm transition hover:scale-110 ${t.type === "success" || t.type === "error" ? "text-white/90" : "text-gray-500"}`}
+              >
+                �
               </button>
             </div>
           ))}
         </div>
       </div>
-      {/* custom CSS for toast animation */}
       <style>{`
-        @keyframes toast-jump-rotate {
-          0% { transform: translateY(0) rotate(0deg); }
-          30% { transform: translateY(-8px) rotate(-8deg); }
-          60% { transform: translateY(0) rotate(6deg); }
-          100% { transform: translateY(0) rotate(0deg); }
+        @keyframes toast-in {
+          0% { opacity: 0; transform: translateY(-12px) scale(0.98); }
+          60% { opacity: 1; transform: translateY(4px) scale(1.01); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .toast-success { animation: toast-jump-rotate 700ms ease; }
-
-        /* Emoji-specific animations */
-        @keyframes emoji-pop-rotate {
-          0% { transform: translateY(0) scale(1) rotate(0deg); }
-          25% { transform: translateY(-12px) scale(1.15) rotate(-12deg); }
-          60% { transform: translateY(4px) scale(0.98) rotate(8deg); }
-          100% { transform: translateY(0) scale(1) rotate(0deg); }
-        }
-        .emoji-success { display:inline-block; animation: emoji-pop-rotate 900ms cubic-bezier(.2,.9,.3,1); }
-
-        @keyframes emoji-shake {
-          0% { transform: translateX(0) rotate(0deg); }
-          20% { transform: translateX(-4px) rotate(-6deg); }
-          40% { transform: translateX(4px) rotate(6deg); }
-          60% { transform: translateX(-3px) rotate(-4deg); }
-          80% { transform: translateX(2px) rotate(2deg); }
-          100% { transform: translateX(0) rotate(0deg); }
-        }
-        .emoji-error { display:inline-block; animation: emoji-shake 700ms ease; }
+        .animate-toast-in { animation: toast-in 320ms cubic-bezier(.2,.9,.3,1) both; }
       `}</style>
     </div>
   );
@@ -666,10 +731,11 @@ function ConfirmModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onCancel} aria-hidden />
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} aria-hidden />
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-blue-100 bg-white/95 p-6 shadow-2xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0b74e6] via-[#2d9dff] to-[#0069cf]" />
         <div className="flex items-start gap-4">
-          <div className="text-3xl">{emoji}</div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#ef4444]/10 text-3xl">{emoji}</div>
           <div>
             <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
             <p className="mt-2 text-sm text-gray-600">Tindakan ini akan menghapus pengguna secara permanen.</p>
@@ -677,10 +743,16 @@ function ConfirmModal({
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button onClick={onCancel} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700">
+          <button
+            onClick={onCancel}
+            className="rounded-lg border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-[#0b74e6] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#f5f9ff]"
+          >
             Batal
           </button>
-          <button onClick={onConfirm} className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white">
+          <button
+            onClick={onConfirm}
+            className="rounded-lg bg-[#ef4444] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#dc2626] focus:outline-none focus:ring-2 focus:ring-red-300"
+          >
             Hapus
           </button>
         </div>
@@ -695,38 +767,42 @@ function RoleModal({ user, onClose, onSave }: { user: User; onClose: () => void;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
-      <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-800">Edit Peran</h2>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-blue-100 bg-white/95 shadow-2xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0b74e6] via-[#2d9dff] to-[#0069cf]" />
+        <div className="flex items-center justify-between border-b border-blue-50 px-6 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#0b74e6]">Ubah Peran</p>
+            <h2 className="text-lg font-semibold text-gray-800">Edit Peran Pengguna</h2>
+          </div>
           <button
             onClick={onClose}
-            className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
+            className="rounded-full p-1.5 text-gray-400 transition hover:bg-[#f0f4ff]"
             aria-label="Close"
             title="Close"
           >
-            ×
+            X
           </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 px-6 py-5 md:grid-cols-2">
           <FormGroup label="Nama">
             <input
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm"
+              className="w-full rounded-lg border border-blue-100 bg-[#f5f9ff] px-3 py-2 text-sm text-gray-800 shadow-inner"
               value={user.name}
               readOnly
             />
           </FormGroup>
           <FormGroup label="Email">
             <input
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm shadow-sm"
+              className="w-full rounded-lg border border-blue-100 bg-[#f5f9ff] px-3 py-2 text-sm text-gray-800 shadow-inner"
               value={user.email}
               readOnly
             />
           </FormGroup>
           <FormGroup label="Peran">
             <select
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0069CF]/30"
+              className="w-full rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#0b74e6] focus:outline-none focus:ring-2 focus:ring-[#0b74e6]/30"
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
             >
@@ -739,16 +815,16 @@ function RoleModal({ user, onClose, onSave }: { user: User; onClose: () => void;
           </FormGroup>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-blue-50 bg-[#f8fbff] px-6 py-4">
           <button
             onClick={onClose}
-            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-[#0b74e6] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#f5f9ff]"
           >
             Batal
           </button>
           <button
             onClick={() => onSave(user, role)}
-            className="rounded-lg bg-[#0069CF] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            className="rounded-lg bg-[#0b74e6] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#0a63c2]"
           >
             Simpan
           </button>
@@ -767,3 +843,9 @@ function FormGroup({ label, children }: { label: string; children: React.ReactNo
     </label>
   );
 }
+
+
+
+
+
+
