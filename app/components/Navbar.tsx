@@ -119,7 +119,7 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
   ],
 
   CONTRIBUTOR: [
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tambah data", href: "/contributor-event-reporting" },
     { label: "Bantuan", href: "/help" },
   ],
 };

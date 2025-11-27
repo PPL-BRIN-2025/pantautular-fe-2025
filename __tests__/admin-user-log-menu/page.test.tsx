@@ -18,12 +18,14 @@ jest.mock("react-datepicker", () => {
 });
 
 const mockLogs = Array.from({ length: 25 }, (_, index) => {
-  const minutes = index * 5;
+  // spread logs across sequential days (5 per day) so date filtering is meaningful
+  const day = 1 + Math.floor(index / 5);
+  const minutes = (index % 5) * 5;
   return {
     id: index + 1,
     username: `user${index + 1}`,
     email: `user${index + 1}@example.com`,
-    timestamp: new Date(2025, 0, 1, 12, minutes).toISOString(),
+    timestamp: new Date(2025, 0, day, 12, minutes).toISOString(),
     action: index % 2 === 0 ? "LOGIN" : "LOGOUT",
     detail: `Detail aktivitas ${index + 1}`,
     note: index % 3 === 0 ? `Catatan ${index + 1}` : null,
@@ -47,7 +49,7 @@ afterEach(() => {
 
 async function renderPage() {
   const ui = render(<Page />);
-  await waitFor(() => expect(screen.queryByText(/Loading…/i)).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText(/Loading\.\.\./i)).not.toBeInTheDocument());
   return ui;
 }
 
