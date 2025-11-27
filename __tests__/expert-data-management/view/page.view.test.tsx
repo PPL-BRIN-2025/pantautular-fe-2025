@@ -4,12 +4,12 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import React from "react";
 import ExpertViewPage from "../../../app/expert-data-management/view/page";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
+const mockUseAuth = jest.fn();
 
 jest.mock("next/navigation", () => ({
   useRouter: jest.fn(),
@@ -25,21 +25,11 @@ jest.mock("../../../app/components/Footer", () => ({
   __esModule: true,
   default: () => <div data-testid="footer">Footer</div>,
 }));
-jest.mock("../../../app/auth/hooks/useAuth", () => ({
-  useAuth: () => ({ user: { role: "EXP_USER" } }),
-}));
-const mockUseAuth = jest.fn();
 
 jest.mock("../../../app/auth/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock("../../../app/components/Navbar", () => () => (
-  <div data-testid="navbar">Navbar</div>
-));
-jest.mock("../../../app/components/Footer", () => () => (
-  <div data-testid="footer">Footer</div>
-));
 jest.mock("../../../app/components/AccessDenied2", () => () => (
   <div data-testid="access-denied">Access denied</div>
 ));
