@@ -296,7 +296,7 @@ export default function ContributionManagementPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-700">
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex gap-2 flex-nowrap">
                             <button
                               onClick={() => setViewItem(item)}
                               className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs"
