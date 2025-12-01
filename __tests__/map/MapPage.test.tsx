@@ -5,6 +5,8 @@ import { useLocations } from "../../hooks/useLocations";
 import { useMapError } from "../../hooks/useMapError";
 import React from "react";
 
+let lastSpatialOnClose: (() => void) | null = null;
+
 // Mock the hooks
 jest.mock("../../hooks/useLocations");
 jest.mock("../../hooks/useMapError");
@@ -50,7 +52,24 @@ jest.mock("../../app/components/MapLoadErrorPopup", () => ({
 
 jest.mock("../../app/components/spatial/SpatialComparisonPanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="spatial-comparison-panel">Spatial comparison mock</div>,
+  default: ({ onClose }: { onClose?: () => void }) => {
+    lastSpatialOnClose = onClose || null;
+    return <div data-testid="spatial-comparison-panel">Spatial comparison mock</div>;
+  },
+}));
+
+jest.mock("../../app/components/floating_buttons/FilterButton", () => ({
+  __esModule: true,
+  default: ({ onClick, isActive }: { onClick: () => void; isActive: boolean }) => (
+    <button type="button" data-testid="filter-toggle" data-active={isActive} onClick={onClick}>
+      Filter {isActive ? "On" : "Off"}
+    </button>
+  ),
+}));
+
+jest.mock("../../app/components/filter/MultiSelectForm", () => ({
+  __esModule: true,
+  default: () => <div data-testid="mock-multiselect-form">Filters</div>,
 }));
 
 jest.mock("../../app/components/filter/TimeRangeFilter", () => ({
@@ -80,6 +99,7 @@ describe("MapPage Component", () => {
   beforeEach(() => {
     mockSetError = jest.fn();
     mockClearError = jest.fn();
+    lastSpatialOnClose = null;
 
     (useMapError as jest.Mock).mockImplementation(() => ({
       error: null,
@@ -183,6 +203,75 @@ describe("MapPage Component", () => {
 
     // No data popup should appear
     expect(screen.getByText(/data tidak ditemukan/i)).toBeInTheDocument();
+  });
+
+  it("allows closing the no data popup", async () => {
+    (useLocations as jest.Mock)
+      .mockImplementationOnce(() => ({
+        data: [],
+        isLoading: false,
+        error: { message: "No case locations found" },
+      }))
+      .mockImplementation(() => ({
+        data: [{ id: "1", city: "Jakarta", location__latitude: -6.2, location__longitude: 106.8 }],
+        isLoading: false,
+        error: null,
+      }));
+
+    render(<MapPage />);
+
+    const closeNoData = await screen.findByText(/tutup/i);
+    fireEvent.click(closeNoData);
+
+    await waitFor(() => expect(screen.queryByText(/data tidak ditemukan/i)).not.toBeInTheDocument());
+  });
+
+  it("toggles the filter form visibility", () => {
+    (useLocations as jest.Mock).mockImplementation(() => ({
+      data: [],
+      isLoading: false,
+      error: null,
+    }));
+
+    render(<MapPage />);
+
+    expect(screen.queryByTestId("filter-form")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("filter-toggle"));
+    expect(screen.getByTestId("filter-form")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("filter-toggle"));
+    expect(screen.queryByTestId("filter-form")).not.toBeInTheDocument();
+  });
+
+  it("sets map error when unexpected API errors occur", async () => {
+    (useLocations as jest.Mock).mockImplementation(() => ({
+      data: [],
+      isLoading: false,
+      error: new Error("Server exploded"),
+    }));
+
+    render(<MapPage />);
+
+    await waitFor(() => expect(mockSetError).toHaveBeenCalledWith("Server exploded"));
+  });
+
+  it("toggles the spatial comparison overlay and closes it via child callback", async () => {
+    (useLocations as jest.Mock).mockImplementation(() => ({
+      data: [],
+      isLoading: false,
+      error: null,
+    }));
+
+    render(<MapPage />);
+
+    expect(screen.queryByTestId("spatial-comparison-panel")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("spatial-toggle"));
+    expect(screen.getByTestId("spatial-comparison-panel")).toBeInTheDocument();
+
+    await act(async () => {
+      lastSpatialOnClose?.();
+    });
+
+    expect(screen.queryByTestId("spatial-comparison-panel")).not.toBeInTheDocument();
   });
 
   it("triggers manual refresh and passes incremented refreshToken to useLocations", async () => {
