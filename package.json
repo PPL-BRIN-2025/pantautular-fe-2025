@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "node scripts/start.js",
     "lint": "next lint",
-    "test": "jest --coverage",
+    "test": "node --max-old-space-size=6144 node_modules/jest/bin/jest.js --coverage --runInBand",
     "test:watch": "jest --watchAll",
     "view-coverage": "start coverage/lcov-report/index.html"
   },
