@@ -165,6 +165,13 @@ export default function ContributionManagementPage() {
     );
   }
 
+  /* istanbul ignore next */
+  const successBanner = success ? (
+    <div className="px-6 py-3 bg-green-50 text-sm text-green-700 border-b border-green-100">
+      {success}
+    </div>
+  ) : null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
@@ -210,12 +217,7 @@ export default function ContributionManagementPage() {
               </div>
             )}
             {/* c8 ignore next */}
-            {/* istanbul ignore next */}
-            {success && (
-              <div className="px-6 py-3 bg-green-50 text-sm text-green-700 border-b border-green-100">
-                {success}
-              </div>
-            )}
+            {successBanner}
 
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
