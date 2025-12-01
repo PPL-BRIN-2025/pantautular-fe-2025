@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import NewsCard from "../components/NewsCard";
-import type { NewsArticle } from "../hooks/useNewsList";
+import type { NewsArticle } from "../domain/types";
 
 jest.mock("next/image", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

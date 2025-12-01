@@ -7,22 +7,12 @@ import Footer from "../../components/Footer";
 import DefaultThumbnail from "../components/DefaultThumbnail";
 import NewsDetailSkeleton from "../components/NewsDetailSkeleton";
 import { useNewsDetail } from "../hooks/useNewsDetail";
+import { NewsDateFormatter } from "../utils/date";
 
 type NewsDetailPageProps = {
   params: {
     id: string;
   };
-};
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown date";
-  return new Intl.DateTimeFormat("id-ID", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date);
 };
 
 const NewsDetailPage = ({ params }: NewsDetailPageProps) => {
@@ -68,7 +58,7 @@ const NewsDetailPage = ({ params }: NewsDetailPageProps) => {
           <div className="space-y-6 p-8">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600">
               <div className="font-semibold text-blue-600">{data.source_name}</div>
-              <time dateTime={data.published_at}>{formatDate(data.published_at)}</time>
+              <time dateTime={data.published_at}>{NewsDateFormatter.forDetail(data.published_at)}</time>
             </div>
             <h1 className="text-4xl font-bold text-gray-900">{data.title}</h1>
             {Array.isArray(data.curated_tags) && data.curated_tags.length > 0 && (
@@ -89,7 +79,7 @@ const NewsDetailPage = ({ params }: NewsDetailPageProps) => {
                 href="/news"
                 className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                ← Back to News Salads
+                <span aria-hidden="true">&lt;</span> Back to News Salads
               </Link>
               <Link
                 href={data.source_url}

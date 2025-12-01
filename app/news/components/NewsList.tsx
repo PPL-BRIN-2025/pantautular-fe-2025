@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import NewsSkeleton from "./NewsSkeleton";
 import NewsCard from "./NewsCard";
-import type { NewsArticle } from "../hooks/useNewsList";
+import type { NewsArticle } from "../domain/types";
 import { NEWS_PAGE_SIZE } from "../constants";
 
 type NewsListProps = {

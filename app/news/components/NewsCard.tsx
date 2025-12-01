@@ -2,26 +2,17 @@
 
 import Link from "next/link";
 import DefaultThumbnail from "./DefaultThumbnail";
-import type { NewsArticle } from "../hooks/useNewsList";
+import type { NewsArticle } from "../domain/types";
+import { NewsDateFormatter } from "../utils/date";
 
 type NewsCardProps = {
   article: NewsArticle;
   href?: string;
 };
 
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown date";
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-};
-
 const NewsCard = ({ article, href }: NewsCardProps) => {
   const targetHref = href ?? `/news/${article.id}`;
-  const publishedDate = formatDate(article.published_at);
+  const publishedDate = NewsDateFormatter.forList(article.published_at);
 
   return (
     <Link
