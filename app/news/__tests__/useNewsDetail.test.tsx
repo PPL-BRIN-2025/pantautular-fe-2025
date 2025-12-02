@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { useNewsDetail, type NewsArticle } from "../hooks/useNewsDetail";
+import { useNewsDetail } from "../hooks/useNewsDetail";
+import type { NewsArticle } from "../domain/types";
 
 const article: NewsArticle = {
   id: "alpha",

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { NewsArticle } from "./useNewsList";
-
-export type { NewsArticle };
+import type { NewsArticle } from "../domain/types";
+import { NewsGateway } from "../services/NewsGateway";
+import { NewsMapper } from "../services/NewsMapper";
 
 export type UseNewsDetailResult = {
   data?: NewsArticle;
@@ -12,23 +12,15 @@ export type UseNewsDetailResult = {
   error: Error | null;
 };
 
-const readErrorDetail = async (res: Response) => {
-  try {
-    const payload = await res.json();
-    if (typeof payload?.detail === "string") return payload.detail;
-    if (typeof payload?.message === "string") return payload.message;
-    return "";
-  } catch {
-    return "";
-  }
+const normalizeNewsId = (id?: string | number) => {
+  if (typeof id === "number") return String(id);
+  if (typeof id === "string") return id.trim();
+  return "";
 };
 
 export const useNewsDetail = (id?: string | number): UseNewsDetailResult => {
-  const normalizedId = useMemo(() => {
-    if (typeof id === "number") return String(id);
-    if (typeof id === "string") return id.trim();
-    return "";
-  }, [id]);
+  const gateway = useMemo(() => new NewsGateway((...args) => fetch(...args)), []);
+  const normalizedId = useMemo(() => normalizeNewsId(id), [id]);
 
   const [data, setData] = useState<NewsArticle>();
   const [isLoading, setIsLoading] = useState(Boolean(normalizedId));
@@ -49,17 +41,7 @@ export const useNewsDetail = (id?: string | number): UseNewsDetailResult => {
       setError(null);
 
       try {
-        const res = await fetch(`/api/news/${normalizedId}`, {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          const detail = await readErrorDetail(res);
-          throw new Error(`Failed to fetch news detail (${res.status})${detail ? `: ${detail}` : ""}`);
-        }
-
-        const payload = await res.json();
+        const payload = await gateway.detail(normalizedId, { signal: controller.signal });
         if (!isMounted) return;
         setData(payload as NewsArticle);
       } catch (err) {
@@ -80,7 +62,7 @@ export const useNewsDetail = (id?: string | number): UseNewsDetailResult => {
       isMounted = false;
       controller.abort();
     };
-  }, [normalizedId]);
+  }, [gateway, normalizedId]);
 
   return {
     data,
@@ -89,3 +71,6 @@ export const useNewsDetail = (id?: string | number): UseNewsDetailResult => {
     error,
   };
 };
+
+export type { NewsArticle };
+export const __testables = { normalizeNewsId, readErrorDetail: NewsMapper.readErrorDetail };

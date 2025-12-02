@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NewsList from "../components/NewsList";
-import type { NewsArticle } from "../hooks/useNewsList";
+import type { NewsArticle } from "../domain/types";
 import { NEWS_PAGE_SIZE } from "../constants";
 
 jest.mock("next/image", () => {

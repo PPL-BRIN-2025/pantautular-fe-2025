@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NewsPage from "../page";
-import type { NewsListResponse } from "../hooks/useNewsList";
+import type { NewsListResponse } from "../domain/types";
 import { NEWS_PAGE_SIZE } from "../constants";
 
 const mockUseNewsList = jest.fn();

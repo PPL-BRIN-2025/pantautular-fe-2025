@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import NewsDetailPage from "../[id]/page";
-import type { NewsArticle } from "../hooks/useNewsDetail";
+import type { NewsArticle } from "../domain/types";
 
 const mockUseNewsDetail = jest.fn();
 

@@ -1,5 +1,6 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { useNewsList, type NewsArticle, type NewsListResponse, __testables } from "../hooks/useNewsList";
+import { useNewsList, __testables } from "../hooks/useNewsList";
+import type { NewsArticle, NewsListResponse } from "../domain/types";
 import { NEWS_PAGE_SIZE } from "../constants";
 
 const sampleArticles: NewsArticle[] = [
