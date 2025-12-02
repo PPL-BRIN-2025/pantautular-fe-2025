@@ -1,68 +1,188 @@
 /* app/admin-dashboard/page.module.css */
 
 .container {
-  padding: 32px 24px 64px;
-  max-width: 1040px;
+  padding: 48px 24px 88px;
+  max-width: 1180px;
   margin: 0 auto;
+  position: relative;
+}
+
+.pageShell {
+  background: #f7fbff;
+  border: 1px solid #d6e5ff;
+  border-radius: 24px;
+  padding: 26px;
+  box-shadow: 0 18px 60px -30px rgba(12, 52, 109, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.pageShell::after {
+  content: none;
 }
 
 .headerCard {
-  background: #ffffff;
-  border: 1px solid #e6edf2;
-  border-radius: 12px;
-  padding: 18px 22px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  position: relative;
+  background: #0f8de8;
+  border: 1px solid #7bb4ff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 18px 45px -26px rgba(8, 47, 110, 0.7);
+  overflow: hidden;
+  color: #eaf3ff;
 }
 
 .headerContent {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  width: 100%;
+  gap: 16px;
 }
 
 .headerText {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  max-width: 640px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: #f4f8ff;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
 }
 
 .subtitle {
   margin: 0;
-  font-size: 14px;
-  color: #5d6b7a;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(233, 244, 255, 0.86);
 }
 
-/* Top row */
+.metaRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metaTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #eaf3ff;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.buttonPrimary,
+.buttonSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.buttonPrimary {
+  background: linear-gradient(135deg, #0f6ad9, #1da1f2);
+  color: #ffffff;
+  border-color: #0f6ad9;
+  box-shadow: 0 10px 25px -14px rgba(15, 60, 130, 0.9);
+}
+
+.buttonPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px -16px rgba(15, 60, 130, 0.9);
+}
+
+.buttonSecondary {
+  background: #ffffff;
+  color: #0f2f66;
+  border-color: #d8e5ff;
+  box-shadow: 0 10px 25px -18px rgba(12, 42, 88, 0.45);
+}
+
+.buttonSecondary:hover {
+  background: #f6f9ff;
+  transform: translateY(-1px);
+}
+
 .topGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
 }
 
 .card {
+  position: relative;
   background: #ffffff;
-  border: 1px solid #e6edf2;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  border: 1px solid #dce7ff;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 16px 46px -32px rgba(12, 47, 96, 0.6);
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(14, 122, 254, 0.04), rgba(255, 255, 255, 0));
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 56px -30px rgba(12, 47, 96, 0.72);
+}
+
+.card:hover::after {
+  opacity: 1;
 }
 
 .cardLabel {
-  font-size: 14px;
-  color: #5d6b7a;
-  margin-bottom: 8px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: #4f6b93;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .cardRow {
@@ -72,28 +192,40 @@
 }
 
 .icon {
-  font-size: 28px;
-  line-height: 1;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eaf2ff, #d8e7ff);
+  color: #1a5ad8;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cfdffc;
+}
+
+.iconGlyph {
+  width: 22px;
+  height: 22px;
 }
 
 .cardValue {
-  font-size: 36px;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 38px;
+  font-weight: 800;
+  color: #0d3f94;
+  letter-spacing: -0.03em;
 }
 
 .hint {
   font-size: 13px;
-  color: #6b7280;
-  margin-top: 6px;
+  color: #4f709c;
+  margin-top: 8px;
+  line-height: 1.5;
 }
 
-/* Role card specifics */
 .roleCount {
-  font-size: 36px;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 10px;
+  font-size: 38px;
+  font-weight: 800;
+  color: #0b5cd6;
+  margin-bottom: 8px;
 }
 
 .pillsRow {
@@ -103,59 +235,35 @@
 }
 
 .pill {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #0f172a;
-  padding: 6px 12px;
+  background: #f1f6ff;
+  border: 1px solid #d5e4ff;
+  color: #0f2f66;
+  padding: 7px 13px;
   border-radius: 999px;
   font-size: 13px;
+  font-weight: 600;
 }
 
-.actions {
-  display: flex;
-  gap: 10px;
+.alertCard {
+  background: linear-gradient(180deg, #f1f6ff 0%, #ffffff 100%);
+  border-color: #c8dbff;
 }
 
-.buttonPrimary,
-.buttonSecondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 14px;
-  text-decoration: none;
-  border: 1px solid transparent;
-}
-
-.buttonPrimary {
-  background: #1677ff;
-  color: #fff;
-  border-color: #1677ff;
-}
-
-.buttonSecondary {
-  background: #fff;
-  color: #1f2a37;
-  border-color: #d0d7de;
-}
-
-/* Responsive */
 @media (max-width: 1024px) {
-  .headerContent {
-    flex-direction: column-reverse;
-    align-items: flex-start;
-    gap: 16px;
+  .container {
+    padding: 32px 18px 64px;
   }
 
-  .navShortcuts {
-    gap: 6px;
+  .headerContent {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    width: 100%;
   }
 
   .topGrid {
-    grid-template-columns: 1fr;
-  }
-  .summaryGrid {
     grid-template-columns: 1fr;
   }
 }

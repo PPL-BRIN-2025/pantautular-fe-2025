@@ -8,7 +8,41 @@ import StatCard from "./_components/StatCard";
 import RolePills from "./_components/RolePills";
 import UserInfo from "./_components/UserInfo";
 import { API_BASE, API_BASE_RAW } from '../../config';
+import { getToken, authHeaders, pickMessage } from './testables';
 import Footer from "../components/Footer";
+
+const UsersIcon = (
+  <svg className={styles.iconGlyph} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2.5c-3.33 0-6 1.34-6 3v.75c0 .41.34.75.75.75h10.5c.41 0 .75-.34.75-.75V17.5c0-1.66-2.67-3-6-3Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+const DatasetIcon = (
+  <svg className={styles.iconGlyph} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M6.5 4.25A1.25 1.25 0 0 1 7.75 3h6.63c.33 0 .65.13.88.37l3.37 3.37c.23.23.37.55.37.88V18.5A2.5 2.5 0 0 1 16.5 21h-8A2.5 2.5 0 0 1 6 18.5v-14Z"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M14 3.5V5.5c0 .55.45 1 1 1h2"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M8.5 12h7M8.5 15h7M8.5 9H11"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+  </svg>
+);
 
 const warnWhenApiBaseMissing = () => {
   const configured = typeof API_BASE_RAW === "string" && API_BASE_RAW.trim() !== "";
@@ -22,45 +56,8 @@ warnWhenApiBaseMissing();
 /** === Auth helpers (SAME STYLE AS FEATURE 1) === */
 type HeadersMap = Record<string, string>;
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-
-  // Try multiple common keys
-  const keys = ["access_token", "token", "accessToken", "jwt"];
-  for (const k of keys) {
-    const v = localStorage.getItem(k);
-    if (v) return v;
-  }
-
-  // Fallback: read from cookie named access_token
-  const m = new RegExp(/(?:^|;\s*)access_token=([^;]+)/).exec(document.cookie);
-  if (m) return decodeURIComponent(m[1]);
-
-  return null;
-}
-
-function authHeaders(): HeadersMap {
-  const h: HeadersMap = { Accept: "application/json", "Content-Type": "application/json" };
-  const token = getToken();
-  if (token) h["Authorization"] = `Bearer ${token}`;
-  return h;
-}
-
-function pickMessage(
-  primary?: string | null,
-  secondary?: string | null,
-  tertiary?: string | null
-): string | undefined {
-  if (primary) return primary;
-  if (secondary) return secondary;
-  return tertiary ?? undefined;
-}
-
-export const __testables = {
-  getToken,
-  authHeaders,
-  pickMessage,
-};
+// test helpers are extracted to `./testables` so they can be imported by
+// tests without exporting test-only named exports from the Next.js page.
 
 /** === Page === */
 export default function AdminDashboardPage() {
@@ -136,19 +133,19 @@ export default function AdminDashboardPage() {
 
   if (blocked403Detail) {
     return (
-        <main className="mx-auto max-w-3xl px-4 py-10">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-            <div className="text-sm font-semibold text-amber-700">Informasi Akses</div>
-            <div className="mt-2 text-2xl font-semibold text-amber-900">Akses Ditolak</div>
-            <p className="mt-2 text-sm text-amber-800">
-              Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
+      <main className={styles.container}>
+        <div className={`${styles.card} ${styles.alertCard}`} role="alert" aria-live="polite">
+          <div className={styles.cardLabel}>Informasi Akses</div>
+          <div className={styles.cardValue} style={{ fontSize: 24 }}>Akses Ditolak</div>
+          <p className={styles.hint}>
+            Anda tidak memiliki izin untuk mengakses halaman ini. Silakan kembali atau masuk sebagai admin.
+          </p>
+          {blocked403Detail !== "Akses Ditolak" && (
+            <p className={styles.hint} style={{ marginTop: 6 }}>
+              {blocked403Detail}
             </p>
-            {blocked403Detail !== "Akses Ditolak" && (
-              <p className="mt-2 text-xs text-amber-700/90">
-                {blocked403Detail}
-              </p>
-            )}
-          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+          )}
+          <div className={styles.actions} style={{ marginTop: 14 }}>
             <Link href="/" className={styles.buttonSecondary}>
               Kembali
             </Link>
@@ -164,44 +161,51 @@ export default function AdminDashboardPage() {
   return (
     <>
       <main className={styles.container}>
-        <header className={styles.headerCard}>
-          <div className={styles.headerContent}>
-            <div className={styles.headerText}>
-              <h1 className={styles.title}>PantauTular Admin</h1>
-              <p className={styles.subtitle}>Kelola akses dan pantau metrik utama platform.</p>
+        <div className={styles.pageShell}>
+          <header className={styles.headerCard}>
+            <div className={styles.badge}>Dashboard Admin</div>
+            <div className={styles.headerContent}>
+              <div className={styles.headerText}>
+                <h1 className={styles.title}>PantauTular Admin</h1>
+                <p className={styles.subtitle}>Kelola akses dan pantau metrik utama platform.</p>
+                <div className={styles.metaRow}>
+                  <span className={styles.metaTag}>Realtime insight</span>
+                  <span className={styles.metaTag}>Perlindungan data</span>
+                </div>
+              </div>
+              <div className={styles.actions}>
+                <Link href="/admin-user-log-menu/" className={styles.buttonSecondary}>
+                  Lihat Log
+                </Link>
+                <Link href="/admin-role-management/" className={styles.buttonPrimary}>
+                  Kelola Role
+                </Link>
+              </div>
             </div>
-            <div className={styles.actions}>
-              <Link href="/admin-user-log-menu/" className={styles.buttonSecondary}>
-                Lihat Log
-              </Link>
-              <Link href="/admin-role-management/" className={styles.buttonPrimary}>
-                Kelola Role
-              </Link>
+          </header>
+
+          {/* Top stat cards */}
+          <section className={styles.topGrid} aria-label="Metrik utama admin">
+            <StatCard
+              label={loading ? "Jumlah Pengguna (Memuat�)" : "Jumlah Pengguna"}
+              value={totalUsers}
+              icon={UsersIcon}
+              hint={usersMessage}
+            />
+            <StatCard
+              label={loading ? "Jumlah Dataset (Memuat�)" : "Jumlah Dataset"}
+              value={datasets}
+              icon={DatasetIcon}
+              hint={datasetsMessage}
+            />
+
+            <div className={styles.card}>
+              <div className={styles.cardLabel}>Roles</div>
+              <div className={styles.roleCount}>{roles.length}</div>
+              <RolePills roles={roles} />
             </div>
-          </div>
-        </header>
-
-        {/* Top stat cards */}
-        <section className={styles.topGrid}>
-          <StatCard
-            label={loading ? "Jumlah Pengguna (Memuat…)" : "Jumlah Pengguna"}
-            value={totalUsers}
-            icon={<span>👥</span>}
-            hint={usersMessage}
-          />
-          <StatCard
-            label={loading ? "Jumlah Dataset (Memuat…)" : "Jumlah Dataset"}
-            value={datasets}
-            icon={<span>📁</span>}
-            hint={datasetsMessage}
-          />
-
-          <div className={styles.card}>
-            <div className={styles.cardLabel}>Roles</div>
-            <div className={styles.roleCount}>{roles.length}</div>
-            <RolePills roles={roles} />
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
       <Footer />
     </>
