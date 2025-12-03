@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import AccessDeniedNotice from "../components/AccessDenied";
+import AccessDeniedNotice from "../components/AccessDenied3";
 import { useAuth } from "../auth/hooks/useAuth";
 import {
   ContributorCaseRead,
@@ -13,7 +13,7 @@ import {
   deleteContributorEvent,
 } from "../../api/contributorEvents";
 
-const CONTRIBUTOR_ROLES = new Set(["CONTRIBUTOR", "EXP_USER"]);
+const CONTRIBUTOR_ROLES = new Set(["CONTRIBUTOR"]);
 
 /* istanbul ignore next */
 const normalizeRole = (role?: string | null) =>
@@ -56,7 +56,24 @@ export default function ContributorDataPendingPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [viewItem, setViewItem] = useState<ContributorCaseRead | null>(null);
+
+  // delete-related state
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ContributorCaseRead | null>(
+    null,
+  );
+
+
+  useEffect(() => {
+    if (!user) {
+      if (typeof window !== "undefined") {
+        const next = encodeURIComponent(
+          window.location.pathname + window.location.search,
+        );
+        router.replace(`/login?next=${next}`);
+      }
+    }
+  }, [user, router]);
 
   const fetchMine = async () => {
     setLoading(true);
@@ -82,10 +99,10 @@ export default function ContributorDataPendingPage() {
   };
 
   useEffect(() => {
-    if (!canAccess) return;
+    if (!user || !canAccess) return;
     fetchMine();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canAccess]);
+  }, [user, canAccess]);
 
   const handleEdit = (item: ContributorCaseRead) => {
     router.push(
@@ -93,25 +110,27 @@ export default function ContributorDataPendingPage() {
     );
   };
 
-  /* istanbul ignore next */
-  const handleDelete = async (item: ContributorCaseRead) => {
-    if (
-      !window.confirm(
-        "Hapus pengajuan ini? Aksi ini tidak bisa dibatalkan.",
-      )
-    ) {
-      return;
-    }
-
-    setDeletingId(item.id);
+  const openDeleteConfirm = (item: ContributorCaseRead) => {
+    setDeleteTarget(item);
     setError(null);
     setSuccess(null);
+  };
+
+
+  /* istanbul ignore next */
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setDeletingId(deleteTarget.id);
+    setError(null);
+    setSuccess(null);
+
     try {
-      await deleteContributorEvent(item.id);
+      await deleteContributorEvent(deleteTarget.id);
       setSuccess("Pengajuan berhasil dihapus.");
+      setDeleteTarget(null);
       await fetchMine();
     } catch (err: any) {
-      /* istanbul ignore next */
       if (err instanceof HttpError) {
         const detail =
           typeof err.detail === "string"
@@ -126,7 +145,27 @@ export default function ContributorDataPendingPage() {
     }
   };
 
-  if (!user || !canAccess) {
+  const cancelDelete = () => {
+    setDeleteTarget(null);
+  };
+
+  // kalau belum login: tunggu redirect, jangan render konten
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <main className="pt-24 pb-16 flex justify-center">
+          <div className="text-sm text-slate-600">
+            Mengarahkan ke halaman login...
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // sudah login tapi role tidak cocok
+  if (!canAccess) {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar />
@@ -228,7 +267,9 @@ export default function ContributorDataPendingPage() {
                   ) : (
                     items.map((item) => {
                       const pending =
-                        (item.state ||/* istanbul ignore next */ "PENDING").toUpperCase() === "PENDING";
+                        (item.state ||
+                          /* istanbul ignore next */ "PENDING").toUpperCase() ===
+                        "PENDING";
 
                       const editBtnClass = `
                         px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs
@@ -260,7 +301,7 @@ export default function ContributorDataPendingPage() {
                               {/* istanbul ignore next */}
                               {item.disease_name
                                 ? `Penyakit: ${item.disease_name}`
-                                : /* istanbul ignore next */""}
+                                : /* istanbul ignore next */ ""}
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-700">
@@ -272,7 +313,8 @@ export default function ContributorDataPendingPage() {
                                 item.state,
                               )}`}
                             >
-                              {item.state || /* istanbul ignore next */"PENDING"}
+                              {item.state ||
+                                /* istanbul ignore next */ "PENDING"}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-700">
@@ -284,7 +326,7 @@ export default function ContributorDataPendingPage() {
                                 Lihat
                               </button>
                               <button
-                              /* istanbul ignore next */
+                                /* istanbul ignore next */
                                 onClick={() => pending && handleEdit(item)}
                                 className={editBtnClass}
                                 disabled={!pending}
@@ -292,7 +334,9 @@ export default function ContributorDataPendingPage() {
                                 Edit
                               </button>
                               <button
-                                onClick={() => pending && handleDelete(item)}
+                                onClick={() =>
+                                  pending && openDeleteConfirm(item)
+                                }
                                 className={deleteBtnClass}
                                 disabled={
                                   !pending || deletingId === item.id
@@ -316,6 +360,7 @@ export default function ContributorDataPendingPage() {
       </main>
       <Footer />
 
+      {/* Detail modal */}
       {viewItem && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
@@ -327,7 +372,7 @@ export default function ContributorDataPendingPage() {
                 <p className="text-xs text-slate-500">ID: {viewItem.id}</p>
               </div>
               <button
-              /* istanbul ignore next */ onClick={() => setViewItem(null)}
+                /* istanbul ignore next */ onClick={() => setViewItem(null)}
                 className="text-slate-500 hover:text-slate-700 text-sm"
               >
                 Tutup
@@ -338,13 +383,15 @@ export default function ContributorDataPendingPage() {
                 <div>
                   <div className="text-xs text-slate-500">Penyakit</div>
                   <div className="font-semibold">
-                    {viewItem.disease_name || /* istanbul ignore next */ "-"}
+                    {viewItem.disease_name ||
+                      /* istanbul ignore next */ "-"}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Lokasi</div>
                   <div className="font-semibold">
-                    {viewItem.location?.city || /* istanbul ignore next */"-"}
+                    {viewItem.location?.city ||
+                      /* istanbul ignore next */ "-"}
                     {viewItem.location?.province
                       ? `, ${viewItem.location.province}`
                       : ""}
@@ -353,7 +400,7 @@ export default function ContributorDataPendingPage() {
                 <div>
                   <div className="text-xs text-slate-500">Jenis kelamin</div>
                   <div className="font-semibold">
-                    {viewItem.gender ||/* istanbul ignore next */ "-"}
+                    {viewItem.gender || /* istanbul ignore next */ "-"}
                   </div>
                 </div>
                 <div>
@@ -365,19 +412,21 @@ export default function ContributorDataPendingPage() {
                     Tingkat keparahan
                   </div>
                   <div className="font-semibold">
-                    {viewItem.severity ||/* istanbul ignore next */ "-"}
+                    {viewItem.severity ||
+                      /* istanbul ignore next */ "-"}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Status kasus</div>
                   <div className="font-semibold">
-                    {viewItem.status ||/* istanbul ignore next */ "-"}
+                    {viewItem.status || /* istanbul ignore next */ "-"}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">State</div>
                   <div className="font-semibold">
-                    {viewItem.state || /* istanbul ignore next */"PENDING"}
+                    {viewItem.state ||
+                      /* istanbul ignore next */ "PENDING"}
                   </div>
                 </div>
                 <div>
@@ -395,20 +444,26 @@ export default function ContributorDataPendingPage() {
                 {viewItem.news ? (
                   <div className="mt-2 space-y-1">
                     <div className="font-semibold">
-                      {viewItem.news.title ||/* istanbul ignore next */ "-"}
+                      {viewItem.news.title ||
+                        /* istanbul ignore next */ "-"}
                     </div>
                     <div className="text-xs text-slate-600">
-                      {(viewItem.news.portal ||/* istanbul ignore next */ "-") +
+                      {(viewItem.news.portal ||
+                        /* istanbul ignore next */ "-") +
                         " - " +
-                        (viewItem.news.type ||/* istanbul ignore next */ "-")}
+                        (viewItem.news.type ||
+                          /* istanbul ignore next */ "-")}
                     </div>
                     <div className="text-xs text-slate-600">
-                      Penulis: {viewItem.news.author || /* istanbul ignore next */ "-"}
+                      Penulis:{" "}
+                      {viewItem.news.author ||
+                        /* istanbul ignore next */ "-"}
                     </div>
                     <div className="text-xs text-slate-600">
                       Tanggal terbit:{" "}
                       {formatDate(
-                        viewItem.news?.date_published ||/* istanbul ignore next */ undefined,
+                        viewItem.news?.date_published ||
+                          /* istanbul ignore next */ undefined,
                       )}
                     </div>
                     {viewItem.news.url && (
@@ -438,6 +493,41 @@ export default function ContributorDataPendingPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal konfirmasi hapus */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              Hapus pengajuan?
+            </h3>
+            <p className="text-sm text-slate-700 mb-4">
+              Kamu akan menghapus pengajuan{" "}
+              <span className="font-semibold">
+                {titleFor(deleteTarget)}
+              </span>
+              . Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={cancelDelete}
+                className="px-3 py-2 rounded-md border border-slate-200 text-slate-700 text-sm"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-3 py-2 rounded-md bg-red-600 text-white text-sm disabled:opacity-60"
+                disabled={deletingId === deleteTarget.id}
+              >
+                {deletingId === deleteTarget.id
+                  ? "Menghapus..."
+                  : "Hapus"}
+              </button>
             </div>
           </div>
         </div>

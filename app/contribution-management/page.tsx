@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import AccessDeniedNotice from "../components/AccessDenied";
@@ -13,7 +14,6 @@ import {
 } from "../../api/contributorEvents";
 
 const APPROVER_ROLES = new Set(["CURATOR", "ADMIN"]);
-/* istanbul ignore next */
 const normalizeRole = (role?: string | null) =>
   role ? role.trim().toUpperCase() : "";
 
@@ -21,12 +21,10 @@ type ActionState =
   | { item: ContributorCaseRead; action: "approve" | "reject" }
   | null;
 
-/* istanbul ignore next */
 const formatDate = (value?: string) => {
   if (!value) return "-";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  /* istanbul ignore next */
   return d.toLocaleString("id-ID", {
     day: "2-digit",
     month: "short",
@@ -47,16 +45,13 @@ const isPending = (item: ContributorCaseRead) =>
 
 const statePillClass = (state?: string) => {
   const s = (state || "PENDING").toUpperCase();
-  if (s === "APPROVED") {
-    return "bg-green-100 text-green-800";
-  }
-  if (s === "REJECTED") {
-    return "bg-red-100 text-red-800";
-  }
+  if (s === "APPROVED") return "bg-green-100 text-green-800";
+  if (s === "REJECTED") return "bg-red-100 text-red-800";
   return "bg-amber-100 text-amber-800";
 };
 
 export default function ContributionManagementPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const role = normalizeRole(user?.role as any);
   const canReview = useMemo(() => APPROVER_ROLES.has(role), [role]);
@@ -70,11 +65,24 @@ export default function ContributionManagementPage() {
   const [acting, setActing] = useState(false);
   const [viewItem, setViewItem] = useState<ContributorCaseRead | null>(null);
 
+  // ✅ Redirect ke login kalau belum login
   useEffect(() => {
-    if (!canReview) return;
+    if (!user) {
+      if (typeof window !== "undefined") {
+        const next = encodeURIComponent(
+          window.location.pathname + window.location.search
+        );
+        router.replace(`/login?next=${next}`);
+      }
+    }
+  }, [user, router]);
+
+  // Load data hanya kalau ROLE benar
+  useEffect(() => {
+    if (!user || !canReview) return;
     fetchSubmissions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canReview]);
+  }, [user, canReview]);
 
   const fetchSubmissions = async () => {
     setLoading(true);
@@ -88,7 +96,7 @@ export default function ContributionManagementPage() {
         setError(
           typeof err.detail === "string"
             ? err.detail
-            : "Gagal memuat data kontribusi. Pastikan Anda memiliki akses.",
+            : "Gagal memuat data kontribusi. Pastikan Anda memiliki akses."
         );
       } else {
         setError("Gagal memuat data kontribusi.");
@@ -100,7 +108,7 @@ export default function ContributionManagementPage() {
 
   const openAction = (
     item: ContributorCaseRead,
-    action: "approve" | "reject",
+    action: "approve" | "reject"
   ) => {
     setActionModal({ item, action });
     setNote("");
@@ -109,9 +117,7 @@ export default function ContributionManagementPage() {
   };
 
   const handleAction = async () => {
-    /* istanbul ignore next */
     if (!actionModal) return;
-    /* istanbul ignore next */
     if (actionModal.action === "reject" && !note.trim()) {
       setError("Catatan wajib diisi untuk penolakan.");
       return;
@@ -122,24 +128,18 @@ export default function ContributionManagementPage() {
       await reviewContributorEvent(
         actionModal.item.id,
         actionModal.action,
-        note.trim(),
+        note.trim()
       );
 
-      /* istanbul ignore next */
       setActionModal(null);
-      /* istanbul ignore next */
       setNote("");
-      /* istanbul ignore next */
       setSuccess(
         actionModal.action === "approve"
           ? "Pengajuan berhasil diterima."
-          : "Pengajuan berhasil ditolak.",
+          : "Pengajuan berhasil ditolak."
       );
-      /* istanbul ignore next */
       fetchSubmissions();
-      /* istanbul ignore next */
     } catch (err: any) {
-      /* istanbul ignore next */
       if (err instanceof HttpError) {
         const detail =
           typeof err.detail === "string"
@@ -149,13 +149,24 @@ export default function ContributionManagementPage() {
       } else {
         setError("Gagal memproses tindakan.");
       }
-      /* istanbul ignore next */
     } finally {
       setActing(false);
     }
   };
 
-  if (!user || !canReview) {
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <main className="pt-24 pb-16 text-center text-slate-600">
+          Mengarahkan ke halaman login...
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!canReview) {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar />
@@ -165,7 +176,6 @@ export default function ContributionManagementPage() {
     );
   }
 
-  /* istanbul ignore next */
   const successBanner = success ? (
     <div className="px-6 py-3 bg-green-50 text-sm text-green-700 border-b border-green-100">
       {success}
