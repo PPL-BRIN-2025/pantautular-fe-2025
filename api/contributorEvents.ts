@@ -1,6 +1,7 @@
 import { API_BASE } from "../config";
 
-const API_BASE_URL = API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE_URL =
+  API_BASE ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const STATIC_BASE = `${API_BASE_URL}/api/contributor-feature/contributor/cases`;
 
 let detectedBase: string | null = null;
@@ -50,23 +51,49 @@ async function probeContributorBase(): Promise<string> {
   for (const base of candidates) {
     try {
       const { ac, id } = controllerTimeout(2000);
-      const res = await fetch(base + "/", { method: "OPTIONS", credentials: "include", signal: ac.signal });
+      const res = await fetch(base + "/", {
+        method: "OPTIONS",
+        credentials: "include",
+        signal: ac.signal,
+      });
       clearTimeout(id);
       try {
-        console.debug(`[contributorEvents] probe ${base} -> OPTIONS ${res.status}`);
+        console.debug(
+          `[contributorEvents] probe ${base} -> OPTIONS ${res.status}`,
+        );
       } catch (e) {}
-      if (res && (res.status === 200 || res.status === 204 || res.status === 401 || res.status === 403)) {
+      if (
+        res &&
+        (res.status === 200 ||
+          res.status === 204 ||
+          res.status === 401 ||
+          res.status === 403)
+      ) {
         try {
           const { ac: ac2, id: id2 } = controllerTimeout(2000);
-          const g = await fetch(base + "/", { method: "GET", credentials: "include", signal: ac2.signal });
+          const g = await fetch(base + "/", {
+            method: "GET",
+            credentials: "include",
+            signal: ac2.signal,
+          });
           clearTimeout(id2);
           try {
-            console.debug(`[contributorEvents] probe ${base} -> GET ${g.status}`);
+            console.debug(
+              `[contributorEvents] probe ${base} -> GET ${g.status}`,
+            );
           } catch (e) {}
-          if (g && (g.status === 200 || g.status === 204 || g.status === 401 || g.status === 403)) {
+          if (
+            g &&
+            (g.status === 200 ||
+              g.status === 204 ||
+              g.status === 401 ||
+              g.status === 403)
+          ) {
             detectedBase = base;
             try {
-              console.debug(`[contributorEvents] selected base -> ${detectedBase}`);
+              console.debug(
+                `[contributorEvents] selected base -> ${detectedBase}`,
+              );
             } catch (e) {}
             return detectedBase;
           }
@@ -76,7 +103,9 @@ async function probeContributorBase(): Promise<string> {
       }
     } catch (e) {
       try {
-        console.debug(`[contributorEvents] probe ${base} -> error ${String(e)}`);
+        console.debug(
+          `[contributorEvents] probe ${base} -> error ${String(e)}`,
+        );
       } catch (err) {}
       continue;
     }
@@ -93,16 +122,20 @@ function getToken(): string | null {
     const v = localStorage.getItem(k);
     if (v) return v;
   }
-  const m = document.cookie.match(/(?:^|;\\s*)access_token=([^;]+)/);
+  const m = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
   if (m) return decodeURIComponent(m[1]);
   return null;
 }
 
 function buildHeaders(): Record<string, string> {
-  const h: Record<string, string> = { Accept: "application/json", "Content-Type": "application/json" };
+  const h: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
   const token = getToken();
   if (token) h["Authorization"] = `Bearer ${token}`;
-  if (process.env.NEXT_PUBLIC_API_KEY) h["x-api-key"] = String(process.env.NEXT_PUBLIC_API_KEY);
+  if (process.env.NEXT_PUBLIC_API_KEY)
+    h["x-api-key"] = String(process.env.NEXT_PUBLIC_API_KEY);
   return h;
 }
 
@@ -171,7 +204,12 @@ export type ContributorCasePayload = {
   city?: string | null;
   status: string;
   severity: string;
-  location: { city: string; province?: string; latitude?: number | null; longitude?: number | null };
+  location: {
+    city: string;
+    province?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
   news: ContributorNewsPayload;
 };
 
@@ -183,13 +221,22 @@ export type ContributorCaseRead = {
   status?: string;
   severity?: string;
   disease_name?: string;
-  location?: { city?: string; province?: string; latitude?: number; longitude?: number };
+  location?: {
+    city?: string;
+    province?: string;
+    latitude?: number;
+    longitude?: number;
+  };
   news?: ContributorNewsPayload | null;
   state?: string;
   review_note?: string;
   reviewed_at?: string;
-  reviewed_by?: { id?: string; name?: string; email?: string; role?: string } | null;
-  created_by?: { id?: string; name?: string; email?: string; role?: string } | null;
+  reviewed_by?:
+    | { id?: string; name?: string; email?: string; role?: string }
+    | null;
+  created_by?:
+    | { id?: string; name?: string; email?: string; role?: string }
+    | null;
   created_at?: string;
   updated_at?: string;
   approved_case?: string | null;
@@ -203,15 +250,34 @@ export async function createContributorEvent(body: ContributorCasePayload) {
   return request(`${base}/`, { method: "POST", body: JSON.stringify(body) });
 }
 
-export async function listContributorEvents(pageUrl?: string) {
-  const base = pageUrl ? pageUrl : `${await resolveBase()}/`;
+/**
+ * Ambil kontribusi (bisa PENDING/APPROVED/REJECTED).
+ * - kalau `pageUrl` dikasih, langsung hit URL itu (buat pagination mode lama)
+ * - kalau nggak, pakai base `/cases/` default
+ * Backend akan otomatis filter ke `created_by = current user`
+ * kalau user bukan approver.
+ */
+export async function listContributorEvents(
+  pageUrl?: string,
+): Promise<ContributorCaseRead[]> {
+  const baseUrl = pageUrl ?? `${await resolveBase()}/`;
   try {
-    console.debug(`[contributorEvents] LIST -> ${base}`);
+    console.debug(`[contributorEvents] LIST -> ${baseUrl}`);
   } catch (e) {}
-  return request<any>(base);
+  const data = await request<any>(baseUrl);
+  if (Array.isArray(data)) return data as ContributorCaseRead[];
+  if (data && Array.isArray((data as any).results))
+    return (data as any).results as ContributorCaseRead[];
+  return [];
 }
 
-export async function listPendingContributorEvents() {
+/**
+ * Helper khusus pending (pakai query ?state=pending),
+ * dipakai di halaman manajemen kurator.
+ */
+export async function listPendingContributorEvents(): Promise<
+  ContributorCaseRead[]
+> {
   const base = await resolveBase();
   const url = `${base}/?state=pending`;
   try {
@@ -219,39 +285,60 @@ export async function listPendingContributorEvents() {
   } catch (e) {}
   const data = await request<any>(url);
   if (Array.isArray(data)) return data as ContributorCaseRead[];
-  if (data && Array.isArray((data as any).results)) return (data as any).results as ContributorCaseRead[];
+  if (data && Array.isArray((data as any).results))
+    return (data as any).results as ContributorCaseRead[];
   return [];
 }
 
-export async function reviewContributorEvent(id: string, action: "approve" | "reject", note?: string) {
+export async function reviewContributorEvent(
+  id: string,
+  action: "approve" | "reject",
+  note?: string,
+): Promise<ContributorCaseRead> {
   const base = await resolveBase();
   const url = `${base}/${id}/review/`;
   try {
     console.debug(`[contributorEvents] REVIEW -> ${url} (${action})`);
   } catch (e) {}
-  return request(url, { method: "POST", body: JSON.stringify({ action, note }) });
+  return request<ContributorCaseRead>(url, {
+    method: "POST",
+    body: JSON.stringify({ action, note }),
+  });
 }
 
-export async function getContributorEvent(id: string) {
+export async function getContributorEvent(
+  id: string,
+): Promise<ContributorCaseRead> {
   const base = await resolveBase();
   try {
     console.debug(`[contributorEvents] GET -> ${base}/${id}/`);
   } catch (e) {}
-  return request(`${base}/${id}/`);
+  return request<ContributorCaseRead>(`${base}/${id}/`);
 }
 
-export async function updateContributorEvent(id: string, body: ContributorCasePayload) {
+/**
+ * PATCH update isi submission (dipakai di form edit kontributor)
+ */
+export async function updateContributorEvent(
+  id: string,
+  body: ContributorCasePayload,
+): Promise<ContributorCaseRead> {
   const base = await resolveBase();
+  const url = `${base}/${id}/`;
   try {
-    console.debug(`[contributorEvents] UPDATE -> ${base}/${id}/`, body);
+    console.debug(`[contributorEvents] UPDATE -> ${url}`, body);
   } catch (e) {}
-  return request(`${base}/${id}/`, { method: "PATCH", body: JSON.stringify(body) });
+  return request<ContributorCaseRead>(url, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 }
 
-export async function deleteContributorEvent(id: string) {
+export async function deleteContributorEvent(id: string): Promise<void> {
   const base = await resolveBase();
+  const url = `${base}/${id}/`;
   try {
-    console.debug(`[contributorEvents] DELETE -> ${base}/${id}/`);
+    console.debug(`[contributorEvents] DELETE -> ${url}`);
   } catch (e) {}
-  return request(`${base}/${id}/`, { method: "DELETE" });
+  await request<void>(url, { method: "DELETE" });
 }
