@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, { Suspense, useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
@@ -58,7 +58,7 @@ export function validateFormState(input: {
 }
 
 /* istanbul ignore next */
-export default function ContributorEditDeleteDataPage() {
+function ContributorEditDeleteDataPageContent() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1503,6 +1503,14 @@ export default function ContributorEditDeleteDataPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function ContributorEditDeleteDataPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-gray-600">Memuat halaman...</div>}>
+      <ContributorEditDeleteDataPageContent />
+    </Suspense>
   );
 }
 
