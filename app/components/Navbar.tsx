@@ -115,11 +115,14 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
       ],
     },
     { label: "Dashboard Kurator", href: "/curator-dashboard" },
+    { label: "Manajemen Kontribusi", href: "/contribution-management" },
     { label: "Bantuan", href: "/help" },
   ],
 
   CONTRIBUTOR: [
     { label: "Tambah data", href: "/contributor-event-reporting" },
+    { label: "Ubah & Hapus data", href: "/contributor-edit-delete-data" },
+    { label: "Data Pending", href: "/contributor-data-pending" },
     { label: "Bantuan", href: "/help" },
   ],
 };
