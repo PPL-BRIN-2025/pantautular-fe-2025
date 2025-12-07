@@ -6,6 +6,7 @@ import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import FancyDatePicker from "../components/FancyDatePicker";
 import type { ContributorCasePayload, ContributorCaseRead } from "../../api/contributorEvents";
 import { getContributorEvent, updateContributorEvent, deleteContributorEvent, HttpError } from "../../api/contributorEvents";
 import type { User } from "@/types";
@@ -405,6 +406,12 @@ function ContributorEditDeleteDataPageContent() {
   const [srcDateDd, setSrcDateDd] = useState("");
   const [srcDateMm, setSrcDateMm] = useState("");
   const [srcDateYyyy, setSrcDateYyyy] = useState("");
+  const sumberDateValue = useMemo(() => {
+    if (srcDateYyyy && srcDateMm && srcDateDd) {
+      return `${String(srcDateYyyy).padStart(4, '0')}-${String(srcDateMm).padStart(2, '0')}-${String(srcDateDd).padStart(2, '0')}`;
+    }
+    return "";
+  }, [srcDateDd, srcDateMm, srcDateYyyy]);
   const [srcImgUrl, setSrcImgUrl] = useState("");
 
   // validation modal
@@ -418,6 +425,8 @@ function ContributorEditDeleteDataPageContent() {
   }, [kewaspadaan]);
   // continuous raw value for smooth dragging (1..4) is declared earlier with other states.
 
+  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
+
   const emojiFor = (n: number) => (n === 1 ? '🙂' : n === 2 ? '😐' : n === 3 ? '😟' : '😨');
 
   const isPending = (submissionState || "").toUpperCase() === "PENDING";
@@ -428,6 +437,45 @@ function ContributorEditDeleteDataPageContent() {
     : statusLabel === "APPROVED"
     ? "bg-green-100 text-green-800 border border-green-200"
     : "bg-red-100 text-red-800 border border-red-200";
+
+  const handleSumberDateChange = (value: string) => {
+    if (value && value > todayIso) {
+      setErrors((prev) => ({ ...prev, 'sumber-date': "Tanggal terbit tidak boleh lebih dari hari ini." }));
+      return;
+    }
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next['sumber-date'];
+      return next;
+    });
+    if (!value) {
+      setSrcDateDd("");
+      setSrcDateMm("");
+      setSrcDateYyyy("");
+      setSrcDatePublished("");
+      return;
+    }
+    const [yyyy, mm, dd] = value.split("-");
+    setSrcDateDd(dd || "");
+    setSrcDateMm(mm || "");
+    setSrcDateYyyy(yyyy || "");
+    const iso = new Date(`${value}T00:00:00Z`);
+    setSrcDatePublished(!isNaN(iso.getTime()) ? iso.toISOString() : "");
+  };
+
+  const handleUsiaChange = (value: string) => {
+    const numeric = value.replace(/\D/g, "").slice(0, 3);
+    if (value && numeric !== value) {
+      setErrors((prev) => ({ ...prev, usia: "Usia hanya boleh angka." }));
+    } else {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.usia;
+        return next;
+      });
+    }
+    setUsia(numeric);
+  };
 
 
   function validate() {
@@ -1225,7 +1273,7 @@ function ContributorEditDeleteDataPageContent() {
 
                   <div>
                     <label htmlFor="usia" className="block text-sm font-medium text-gray-700 mb-2">Usia Penderita <span className="text-red-500">*</span></label>
-                    <input id="usia" value={usia} onChange={(e) => setUsia(e.target.value)} placeholder="Type.." className="w-full border rounded-md px-3 py-2" inputMode="numeric" maxLength={6} required />
+                    <input id="usia" value={usia} onChange={(e) => handleUsiaChange(e.target.value)} placeholder="Type.." className="w-full border rounded-md px-3 py-2" inputMode="numeric" maxLength={3} required />
                     {errors.usia && <div className="text-xs text-red-600 mt-1">{errors.usia}</div>}
                   </div>
 
@@ -1381,11 +1429,14 @@ function ContributorEditDeleteDataPageContent() {
               </div>
               <div>
                 <label className="text-xs text-gray-700">Tanggal Terbit (DD / MM / YYYY) <span className="text-red-500">*</span></label>
-                <div className="flex gap-2 mt-1">
-                  <input id="sumber-date-dd" value={srcDateDd} onChange={(e) => setSrcDateDd(e.target.value)} placeholder="DD" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
-                  <input id="sumber-date-mm" value={srcDateMm} onChange={(e) => setSrcDateMm(e.target.value)} placeholder="MM" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
-                  <input id="sumber-date-yyyy" value={srcDateYyyy} onChange={(e) => setSrcDateYyyy(e.target.value)} placeholder="YYYY" maxLength={4} className="w-28 border rounded-md px-3 py-2" inputMode="numeric" required />
-                </div>
+                <FancyDatePicker
+                  id="sumber-date"
+                  value={sumberDateValue}
+                  max={todayIso}
+                  onChange={handleSumberDateChange}
+                  required
+                  error={errors['sumber-date']}
+                />
               </div>
               <div className="md:col-span-2">
                 <label htmlFor="sumber-url" className="text-xs text-gray-700">URL <span className="text-red-500">*</span></label>
@@ -1403,11 +1454,19 @@ function ContributorEditDeleteDataPageContent() {
                 const urlPattern = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/.*)?$/;
                 const maybeUrl = urlPattern.test(srcUrl.trim());
                 const maybeImg = urlPattern.test(srcImgUrl.trim());
-                const dd = (srcDateDd || '').trim();
-                const mm = (srcDateMm || '').trim();
-                const yyyy = (srcDateYyyy || '').trim();
-                if (!srcPortal.trim() || !srcAuthor.trim() || !srcTitle.trim() || !srcType.trim() || !srcUrl.trim() || !maybeUrl || !srcImgUrl.trim() || !maybeImg || !(dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4)) {
+                const dateValue = sumberDateValue;
+                if (!srcPortal.trim() || !srcAuthor.trim() || !srcTitle.trim() || !srcType.trim() || !srcUrl.trim() || !maybeUrl || !srcImgUrl.trim() || !maybeImg || !dateValue) {
                   setErrors((p) => ({ ...p, sumberBerita: "Semua field sumber wajib diisi dengan format yang valid (judul, portal, penulis, tipe, tanggal, URL, dan URL gambar)." }));
+                  if (!dateValue) setErrors((p) => ({ ...p, 'sumber-date': "Tanggal terbit wajib diisi." }));
+                  return;
+                }
+                if (dateValue > todayIso) {
+                  setErrors((p) => ({ ...p, 'sumber-date': "Tanggal terbit tidak boleh lebih dari hari ini." }));
+                  return;
+                }
+                const parsedDate = new Date(`${dateValue}T00:00:00Z`);
+                if (Number.isNaN(parsedDate.getTime())) {
+                  setErrors((p) => ({ ...p, 'sumber-date': "Format tanggal terbit tidak valid." }));
                   return;
                 }
                 const s = {
@@ -1418,20 +1477,14 @@ function ContributorEditDeleteDataPageContent() {
                   url: srcUrl.trim(),
                   author: srcAuthor.trim(),
                   // store null when empty so backend DateTime field isn't given an empty string
-                  // assemble date_published from DD/MM/YYYY inputs to ISO UTC midnight when provided
-                  date_published: (function() {
-                    if (dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4) {
-                      const d = new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0));
-                      if (!isNaN(d.getTime())) return d.toISOString();
-                    }
-                    return null;
-                  })(),
+                  // assemble date_published from single date input (UTC midnight)
+                  date_published: parsedDate.toISOString(),
                   img_url: srcImgUrl.trim(),
                 };
                 setSelectedSumber(s);
                 setSumberBerita(s.url ?? '');
                 // clear error if any
-                setErrors((p) => { const np = { ...p }; delete np.sumberBerita; return np; });
+                setErrors((p) => { const np = { ...p }; delete np.sumberBerita; delete np['sumber-date']; return np; });
                 setShowAddSumberModal(false);
               }} className="px-3 py-2 bg-[#0069cf] text-white rounded-md">Simpan</button>
             </div>

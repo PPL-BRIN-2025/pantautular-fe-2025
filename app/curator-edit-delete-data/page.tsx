@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from 'next/navigation';
 import { API_BASE } from '../../config';
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import AccessDeniedNotice from "../components/AccessDenied";
 import { useAuth } from "../auth/hooks/useAuth";
+import FancyDatePicker from "../components/FancyDatePicker";
 
 import type { FilterState, FilterStateDashboard, User } from "@/types";
 
@@ -50,10 +51,10 @@ export default function CuratorEditDeleteDataPage() {
         return;
       }
   
-      if (!effectiveUser) {
-        setAccessState("redirect");
-        return;
-      }
+        if (!effectiveUser) {
+          setAccessState("redirect");
+          return;
+        }
   
       const role = normalizeRole(effectiveUser.role);
       if (!ALLOWED_ROLES.has(role)) {
@@ -74,9 +75,6 @@ export default function CuratorEditDeleteDataPage() {
     }, [accessState, router]);
 
   const [srcDatePublished, setSrcDatePublished] = useState("");
-  const [srcDateDd, setSrcDateDd] = useState("");
-  const [srcDateMm, setSrcDateMm] = useState("");
-  const [srcDateYyyy, setSrcDateYyyy] = useState("");
   const [srcImgUrl, setSrcImgUrl] = useState("");
   const [ringkasan, setRingkasan] = useState("Penyakit Hepatitis telah menyebar....");
   const [jenisPenyakit, setJenisPenyakit] = useState("");
@@ -113,6 +111,8 @@ export default function CuratorEditDeleteDataPage() {
     // eslint-disable-next-line no-console
     console.debug('[STATE SYNC]', { kewaspadaan, kewaspadaanRaw, tingkatKeparahan });
   }, [kewaspadaanRaw]);
+
+  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
   const [tanggal, setTanggal] = useState({ dd: "23", mm: "01", yyyy: "2024" });
   const [usia, setUsia] = useState("12");
 
@@ -137,6 +137,12 @@ export default function CuratorEditDeleteDataPage() {
   const [editSrcDateDd, setEditSrcDateDd] = useState("");
   const [editSrcDateMm, setEditSrcDateMm] = useState("");
   const [editSrcDateYyyy, setEditSrcDateYyyy] = useState("");
+  const editSumberDateValue = useMemo(() => {
+    if (editSrcDateYyyy && editSrcDateMm && editSrcDateDd) {
+      return `${String(editSrcDateYyyy).padStart(4, '0')}-${String(editSrcDateMm).padStart(2, '0')}-${String(editSrcDateDd).padStart(2, '0')}`;
+    }
+    return "";
+  }, [editSrcDateDd, editSrcDateMm, editSrcDateYyyy]);
   const [editSrcImgUrl, setEditSrcImgUrl] = useState(srcImgUrl);
   const [editRingkasan, setEditRingkasan] = useState(ringkasan);
   const [editJenisKelamin, setEditJenisKelamin] = useState(jenisKelamin);
@@ -206,6 +212,45 @@ export default function CuratorEditDeleteDataPage() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchUuid, setSearchUuid] = useState('');
   const [searchType, setSearchType] = useState<'news' | 'case'>('news');
+
+  const handleEditSumberDateChange = (value: string) => {
+    if (value && value > todayIso) {
+      setErrors((prev) => ({ ...prev, 'sumber-date': "Tanggal terbit tidak boleh lebih dari hari ini." }));
+      return;
+    }
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next['sumber-date'];
+      return next;
+    });
+    if (!value) {
+      setEditSrcDateDd("");
+      setEditSrcDateMm("");
+      setEditSrcDateYyyy("");
+      setEditSrcDatePublished("");
+      return;
+    }
+    const [yyyy, mm, dd] = value.split("-");
+    setEditSrcDateDd(dd || "");
+    setEditSrcDateMm(mm || "");
+    setEditSrcDateYyyy(yyyy || "");
+    const iso = new Date(`${value}T00:00:00Z`);
+    setEditSrcDatePublished(!isNaN(iso.getTime()) ? iso.toISOString() : "");
+  };
+
+  const handleEditUsiaChange = (value: string) => {
+    const numeric = value.replace(/\D/g, "").slice(0, 3);
+    if (value && numeric !== value) {
+      setErrors((prev) => ({ ...prev, usia: "Usia hanya boleh angka." }));
+    } else {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.usia;
+        return next;
+      });
+    }
+    setEditUsia(numeric);
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -550,11 +595,16 @@ export default function CuratorEditDeleteDataPage() {
         if (!editLokasi || !String(editLokasi).trim()) newErrors.lokasi = 'Wajib diisi.';
         if (!editProvinsi || !String(editProvinsi).trim()) newErrors.provinsi = 'Wajib diisi.';
         if (!editUsia || !String(editUsia).trim()) newErrors.usia = 'Wajib diisi.';
+        if (editUsia && !/^[0-9]+$/.test(String(editUsia).trim())) newErrors.usia = 'Usia hanya boleh angka.';
         if (!editRingkasan || !String(editRingkasan).trim()) newErrors.ringkasan = 'Wajib diisi.';
         if (!editTingkatKeparahan || !String(editTingkatKeparahan).trim()) newErrors.keparahan = 'Wajib dipilih.';
         // if any manual modal checks failed, set errors and abort
         if (Object.keys(newErrors).length) {
           setErrors((p) => ({ ...p, ...newErrors, form: 'Mohon lengkapi semua field yang wajib diisi.' }));
+          return;
+        }
+        if (editSumberDateValue && editSumberDateValue > todayIso) {
+          setErrors((p) => ({ ...p, 'sumber-date': "Tanggal terbit tidak boleh lebih dari hari ini." }));
           return;
         }
         if (formEl && !formEl.checkValidity()) {
@@ -657,11 +707,8 @@ export default function CuratorEditDeleteDataPage() {
               date_published: (function() {
                 const raw = (editSrcDatePublished || '').trim();
                 if (raw) return raw;
-                const dd = (editSrcDateDd || '').trim();
-                const mm = (editSrcDateMm || '').trim();
-                const yyyy = (editSrcDateYyyy || '').trim();
-                if (dd && mm && yyyy && dd.length <= 2 && mm.length <= 2 && yyyy.length === 4) {
-                  const d = new Date(Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0));
+                if (editSumberDateValue) {
+                  const d = new Date(`${editSumberDateValue}T00:00:00Z`);
                   if (!isNaN(d.getTime())) return d.toISOString();
                 }
                 return null;
@@ -1169,16 +1216,14 @@ export default function CuratorEditDeleteDataPage() {
                       <label className="text-xs text-gray-700">Tanggal Terbit (DD / MM / YYYY) <span className="text-red-500">*</span></label>
                       {isEditing ? (
                         <>
-                          <div className="flex gap-2 mt-1">
-                            <input id="sumber-date-dd" value={editSrcDateDd} onChange={(e) => setEditSrcDateDd(e.target.value)} placeholder="DD" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
-                            <input id="sumber-date-mm" value={editSrcDateMm} onChange={(e) => setEditSrcDateMm(e.target.value)} placeholder="MM" maxLength={2} className="w-20 border rounded-md px-3 py-2" inputMode="numeric" required />
-                            <input id="sumber-date-yyyy" value={editSrcDateYyyy} onChange={(e) => setEditSrcDateYyyy(e.target.value)} placeholder="YYYY" maxLength={4} className="w-28 border rounded-md px-3 py-2" inputMode="numeric" required />
-                          </div>
-                          <div>
-                            {errors['sumber-date-dd'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-date-dd']}</div>}
-                            {errors['sumber-date-mm'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-date-mm']}</div>}
-                            {errors['sumber-date-yyyy'] && <div className="text-xs text-red-600 mt-1">{errors['sumber-date-yyyy']}</div>}
-                          </div>
+                          <FancyDatePicker
+                            id="sumber-date"
+                            value={editSumberDateValue}
+                            max={todayIso}
+                            onChange={handleEditSumberDateChange}
+                            required
+                            error={errors['sumber-date']}
+                          />
                         </>
                       ) : (
                         // keep the visual style similar to inputs even when not editable
@@ -1421,10 +1466,11 @@ export default function CuratorEditDeleteDataPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Usia Penderita <span className="text-red-500">*</span></label>
                   {isEditing ? (
-                    <input value={editUsia} onChange={(e) => setEditUsia(e.target.value)} className="w-full border rounded-md px-3 py-2" required />
+                    <input value={editUsia} onChange={(e) => handleEditUsiaChange(e.target.value)} className="w-full border rounded-md px-3 py-2" inputMode="numeric" maxLength={3} required />
                   ) : (
-                    <input value={usia} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" />
+                    <input value={usia} disabled className="w-full border rounded-md px-3 py-2 bg-gray-50" maxLength={3} />
                   )}
+                  {errors.usia && <div className="text-xs text-red-600 mt-1">{errors.usia}</div>}
                 </div>
 
                 <div>

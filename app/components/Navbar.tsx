@@ -86,6 +86,7 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     
       ],
     },
+    { label: "Berita", href: "/news" },
   ],
 
   EXP_USER: [
@@ -101,6 +102,7 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
         { label: "Tambah data melalui CSV", href: "/expert-bulk-upload" },
       ],
     },
+    { label: "Berita", href: "/news" },
     { label: "Bantuan", href: "/help" },
   ],
 
@@ -116,13 +118,14 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
     },
     { label: "Dashboard Kurator", href: "/curator-dashboard" },
     { label: "Manajemen Kontribusi", href: "/contribution-management" },
+    { label: "Berita", href: "/news" },
     { label: "Bantuan", href: "/help" },
   ],
 
   CONTRIBUTOR: [
     { label: "Tambah data", href: "/contributor-event-reporting" },
-    { label: "Ubah & Hapus data", href: "/contributor-edit-delete-data" },
-    { label: "Data Pending", href: "/contributor-data-pending" },
+    { label: "Kontribusi Saya", href: "/contributor-data-pending" },
+    { label: "Berita", href: "/news" },
     { label: "Bantuan", href: "/help" },
   ],
 };
