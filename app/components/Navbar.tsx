@@ -70,8 +70,8 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
       href: "/curator-data-management",
       children: [
         { label: "Tambah Data", href: "/curator-add-data" },
-        // 🔄 changed
         { label: "Lihat List Data", href: "/curator-data-management" },
+        { label: "Manajemen Kontribusi", href: "/contribution-management" },
       ],
     },
     {
@@ -84,6 +84,14 @@ const ROLE_NAV_LINKS: Record<string, RoleNavLink[]> = {
         { label: "Lihat List Data", href: "/curator-data-management" },
         { label: "Tambah data melalui CSV", href: "/expert-bulk-upload" },
     
+      ],
+    },
+    {
+      label: "Fitur Kontributor",
+      href: "/contributor-event-reporting",
+      children: [
+        { label: "Tambah data", href: "/contributor-event-reporting" },
+        { label: "Kontribusi Saya", href: "/contributor-data-pending" },
       ],
     },
     { label: "Berita", href: "/news" },
@@ -172,7 +180,7 @@ function RoleAccessMenu({ role }: Readonly<{ role: string }>) {
         </svg>
       </button>
 
-      <ul className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-hidden min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[700px] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200">
+      <ul className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-y-auto min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[70vh] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200">
         {links.map((item) => (
           <li key={item.label} className="border-b border-gray-200 last:border-b-0">
             {item.disabled ? (
@@ -234,7 +242,7 @@ function CuratorDropdown({ name, role }: { name?: string | null; role?: string |
         </svg>
       </button>
 
-      <ul className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-hidden min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[700px] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200">
+      <ul className="absolute top-5 left-0 z-50 block space-y-2 shadow-lg bg-white overflow-y-auto min-w-[200px] opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-[70vh] px-4 group-hover:pb-4 group-hover:pt-4 transition-all duration-200">
         {links.map((item) => (
           <li key={item.label} className="border-b border-gray-200 last:border-b-0">
             {item.disabled ? (
