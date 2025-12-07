@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -13,7 +13,10 @@ import {
   reviewContributorEvent,
 } from "../../api/contributorEvents";
 
-const APPROVER_ROLES = new Set(["CURATOR", "ADMIN"]);
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
+
+const ALLOWED_ROLES = new Set(["CURATOR", "ADMIN"]);
+
 const normalizeRole = (role?: string | null) =>
   role ? role.trim().toUpperCase() : "";
 
@@ -50,12 +53,58 @@ const statePillClass = (state?: string) => {
   return "bg-amber-100 text-amber-800";
 };
 
-export default function ContributionManagementPage() {
+function ContributionManagementPageContent() {
   const router = useRouter();
   const { user } = useAuth();
-  const role = normalizeRole(user?.role as any);
-  const canReview = useMemo(() => APPROVER_ROLES.has(role), [role]);
 
+  const [effectiveUser, setEffectiveUser] = useState<{ role?: string } | null>(
+    null,
+  );
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
+  useEffect(() => {
+    let resolvedUser = user as { role?: string } | null;
+    if (!resolvedUser && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) {
+          resolvedUser = JSON.parse(stored) as { role?: string };
+        }
+      } catch (err) {
+        console.warn("Failed to parse stored user info", err);
+      }
+    }
+    setEffectiveUser(resolvedUser ?? null);
+    setIsCheckingAccess(false);
+  }, [user]);
+
+
+  useEffect(() => {
+    if (isCheckingAccess) return;
+
+    if (!effectiveUser) {
+      setAccessState("redirect");
+      return;
+    }
+
+    const role = normalizeRole(effectiveUser.role);
+    if (!ALLOWED_ROLES.has(role)) {
+      setAccessState("forbidden");
+      return;
+    }
+
+    setAccessState("granted");
+  }, [effectiveUser, isCheckingAccess]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+
+    const nextParam = encodeURIComponent("/contribution-management");
+    router.replace(`/login?next=${nextParam}`);
+  }, [accessState, router]);
+
+  // --- STATE DATA LIST & MODAL ---
   const [items, setItems] = useState<ContributorCaseRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,25 +113,6 @@ export default function ContributionManagementPage() {
   const [note, setNote] = useState("");
   const [acting, setActing] = useState(false);
   const [viewItem, setViewItem] = useState<ContributorCaseRead | null>(null);
-
-  // ✅ Redirect ke login kalau belum login
-  useEffect(() => {
-    if (!user) {
-      if (typeof window !== "undefined") {
-        const next = encodeURIComponent(
-          window.location.pathname + window.location.search
-        );
-        router.replace(`/login?next=${next}`);
-      }
-    }
-  }, [user, router]);
-
-  // Load data hanya kalau ROLE benar
-  useEffect(() => {
-    if (!user || !canReview) return;
-    fetchSubmissions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, canReview]);
 
   const fetchSubmissions = async () => {
     setLoading(true);
@@ -96,7 +126,7 @@ export default function ContributionManagementPage() {
         setError(
           typeof err.detail === "string"
             ? err.detail
-            : "Gagal memuat data kontribusi. Pastikan Anda memiliki akses."
+            : "Gagal memuat data kontribusi. Pastikan Anda memiliki akses.",
         );
       } else {
         setError("Gagal memuat data kontribusi.");
@@ -106,9 +136,16 @@ export default function ContributionManagementPage() {
     }
   };
 
+  // load data HANYA kalau akses sudah "granted"
+  useEffect(() => {
+    if (accessState !== "granted") return;
+    fetchSubmissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessState]);
+
   const openAction = (
     item: ContributorCaseRead,
-    action: "approve" | "reject"
+    action: "approve" | "reject",
   ) => {
     setActionModal({ item, action });
     setNote("");
@@ -118,17 +155,20 @@ export default function ContributionManagementPage() {
 
   const handleAction = async () => {
     if (!actionModal) return;
+
     if (actionModal.action === "reject" && !note.trim()) {
       setError("Catatan wajib diisi untuk penolakan.");
       return;
     }
+
     setActing(true);
     setError(null);
+
     try {
       await reviewContributorEvent(
         actionModal.item.id,
         actionModal.action,
-        note.trim()
+        note.trim(),
       );
 
       setActionModal(null);
@@ -136,7 +176,7 @@ export default function ContributionManagementPage() {
       setSuccess(
         actionModal.action === "approve"
           ? "Pengajuan berhasil diterima."
-          : "Pengajuan berhasil ditolak."
+          : "Pengajuan berhasil ditolak.",
       );
       fetchSubmissions();
     } catch (err: any) {
@@ -154,19 +194,25 @@ export default function ContributionManagementPage() {
     }
   };
 
-  if (!user) {
+
+
+  if (accessState === "redirect") {
+    return null;
+  }
+
+  if (accessState === "loading") {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar />
-        <main className="pt-24 pb-16 text-center text-slate-600">
-          Mengarahkan ke halaman login...
+        <main className="pt-24 pb-16 flex justify-center">
+          <div className="text-sm text-slate-600">Memeriksa akses...</div>
         </main>
         <Footer />
       </div>
     );
   }
 
-  if (!canReview) {
+  if (accessState === "forbidden") {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar />
@@ -176,6 +222,7 @@ export default function ContributionManagementPage() {
     );
   }
 
+  // accessState === "granted"
   const successBanner = success ? (
     <div className="px-6 py-3 bg-green-50 text-sm text-green-700 border-b border-green-100">
       {success}
@@ -219,6 +266,7 @@ export default function ContributionManagementPage() {
                 </button>
               </div>
             </div>
+
             {/* c8 ignore next */}
             {/* istanbul ignore next */}
             {error && (
@@ -385,7 +433,7 @@ export default function ContributionManagementPage() {
               </button>
               <button
                 onClick={handleAction}
-                className="px-4 py-2 rounded-md text-sm text-white"
+                className="px-4 py-2 rounded-md text-sm text-white disabled:opacity-60"
                 disabled={acting}
                 style={{
                   backgroundColor:
@@ -448,9 +496,7 @@ export default function ContributionManagementPage() {
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Usia</div>
-                  <div className="font-semibold">
-                    {viewItem.age ?? "-"}
-                  </div>
+                  <div className="font-semibold">{viewItem.age ?? "-"}</div>
                 </div>
                 {/* c8 ignore next */}
                 {/* istanbul ignore next */}
@@ -479,7 +525,9 @@ export default function ContributionManagementPage() {
                 {/* c8 ignore next */}
                 {/* istanbul ignore next */}
                 <div>
-                  <div className="text-xs text-slate-500">Dikumpulkan oleh</div>
+                  <div className="text-xs text-slate-500">
+                    Dikumpulkan oleh
+                  </div>
                   <div className="font-semibold">
                     {submitterFor(viewItem)}
                   </div>
@@ -574,4 +622,8 @@ export default function ContributionManagementPage() {
       )}
     </div>
   );
+}
+
+export default function ContributionManagementPage() {
+  return <ContributionManagementPageContent />;
 }

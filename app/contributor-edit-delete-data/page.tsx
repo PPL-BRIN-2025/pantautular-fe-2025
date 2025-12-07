@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
-import AccessDeniedNotice from "../components/AccessDenied";
+import AccessDeniedNotice from "../components/AccessDenied3";
 import { useAuth } from "../auth/hooks/useAuth";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -14,7 +14,8 @@ import type { User } from "@/types";
 
 type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
-const ALLOWED_ROLES = new Set(["CONTRIBUTOR"]);
+const ALLOWED_ROLES = new Set(["CONTRIBUTOR", "ADMIN"]);
+
 /* istanbul ignore next */
 const normalizeRole = (role?: string | null) => (role ? role.trim().toUpperCase() : "");
 

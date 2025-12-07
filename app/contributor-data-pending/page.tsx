@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -13,13 +13,13 @@ import {
   deleteContributorEvent,
 } from "../../api/contributorEvents";
 
-const CONTRIBUTOR_ROLES = new Set(["CONTRIBUTOR"]);
+type AccessState = "loading" | "redirect" | "forbidden" | "granted";
 
-/* istanbul ignore next */
+const ALLOWED_ROLES = new Set(["CONTRIBUTOR", "ADMIN"]);
+
 const normalizeRole = (role?: string | null) =>
   role ? role.trim().toUpperCase() : "";
 
-/* istanbul ignore next */
 const formatDate = (value?: string) => {
   if (!value) return "-";
   const d = new Date(value);
@@ -33,11 +33,9 @@ const formatDate = (value?: string) => {
   });
 };
 
-/* istanbul ignore next */
 const titleFor = (item: ContributorCaseRead) =>
   item.news?.title || item.disease_name || item.city || "Tanpa judul";
 
-/* istanbul ignore next */
 const statePillClass = (state?: string) => {
   const s = (state || "PENDING").toUpperCase();
   if (s === "APPROVED") return "bg-green-100 text-green-800";
@@ -45,14 +43,58 @@ const statePillClass = (state?: string) => {
   return "bg-amber-100 text-amber-800";
 };
 
-export default function ContributorDataPendingPage() {
+function ContributorDataPendingPageContent() {
   const router = useRouter();
   const { user } = useAuth();
-  const role = normalizeRole(user?.role as any);
-  const canAccess = useMemo(() => CONTRIBUTOR_ROLES.has(role), [role]);
 
+  const [effectiveUser, setEffectiveUser] = useState<{ role?: string } | null>(
+    null,
+  );
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [accessState, setAccessState] = useState<AccessState>("loading");
+
+  useEffect(() => {
+    let resolvedUser = user as { role?: string } | null;
+    if (!resolvedUser && typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("user");
+        if (stored) {
+          resolvedUser = JSON.parse(stored) as { role?: string };
+        }
+      } catch (err) {
+        console.warn("Failed to parse stored user info", err);
+      }
+    }
+    setEffectiveUser(resolvedUser ?? null);
+    setIsCheckingAccess(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (isCheckingAccess) return;
+
+    if (!effectiveUser) {
+      setAccessState("redirect");
+      return;
+    }
+
+    const role = normalizeRole(effectiveUser.role);
+    if (!ALLOWED_ROLES.has(role)) {
+      setAccessState("forbidden");
+      return;
+    }
+
+    setAccessState("granted");
+  }, [effectiveUser, isCheckingAccess]);
+
+  useEffect(() => {
+    if (accessState !== "redirect") return;
+
+    const next = encodeURIComponent("/contributor-data-pending");
+    router.replace(`/login?next=${next}`);
+  }, [accessState, router]);
+
+  // --- DATA + STATE PAGE ---
   const [items, setItems] = useState<ContributorCaseRead[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [viewItem, setViewItem] = useState<ContributorCaseRead | null>(null);
@@ -63,26 +105,12 @@ export default function ContributorDataPendingPage() {
     null,
   );
 
-
-  useEffect(() => {
-    if (!user) {
-      if (typeof window !== "undefined") {
-        const next = encodeURIComponent(
-          window.location.pathname + window.location.search,
-        );
-        router.replace(`/login?next=${next}`);
-      }
-    }
-  }, [user, router]);
-
   const fetchMine = async () => {
-    setLoading(true);
     setError(null);
     setSuccess(null);
     try {
-      // backend otomatis filter created_by = current user utk non-approver
       const data = await listContributorEvents();
-      /* istanbul ignore next */ setItems(Array.isArray(data) ? data : []);
+      setItems(Array.isArray(data) ? data : []);
     } catch (err: any) {
       if (err instanceof HttpError) {
         setError(
@@ -93,16 +121,14 @@ export default function ContributorDataPendingPage() {
       } else {
         setError("Gagal memuat data kontribusi.");
       }
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!user || !canAccess) return;
+    if (accessState !== "granted") return;
     fetchMine();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, canAccess]);
+  }, [accessState]);
 
   const handleEdit = (item: ContributorCaseRead) => {
     router.push(
@@ -116,8 +142,6 @@ export default function ContributorDataPendingPage() {
     setSuccess(null);
   };
 
-
-  /* istanbul ignore next */
   const confirmDelete = async () => {
     if (!deleteTarget) return;
 
@@ -149,23 +173,25 @@ export default function ContributorDataPendingPage() {
     setDeleteTarget(null);
   };
 
-  // kalau belum login: tunggu redirect, jangan render konten
-  if (!user) {
+
+
+  if (accessState === "redirect") {
+    return null;
+  }
+
+  if (accessState === "loading") {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar />
         <main className="pt-24 pb-16 flex justify-center">
-          <div className="text-sm text-slate-600">
-            Mengarahkan ke halaman login...
-          </div>
+          <div className="text-sm text-slate-600">Memeriksa akses...</div>
         </main>
         <Footer />
       </div>
     );
   }
 
-  // sudah login tapi role tidak cocok
-  if (!canAccess) {
+  if (accessState === "forbidden") {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar />
@@ -175,6 +201,7 @@ export default function ContributorDataPendingPage() {
     );
   }
 
+  // accessState === "granted"
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
@@ -218,7 +245,6 @@ export default function ContributorDataPendingPage() {
               </div>
             )}
             {success && (
-              /* istanbul ignore next */
               <div className="px-6 py-3 bg-green-50 text-sm text-green-700 border-b border-green-100">
                 {success}
               </div>
@@ -246,16 +272,7 @@ export default function ContributorDataPendingPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
-                  {loading ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-6 text-center text-sm text-slate-500"
-                      >
-                        Memuat data kontribusi...
-                      </td>
-                    </tr>
-                  ) : items.length === 0 ? (
+                  {items.length === 0 ? (
                     <tr>
                       <td
                         colSpan={5}
@@ -267,9 +284,7 @@ export default function ContributorDataPendingPage() {
                   ) : (
                     items.map((item) => {
                       const pending =
-                        (item.state ||
-                          /* istanbul ignore next */ "PENDING").toUpperCase() ===
-                        "PENDING";
+                        (item.state || "PENDING").toUpperCase() === "PENDING";
 
                       const editBtnClass = `
                         px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs
@@ -298,10 +313,9 @@ export default function ContributorDataPendingPage() {
                               {titleFor(item)}
                             </div>
                             <div className="text-xs text-slate-500">
-                              {/* istanbul ignore next */}
                               {item.disease_name
                                 ? `Penyakit: ${item.disease_name}`
-                                : /* istanbul ignore next */ ""}
+                                : ""}
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-700">
@@ -313,8 +327,7 @@ export default function ContributorDataPendingPage() {
                                 item.state,
                               )}`}
                             >
-                              {item.state ||
-                                /* istanbul ignore next */ "PENDING"}
+                              {item.state || "PENDING"}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-700">
@@ -326,7 +339,6 @@ export default function ContributorDataPendingPage() {
                                 Lihat
                               </button>
                               <button
-                                /* istanbul ignore next */
                                 onClick={() => pending && handleEdit(item)}
                                 className={editBtnClass}
                                 disabled={!pending}
@@ -372,7 +384,7 @@ export default function ContributorDataPendingPage() {
                 <p className="text-xs text-slate-500">ID: {viewItem.id}</p>
               </div>
               <button
-                /* istanbul ignore next */ onClick={() => setViewItem(null)}
+                onClick={() => setViewItem(null)}
                 className="text-slate-500 hover:text-slate-700 text-sm"
               >
                 Tutup
@@ -383,15 +395,13 @@ export default function ContributorDataPendingPage() {
                 <div>
                   <div className="text-xs text-slate-500">Penyakit</div>
                   <div className="font-semibold">
-                    {viewItem.disease_name ||
-                      /* istanbul ignore next */ "-"}
+                    {viewItem.disease_name || "-"}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Lokasi</div>
                   <div className="font-semibold">
-                    {viewItem.location?.city ||
-                      /* istanbul ignore next */ "-"}
+                    {viewItem.location?.city || "-"}
                     {viewItem.location?.province
                       ? `, ${viewItem.location.province}`
                       : ""}
@@ -400,33 +410,33 @@ export default function ContributorDataPendingPage() {
                 <div>
                   <div className="text-xs text-slate-500">Jenis kelamin</div>
                   <div className="font-semibold">
-                    {viewItem.gender || /* istanbul ignore next */ "-"}
+                    {viewItem.gender || "-"}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Usia</div>
-                  <div className="font-semibold">{viewItem.age ?? "-"}</div>
+                  <div className="font-semibold">
+                    {viewItem.age ?? "-"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">
                     Tingkat keparahan
                   </div>
                   <div className="font-semibold">
-                    {viewItem.severity ||
-                      /* istanbul ignore next */ "-"}
+                    {viewItem.severity || "-"}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Status kasus</div>
                   <div className="font-semibold">
-                    {viewItem.status || /* istanbul ignore next */ "-"}
+                    {viewItem.status || "-"}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">State</div>
                   <div className="font-semibold">
-                    {viewItem.state ||
-                      /* istanbul ignore next */ "PENDING"}
+                    {viewItem.state || "PENDING"}
                   </div>
                 </div>
                 <div>
@@ -444,26 +454,20 @@ export default function ContributorDataPendingPage() {
                 {viewItem.news ? (
                   <div className="mt-2 space-y-1">
                     <div className="font-semibold">
-                      {viewItem.news.title ||
-                        /* istanbul ignore next */ "-"}
+                      {viewItem.news.title || "-"}
                     </div>
                     <div className="text-xs text-slate-600">
-                      {(viewItem.news.portal ||
-                        /* istanbul ignore next */ "-") +
+                      {(viewItem.news.portal || "-") +
                         " - " +
-                        (viewItem.news.type ||
-                          /* istanbul ignore next */ "-")}
+                        (viewItem.news.type || "-")}
                     </div>
                     <div className="text-xs text-slate-600">
-                      Penulis:{" "}
-                      {viewItem.news.author ||
-                        /* istanbul ignore next */ "-"}
+                      Penulis: {viewItem.news.author || "-"}
                     </div>
                     <div className="text-xs text-slate-600">
                       Tanggal terbit:{" "}
                       {formatDate(
-                        viewItem.news?.date_published ||
-                          /* istanbul ignore next */ undefined,
+                        viewItem.news?.date_published || undefined,
                       )}
                     </div>
                     {viewItem.news.url && (
@@ -534,4 +538,8 @@ export default function ContributorDataPendingPage() {
       )}
     </div>
   );
+}
+
+export default function ContributorDataPendingPage() {
+  return <ContributorDataPendingPageContent />;
 }
