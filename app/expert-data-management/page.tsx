@@ -296,9 +296,25 @@ export default function ExpertDataManagementPage({
                   const isDel = deletingId === r.data_id;
                   return (
                     <tr key={r.data_id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">{r.data_id}</td>
+                      <td
+                        className="px-4 py-3"
+                        title={r.data_id} // tooltip shows full ID
+                      >
+                        {r.data_id ? `${r.data_id.slice(0, 10)}...` : "-"}
+                      </td>
                       <td className="px-4 py-3">{r.file_name}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{r.last_edited}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {r.last_edited
+                          ? new Date(r.last_edited).toLocaleString("id-ID", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })
+                          : "-"}
+                      </td>
                       <td className="px-4 py-3">{r.submitted_by}</td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center gap-2">
