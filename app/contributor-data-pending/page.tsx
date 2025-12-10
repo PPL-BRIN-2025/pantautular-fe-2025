@@ -43,6 +43,11 @@ const statePillClass = (state?: string) => {
   return "bg-amber-100 text-amber-800";
 };
 
+const shortId = (id: string | number) => {
+  const s = String(id);
+  return s.length > 12 ? `${s.slice(0, 12)}...` : s;
+};
+
 function ContributorDataPendingPageContent() {
   const router = useRouter();
   const { user } = useAuth();
@@ -104,6 +109,15 @@ function ContributorDataPendingPageContent() {
   const [deleteTarget, setDeleteTarget] = useState<ContributorCaseRead | null>(
     null,
   );
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!showDeleteSuccess) return;
+    const timer = setTimeout(() => {
+      setShowDeleteSuccess(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [showDeleteSuccess]);
 
   const fetchMine = async () => {
     setError(null);
@@ -153,6 +167,7 @@ function ContributorDataPendingPageContent() {
       await deleteContributorEvent(deleteTarget.id);
       setSuccess("Pengajuan berhasil dihapus.");
       setDeleteTarget(null);
+      setShowDeleteSuccess(true); 
       await fetchMine();
     } catch (err: any) {
       if (err instanceof HttpError) {
@@ -172,8 +187,6 @@ function ContributorDataPendingPageContent() {
   const cancelDelete = () => {
     setDeleteTarget(null);
   };
-
-
 
   if (accessState === "redirect") {
     return null;
@@ -305,8 +318,11 @@ function ContributorDataPendingPageContent() {
 
                       return (
                         <tr key={item.id}>
-                          <td className="px-6 py-4 text-sm text-slate-800 font-mono">
-                            {item.id}
+                          <td
+                            className="px-6 py-4 text-sm text-slate-800 font-mono"
+                            title={String(item.id)} 
+                          >
+                            {shortId(item.id)}
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-800">
                             <div className="font-semibold">
@@ -390,6 +406,7 @@ function ContributorDataPendingPageContent() {
                 Tutup
               </button>
             </div>
+
             <div className="px-6 py-4 space-y-4 text-sm text-slate-800">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -497,10 +514,30 @@ function ContributorDataPendingPageContent() {
                   </div>
                 )}
               </div>
+
+              {/* ACC / REJECT */}
+              {viewItem.state &&
+                viewItem.state.toUpperCase() !== "PENDING" && (
+                  <div className="bg-slate-50 border rounded-md px-4 py-3 space-y-1">
+                    <div className="text-xs text-slate-500">
+                      {viewItem.state.toUpperCase() === "APPROVED"
+                        ? "Pengajuan kamu telah DISETUJUI oleh kurator."
+                        : "Pengajuan kamu telah DITOLAK oleh kurator."}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Alasan:
+                    </div>
+                    <div className="text-sm text-slate-800">
+                      {viewItem.review_note ||
+                        "Kurator tidak menyertakan catatan."}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         </div>
       )}
+
 
       {/* Modal konfirmasi hapus */}
       {deleteTarget && (
@@ -528,11 +565,19 @@ function ContributorDataPendingPageContent() {
                 className="px-3 py-2 rounded-md bg-red-600 text-white text-sm disabled:opacity-60"
                 disabled={deletingId === deleteTarget.id}
               >
-                {deletingId === deleteTarget.id
-                  ? "Menghapus..."
-                  : "Hapus"}
+                {deletingId === deleteTarget.id ? "Menghapus..." : "Hapus"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+
+      {showDeleteSuccess && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-md p-6 w-full max-w-md flex flex-col items-center">
+            <div className="text-5xl mb-3 animate-pulse">✅</div>
+            <div className="text-sm text-green-700">Pengajuan dihapus</div>
           </div>
         </div>
       )}

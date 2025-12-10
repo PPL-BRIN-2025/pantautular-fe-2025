@@ -20,10 +20,6 @@ const ALLOWED_ROLES = new Set(["CURATOR", "ADMIN"]);
 const normalizeRole = (role?: string | null) =>
   role ? role.trim().toUpperCase() : "";
 
-type ActionState =
-  | { item: ContributorCaseRead; action: "approve" | "reject" }
-  | null;
-
 const formatDate = (value?: string) => {
   if (!value) return "-";
   const d = new Date(value);
@@ -53,6 +49,11 @@ const statePillClass = (state?: string) => {
   return "bg-amber-100 text-amber-800";
 };
 
+const shortId = (id: string | number) => {
+  const s = String(id);
+  return s.length > 12 ? `${s.slice(0, 12)}...` : s;
+};
+
 function ContributionManagementPageContent() {
   const router = useRouter();
   const { user } = useAuth();
@@ -78,7 +79,6 @@ function ContributionManagementPageContent() {
     setEffectiveUser(resolvedUser ?? null);
     setIsCheckingAccess(false);
   }, [user]);
-
 
   useEffect(() => {
     if (isCheckingAccess) return;
@@ -107,29 +107,31 @@ function ContributionManagementPageContent() {
   // --- STATE DATA LIST & MODAL ---
   const [items, setItems] = useState<ContributorCaseRead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+
   const [success, setSuccess] = useState<string | null>(null);
-  const [actionModal, setActionModal] = useState<ActionState>(null);
   const [note, setNote] = useState("");
   const [acting, setActing] = useState(false);
   const [viewItem, setViewItem] = useState<ContributorCaseRead | null>(null);
 
   const fetchSubmissions = async () => {
     setLoading(true);
-    setError(null);
+    setPageError(null);
     setSuccess(null);
     try {
       const data = await listContributorEvents();
       setItems(Array.isArray(data) ? data : []);
     } catch (err: any) {
       if (err instanceof HttpError) {
-        setError(
+        setPageError(
           typeof err.detail === "string"
             ? err.detail
             : "Gagal memuat data kontribusi. Pastikan Anda memiliki akses.",
         );
       } else {
-        setError("Gagal memuat data kontribusi.");
+        setPageError("Gagal memuat data kontribusi.");
       }
     } finally {
       setLoading(false);
@@ -143,38 +145,25 @@ function ContributionManagementPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessState]);
 
-  const openAction = (
-    item: ContributorCaseRead,
-    action: "approve" | "reject",
-  ) => {
-    setActionModal({ item, action });
-    setNote("");
-    setSuccess(null);
-    setError(null);
-  };
+  const handleAction = async (action: "approve" | "reject") => {
+    if (!viewItem) return;
 
-  const handleAction = async () => {
-    if (!actionModal) return;
-
-    if (actionModal.action === "reject" && !note.trim()) {
-      setError("Catatan wajib diisi untuk penolakan.");
+    if (action === "reject" && !note.trim()) {
+      setModalError("Catatan wajib diisi untuk penolakan.");
       return;
     }
 
     setActing(true);
-    setError(null);
+    setModalError(null);
 
     try {
-      await reviewContributorEvent(
-        actionModal.item.id,
-        actionModal.action,
-        note.trim(),
-      );
+      await reviewContributorEvent(viewItem.id, action, note.trim());
 
-      setActionModal(null);
+      setViewItem(null);
       setNote("");
+      setModalError(null);
       setSuccess(
-        actionModal.action === "approve"
+        action === "approve"
           ? "Pengajuan berhasil diterima."
           : "Pengajuan berhasil ditolak.",
       );
@@ -185,16 +174,14 @@ function ContributionManagementPageContent() {
           typeof err.detail === "string"
             ? err.detail
             : err.detail?.detail || "Gagal memproses tindakan.";
-        setError(detail);
+        setModalError(detail);
       } else {
-        setError("Gagal memproses tindakan.");
+        setModalError("Gagal memproses tindakan.");
       }
     } finally {
       setActing(false);
     }
   };
-
-
 
   if (accessState === "redirect") {
     return null;
@@ -267,13 +254,15 @@ function ContributionManagementPageContent() {
               </div>
             </div>
 
+            {/* error untuk halaman utama */}
             {/* c8 ignore next */}
             {/* istanbul ignore next */}
-            {error && (
+            {pageError && (
               <div className="px-6 py-3 bg-red-50 text-sm text-red-700 border-b border-red-100">
-                {error}
+                {pageError}
               </div>
             )}
+
             {/* c8 ignore next */}
             {successBanner}
 
@@ -323,9 +312,13 @@ function ContributionManagementPageContent() {
                   ) : (
                     items.map((item) => (
                       <tr key={item.id}>
-                        <td className="px-6 py-4 text-sm text-slate-800 font-mono">
-                          {item.id}
+                        <td
+                          className="px-6 py-4 text-sm text-slate-800 font-mono"
+                          title={String(item.id)}
+                        >
+                          {shortId(item.id)}
                         </td>
+
                         <td className="px-6 py-4 text-sm text-slate-800">
                           <div className="font-semibold">{titleFor(item)}</div>
                           {/* c8 ignore next */}
@@ -356,24 +349,14 @@ function ContributionManagementPageContent() {
                         <td className="px-6 py-4 text-sm text-slate-700">
                           <div className="flex gap-2 flex-nowrap">
                             <button
-                              onClick={() => setViewItem(item)}
+                              onClick={() => {
+                                setViewItem(item);
+                                setNote("");
+                                setModalError(null);
+                              }}
                               className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs"
                             >
                               Lihat
-                            </button>
-                            <button
-                              onClick={() => openAction(item, "approve")}
-                              className="px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700 text-xs disabled:opacity-60"
-                              disabled={acting || !isPending(item)}
-                            >
-                              Terima
-                            </button>
-                            <button
-                              onClick={() => openAction(item, "reject")}
-                              className="px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 text-xs disabled:opacity-60"
-                              disabled={acting || !isPending(item)}
-                            >
-                              Tolak
                             </button>
                           </div>
                         </td>
@@ -388,73 +371,11 @@ function ContributionManagementPageContent() {
       </main>
       <Footer />
 
-      {/* Modal approve/reject */}
-      {actionModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-            <div className="px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold text-slate-900">
-                {actionModal.action === "approve"
-                  ? "Terima Pengajuan"
-                  : "Tolak Pengajuan"}
-              </h3>
-              <p className="text-sm text-slate-600 mt-1">
-                {titleFor(actionModal.item)}
-              </p>
-            </div>
-            <div className="px-6 py-4 space-y-3">
-              <p className="text-sm text-slate-700">
-                {actionModal.action === "approve"
-                  ? "Anda akan menyetujui pengajuan ini."
-                  : "Berikan alasan penolakan untuk pengajuan ini."}
-              </p>
-              <label className="block text-sm text-slate-700">
-                Catatan (opsional untuk terima, wajib untuk tolak)
-                <textarea
-                  className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  rows={3}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder={
-                    actionModal.action === "approve"
-                      ? "Contoh: Data terlihat valid."
-                      : "Contoh: Data tidak lengkap."
-                  }
-                />
-              </label>
-            </div>
-            <div className="px-6 py-4 border-t flex justify-end gap-2">
-              <button
-                onClick={() => setActionModal(null)}
-                className="px-4 py-2 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm"
-                disabled={acting}
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleAction}
-                className="px-4 py-2 rounded-md text-sm text-white disabled:opacity-60"
-                disabled={acting}
-                style={{
-                  backgroundColor:
-                    actionModal.action === "approve" ? "#16a34a" : "#dc2626",
-                }}
-              >
-                {acting
-                  ? "Memproses..."
-                  : actionModal.action === "approve"
-                  ? "Terima"
-                  : "Tolak"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal detail */}
+      {/* Modal detail + approve / reject */}
       {viewItem && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-2 md:px-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto">
+
             <div className="px-6 py-4 border-b flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">
@@ -465,7 +386,11 @@ function ContributionManagementPageContent() {
               {/* c8 ignore next */}
               {/* istanbul ignore next */}
               <button
-                onClick={() => setViewItem(null)}
+                onClick={() => {
+                  setViewItem(null);
+                  setNote("");
+                  setModalError(null);
+                }}
                 className="text-slate-500 hover:text-slate-700 text-sm"
               >
                 Tutup
@@ -616,6 +541,50 @@ function ContributionManagementPageContent() {
                   </div>
                 </div>
               ) : null}
+
+              <div className="border-t pt-4 mt-2 space-y-3">
+                {/* error modal */}
+                {modalError && (
+                  <div className="px-3 py-2 rounded-md bg-red-50 text-xs text-red-700 border border-red-100">
+                    {modalError}
+                  </div>
+                )}
+
+                <div className="text-xs text-slate-500">
+                  Tindakan terhadap pengajuan ini
+                </div>
+                <label className="block text-sm text-slate-700">
+                  Catatan
+                  <span className="text-xs text-slate-500 ml-1">
+                    (opsional untuk terima, wajib untuk tolak)
+                  </span>
+                  <textarea
+                    className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    rows={3}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Contoh: Data terlihat valid / Data tidak lengkap."
+                  />
+                </label>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => handleAction("approve")}
+                    className="px-4 py-2 rounded-md text-sm text-white disabled:opacity-60"
+                    disabled={acting || !isPending(viewItem)}
+                    style={{ backgroundColor: "#16a34a" }}
+                  >
+                    {acting ? "Memproses..." : "Terima"}
+                  </button>
+                  <button
+                    onClick={() => handleAction("reject")}
+                    className="px-4 py-2 rounded-md text-sm text-white disabled:opacity-60"
+                    disabled={acting || !isPending(viewItem)}
+                    style={{ backgroundColor: "#dc2626" }}
+                  >
+                    {acting ? "Memproses..." : "Tolak"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
