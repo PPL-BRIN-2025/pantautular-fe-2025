@@ -269,7 +269,10 @@ export default function CuratorDataManagementPage() {
                     return (
                       <li key={r.data_id} className="hover:bg-gray-50">
                         <div className="grid grid-cols-[1fr_1.6fr_1.6fr_1.6fr_1fr] items-center text-sm sm:text-base">
-                          <div className="px-4 py-3 break-words">{r.data_id}</div>
+                        <div className="px-4 py-3 break-words">
+                          {r.data_id ? `${r.data_id.slice(0, 12)}...` : "-"}
+                        </div>
+
                           <div className="px-4 py-3">{r.title}</div>
                           <div className="px-4 py-3">
                             {when ? new Date(when).toLocaleString("id-ID") : "-"}
